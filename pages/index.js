@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { supabase } from './supabaseClient';
+import { supabase } from '../supabaseClient';
 
 // Ny matchordning uppdelad i de 4 blocken
 const INITIAL_SUB_MATCHES = [
