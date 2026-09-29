@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { supabase } from './supabaseClient';
 
 // Ny matchordning uppdelad i de 4 blocken
 const INITIAL_SUB_MATCHES = [
@@ -1218,44 +1219,100 @@ export default function App() {
     performances: []
   });
 
+  // Hämta sparad matchdata från Supabase vid start och lyssna på LIVE-ändringar
+  useEffect(() => {
+    async function loadInitialData() {
+      const { data, error } = await supabase
+        .from('matches')
+        .select('data')
+        .eq('id', 'main_match')
+        .single();
+
+      if (data && data.data) {
+        setMatchData(data.data);
+      } else if (error) {
+        console.log('Ingen tidigare data funnen, skapar ny match...');
+      }
+    }
+
+    loadInitialData();
+
+    // Koppla upp live-lyssnare mot Supabase
+    const channel = supabase
+      .channel('realtime_matches')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'matches',
+          filter: 'id=eq.main_match'
+        },
+        (payload) => {
+          if (payload.new && payload.new.data) {
+            setMatchData(payload.new.data);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // Spara all data till Supabase
+  const saveToSupabase = async (newData) => {
+    setMatchData(newData);
+    await supabase.from('matches').upsert({
+      id: 'main_match',
+      data: newData,
+      updated_at: new Date()
+    });
+  };
+
   const handleSelectMatch = (match) => {
     setSelectedMatch(match);
     setActiveTab('scorer');
   };
 
   const handleLiveUpdateFromScorer = (subMatchId, updatedSubMatchData, scorerPerformances) => {
-    setMatchData(prev => {
-      const updatedMatches = prev.subMatches.map(sm => sm.id === subMatchId ? { ...sm, ...updatedSubMatchData } : sm);
-      
-      const existingPerfIds = new Set(prev.performances.map(p => p.id));
-      const newUniquePerformances = scorerPerformances.filter(p => !existingPerfIds.has(p.id));
+    const updatedMatches = matchData.subMatches.map(sm => sm.id === subMatchId ? { ...sm, ...updatedSubMatchData } : sm);
+    
+    const existingPerfIds = new Set(matchData.performances.map(p => p.id));
+    const newUniquePerformances = scorerPerformances.filter(p => !existingPerfIds.has(p.id));
 
-      return {
-        ...prev,
-        subMatches: updatedMatches,
-        performances: [...prev.performances, ...newUniquePerformances]
-      };
-    });
+    const updatedMatchData = {
+      ...matchData,
+      subMatches: updatedMatches,
+      performances: [...matchData.performances, ...newUniquePerformances]
+    };
+
+    saveToSupabase(updatedMatchData);
   };
 
   const handleSaveMatch = (updatedSubMatchData, newPerformances) => {
     if (!selectedMatch) return;
 
-    setMatchData(prev => {
-      const updatedMatches = prev.subMatches.map(sm => sm.id === selectedMatch.id ? { ...sm, ...updatedSubMatchData } : sm);
-      
-      const existingPerfIds = new Set(prev.performances.map(p => p.id));
-      const newUniquePerformances = newPerformances.filter(p => !existingPerfIds.has(p.id));
+    const updatedMatches = matchData.subMatches.map(sm => sm.id === selectedMatch.id ? { ...sm, ...updatedSubMatchData } : sm);
+    
+    const existingPerfIds = new Set(matchData.performances.map(p => p.id));
+    const newUniquePerformances = newPerformances.filter(p => !existingPerfIds.has(p.id));
 
-      return {
-        ...prev,
-        subMatches: updatedMatches,
-        performances: [...prev.performances, ...newUniquePerformances]
-      };
-    });
+    const updatedMatchData = {
+      ...matchData,
+      subMatches: updatedMatches,
+      performances: [...matchData.performances, ...newUniquePerformances]
+    };
+
+    saveToSupabase(updatedMatchData);
 
     setActiveTab('public');
     setSelectedMatch(null);
+  };
+
+  const handleAdminSetMatchData = (newData) => {
+    saveToSupabase(newData);
   };
 
   return (
@@ -1302,7 +1359,7 @@ export default function App() {
       {activeTab === 'admin' && (
         <AdminView
           matchData={matchData}
-          setMatchData={setMatchData}
+          setMatchData={handleAdminSetMatchData}
           isAdminAuthenticated={isAdminAuthenticated}
           setIsAdminAuthenticated={setIsAdminAuthenticated}
         />
