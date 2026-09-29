@@ -5,26 +5,26 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("domare"); // 'domare' | 'publik'
   const [selectedMatchId, setSelectedMatchId] = useState("S1");
 
-  // Matchstruktur & tillstånd
+  // Matchstruktur med tydliga spelarnamn för både singel och dubbel
   const [matches, setMatches] = useState([
-    // Block 1 (Singlar S1-S3)
+    // Block 1: Singlar S1-S3
     { id: "S1", type: "singel", block: 1, player1: "Spelare A1", player2: "Spelare B1", score1: 0, score2: 0, completed: false, winner: null },
     { id: "S2", type: "singel", block: 1, player1: "Spelare A2", player2: "Spelare B2", score1: 0, score2: 0, completed: false, winner: null },
     { id: "S3", type: "singel", block: 1, player1: "Spelare A3", player2: "Spelare B3", score1: 0, score2: 0, completed: false, winner: null },
 
-    // Block 2 (Dubblar D1-D2)
-    { id: "D1", type: "dubbel", block: 2, player1: "Lag A (D1)", player2: "Lag B (D1)", score1: 0, score2: 0, completed: false, winner: null },
-    { id: "D2", type: "dubbel", block: 2, player1: "Lag A (D2)", player2: "Lag B (D2)", score1: 0, score2: 0, completed: false, winner: null },
+    // Block 2: Dubblar D1-D2
+    { id: "D1", type: "dubbel", block: 2, player1: "Spelare A1 & A2", player2: "Spelare B1 & B2", p1List: ["Spelare A1", "Spelare A2"], p2List: ["Spelare B1", "Spelare B2"], score1: 0, score2: 0, completed: false, winner: null },
+    { id: "D2", type: "dubbel", block: 2, player1: "Spelare A3 & A4", player2: "Spelare B3 & B4", p1List: ["Spelare A3", "Spelare A4"], p2List: ["Spelare B3", "Spelare B4"], score1: 0, score2: 0, completed: false, winner: null },
 
-    // Block 3 (Singlar S4-S7)
+    // Block 3: Singlar S4-S7
     { id: "S4", type: "singel", block: 3, player1: "Spelare A1", player2: "Spelare B2", score1: 0, score2: 0, completed: false, winner: null },
     { id: "S5", type: "singel", block: 3, player1: "Spelare A2", player2: "Spelare B3", score1: 0, score2: 0, completed: false, winner: null },
     { id: "S6", type: "singel", block: 3, player1: "Spelare A3", player2: "Spelare B4", score1: 0, score2: 0, completed: false, winner: null },
     { id: "S7", type: "singel", block: 3, player1: "Spelare A4", player2: "Spelare B1", score1: 0, score2: 0, completed: false, winner: null },
 
-    // Block 4 (Singel S8 & Avgörande Dubbel AD)
+    // Block 4: Singel S8 & Avgörande Dubbel AD
     { id: "S8", type: "singel", block: 4, player1: "Spelare A4", player2: "Spelare B4", score1: 0, score2: 0, completed: false, winner: null },
-    { id: "AD", type: "dubbel", block: 4, player1: "Avgörande Lag A", player2: "Avgörande Lag B", score1: 0, score2: 0, completed: false, winner: null }
+    { id: "AD", type: "dubbel", block: 4, player1: "Valfritt Par A", player2: "Valfritt Par B", p1List: ["Spelare A (AD1)", "Spelare A (AD2)"], p2List: ["Spelare B (AD1)", "Spelare B (AD2)"], score1: 0, score2: 0, completed: false, winner: null }
   ]);
 
   // Prestationer i realtid
@@ -33,7 +33,7 @@ export default function App() {
   const [newAchType, setNewAchType] = useState("180");
   const [newAchValue, setNewAchValue] = useState("");
 
-  // Synka mellan flikar via localStorage om du testar i två fönster
+  // Synkning med localStorage
   useEffect(() => {
     const savedMatches = localStorage.getItem("dart_matches");
     const savedAchievements = localStorage.getItem("dart_achievements");
@@ -65,7 +65,6 @@ export default function App() {
       if (m.id === matchId) {
         let winner = null;
         let completed = false;
-        // Exempel: Bäst av 3 (först till 2) eller anpassat
         if (p1Score >= 2) { winner = 1; completed = true; }
         else if (p2Score >= 2) { winner = 2; completed = true; }
         return { ...m, score1: p1Score, score2: p2Score, completed, winner };
@@ -97,15 +96,24 @@ export default function App() {
   const totalScoreA = matches.reduce((acc, m) => acc + (m.winner === 1 ? 1 : 0), 0);
   const totalScoreB = matches.reduce((acc, m) => acc + (m.winner === 2 ? 1 : 0), 0);
 
-  // Hjälpfunktion för namn-styling
+  // Hjälpfunktion för namn-styling (Grön/Större för vinnare, Röd/Mindre för förlorare)
   const renderPlayerName = (name, isWinner, isLoser) => {
     if (isWinner) {
-      return <span className="text-lg font-bold text-green-400 transition-all">{name} 🏆</span>;
+      return <div className="text-lg font-bold text-green-400 transition-all flex items-center gap-1"><span>{name}</span> <span>🏆</span></div>;
     }
     if (isLoser) {
-      return <span className="text-xs text-red-400 opacity-75 transition-all">{name}</span>;
+      return <div className="text-xs text-red-400 opacity-75 transition-all">{name}</div>;
     }
-    return <span className="text-base font-medium text-white">{name}</span>;
+    return <div className="text-base font-medium text-white">{name}</div>;
+  };
+
+  // Lista av alla spelares namn för den valda matchen (hanterar även dubbellag)
+  const getSelectablePlayers = (match) => {
+    if (!match) return [];
+    if (match.p1List && match.p2List) {
+      return [...match.p1List, ...match.p2List];
+    }
+    return [match.player1, match.player2];
   };
 
   return (
@@ -140,7 +148,7 @@ export default function App() {
       <section className="max-w-5xl mx-auto my-6 bg-slate-800 border border-slate-700 rounded-xl p-4 flex justify-between items-center shadow-lg">
         <div className="text-center flex-1">
           <div className="text-xs text-slate-400 uppercase tracking-widest">Hemma</div>
-          <div className="text-2xl md:text-3xl font-extrabold text-white">Lag A</div>
+          <div className="text-xl md:text-2xl font-extrabold text-white">Lag A</div>
         </div>
         <div className="bg-slate-950 px-6 py-2 rounded-lg border border-slate-800 flex items-center gap-3">
           <span className="text-3xl font-black text-amber-400">{totalScoreA}</span>
@@ -149,7 +157,7 @@ export default function App() {
         </div>
         <div className="text-center flex-1">
           <div className="text-xs text-slate-400 uppercase tracking-widest">Borta</div>
-          <div className="text-2xl md:text-3xl font-extrabold text-white">Lag B</div>
+          <div className="text-xl md:text-2xl font-extrabold text-white">Lag B</div>
         </div>
       </section>
 
@@ -169,8 +177,8 @@ export default function App() {
                   return (
                     <React.Fragment key={m.id}>
                       {isNewBlock && (
-                        <div className="my-3 pt-2 border-t border-amber-500/30 text-[10px] uppercase font-bold tracking-widest text-amber-400/80 text-center">
-                          --- Block {m.block} ---
+                        <div className="my-4 pt-3 border-t-2 border-amber-500/40 text-[11px] uppercase font-bold tracking-widest text-amber-400 text-center bg-slate-900/40 py-1 rounded">
+                          Block {m.block}
                         </div>
                       )}
                       <button
@@ -199,7 +207,7 @@ export default function App() {
             <div className="md:col-span-2 space-y-6">
               {currentMatch && (
                 <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
-                  <h2 className="text-lg font-bold text-amber-400 mb-4 flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-amber-400 mb-4 flex items-center justify-between">
                     <span>Inmatning Match: {currentMatch.id}</span>
                     <span className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded font-normal uppercase">
                       {currentMatch.type}
@@ -213,7 +221,7 @@ export default function App() {
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => handleScoreChange(currentMatch.id, Math.max(0, currentMatch.score1 - 1), currentMatch.score2)}
-                          className="w-8 h-8 bg-slate-700 hover:bg-slate-600 rounded font-bold"
+                          className="w-8 h-8 bg-slate-700 hover:bg-slate-600 rounded font-bold text-white"
                         >-</button>
                         <span className="text-2xl font-black w-8 text-center">{currentMatch.score1}</span>
                         <button
@@ -228,7 +236,7 @@ export default function App() {
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => handleScoreChange(currentMatch.id, currentMatch.score1, Math.max(0, currentMatch.score2 - 1))}
-                          className="w-8 h-8 bg-slate-700 hover:bg-slate-600 rounded font-bold"
+                          className="w-8 h-8 bg-slate-700 hover:bg-slate-600 rounded font-bold text-white"
                         >-</button>
                         <span className="text-2xl font-black w-8 text-center">{currentMatch.score2}</span>
                         <button
@@ -246,18 +254,19 @@ export default function App() {
                       <select
                         value={newAchPlayer}
                         onChange={(e) => setNewAchPlayer(e.target.value)}
-                        className="bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white"
+                        className="bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-400"
                         required
                       >
                         <option value="">-- Välj spelare --</option>
-                        <option value={currentMatch.player1}>{currentMatch.player1}</option>
-                        <option value={currentMatch.player2}>{currentMatch.player2}</option>
+                        {getSelectablePlayers(currentMatch).map((p, i) => (
+                          <option key={i} value={p}>{p}</option>
+                        ))}
                       </select>
 
                       <select
                         value={newAchType}
                         onChange={(e) => setNewAchType(e.target.value)}
-                        className="bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white"
+                        className="bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-400"
                       >
                         <option value="180">180</option>
                         <option value="Hög Utgång">Hög Utgång (100+)</option>
@@ -270,7 +279,7 @@ export default function App() {
                         placeholder="Värde (ex. 120 ut, 14 pilar)"
                         value={newAchValue}
                         onChange={(e) => setNewAchValue(e.target.value)}
-                        className="bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white"
+                        className="bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-400"
                       />
                     </div>
                     <button
@@ -299,13 +308,15 @@ export default function App() {
 
                 return (
                   <div key={blockNum} className="bg-slate-800/80 rounded-xl border border-slate-700 p-5 shadow-lg relative overflow-hidden">
-                    {/* Avskiljare & rubrik för block */}
-                    <div className="flex items-center justify-between border-b border-slate-700 pb-3 mb-4">
+                    {/* Tydlig block-avskiljare */}
+                    <div className="flex items-center justify-between border-b border-amber-500/30 pb-3 mb-4">
                       <h3 className="text-amber-400 font-bold uppercase tracking-wider text-sm flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block shadow-sm shadow-amber-400"></span>
                         {blockTitle}
                       </h3>
-                      <span className="text-xs text-slate-500 font-mono">BLOCK {blockNum}</span>
+                      <span className="text-xs bg-slate-900 text-amber-400 font-mono px-2 py-0.5 rounded border border-slate-700">
+                        BLOCK {blockNum}
+                      </span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -320,7 +331,7 @@ export default function App() {
                             key={m.id}
                             className={`p-4 rounded-lg border transition-all ${
                               m.completed
-                                ? "bg-slate-900/90 border-slate-700"
+                                ? "bg-slate-900 border-slate-700"
                                 : "bg-slate-950/40 border-slate-800"
                             }`}
                           >
@@ -333,15 +344,15 @@ export default function App() {
                               </span>
                             </div>
 
-                            {/* Spelare 1 vs Spelare 2 med visuell resultat-styling */}
-                            <div className="flex justify-between items-center my-2">
-                              <div className="flex-1 pr-2">
+                            {/* Spelare 1 vs Spelare 2 (Dynamisk storlek/färg för vinnare/förlorare) */}
+                            <div className="flex justify-between items-center my-2 gap-2">
+                              <div className="flex-1 pr-1">
                                 {renderPlayerName(m.player1, isP1Winner, isP1Loser)}
                               </div>
                               <div className="text-lg font-black font-mono bg-slate-950 px-3 py-1 rounded border border-slate-800 text-amber-300">
                                 {m.score1} - {m.score2}
                               </div>
-                              <div className="flex-1 pl-2 text-right">
+                              <div className="flex-1 pl-1 text-right">
                                 {renderPlayerName(m.player2, isP2Winner, isP2Loser)}
                               </div>
                             </div>
@@ -355,7 +366,7 @@ export default function App() {
             </div>
 
             {/* LIVE PRESTATIONER BOARD */}
-            <div className="bg-slate-800/90 rounded-xl border border-amber-500/30 p-6 shadow-xl">
+            <div className="bg-slate-800/90 rounded-xl border border-amber-500/40 p-6 shadow-xl">
               <div className="flex items-center justify-between border-b border-slate-700 pb-3 mb-4">
                 <h3 className="text-lg font-bold text-amber-400 flex items-center gap-2">
                   <span>🔥 Live Prestationer</span>
