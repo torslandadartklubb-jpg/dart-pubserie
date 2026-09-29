@@ -1,16 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 
+// Ny matchordning uppdelad i de 4 blocken
 const INITIAL_SUB_MATCHES = [
+  // Block 1
   { id: 'S1', name: 'Singel 1', type: 'single', homePlayer: '', awayPlayer: '', homeScore: 0, awayScore: 0, currentHomePoints: 501, currentAwayPoints: 501, status: 'pending' },
   { id: 'S2', name: 'Singel 2', type: 'single', homePlayer: '', awayPlayer: '', homeScore: 0, awayScore: 0, currentHomePoints: 501, currentAwayPoints: 501, status: 'pending' },
-  { id: 'S3', name: 'Singel 3', type: 'single', homePlayer: '', awayPlayer: '', homeScore: 0, awayScore: 0, currentHomePoints: 501, currentAwayPoints: 501, status: 'pending' },
   { id: 'D1', name: 'Dubbel 1', type: 'double', homePlayer: '', awayPlayer: '', homeScore: 0, awayScore: 0, currentHomePoints: 501, currentAwayPoints: 501, status: 'pending' },
-  { id: 'D2', name: 'Dubbel 2', type: 'double', homePlayer: '', awayPlayer: '', homeScore: 0, awayScore: 0, currentHomePoints: 501, currentAwayPoints: 501, status: 'pending' },
+  { id: 'S3', name: 'Singel 3', type: 'single', homePlayer: '', awayPlayer: '', homeScore: 0, awayScore: 0, currentHomePoints: 501, currentAwayPoints: 501, status: 'pending' },
+  // Block 2
   { id: 'S4', name: 'Singel 4', type: 'single', homePlayer: '', awayPlayer: '', homeScore: 0, awayScore: 0, currentHomePoints: 501, currentAwayPoints: 501, status: 'pending' },
   { id: 'S5', name: 'Singel 5', type: 'single', homePlayer: '', awayPlayer: '', homeScore: 0, awayScore: 0, currentHomePoints: 501, currentAwayPoints: 501, status: 'pending' },
   { id: 'S6', name: 'Singel 6', type: 'single', homePlayer: '', awayPlayer: '', homeScore: 0, awayScore: 0, currentHomePoints: 501, currentAwayPoints: 501, status: 'pending' },
+  { id: 'D2', name: 'Dubbel 2', type: 'double', homePlayer: '', awayPlayer: '', homeScore: 0, awayScore: 0, currentHomePoints: 501, currentAwayPoints: 501, status: 'pending' },
+  // Block 3
   { id: 'S7', name: 'Singel 7', type: 'single', homePlayer: '', awayPlayer: '', homeScore: 0, awayScore: 0, currentHomePoints: 501, currentAwayPoints: 501, status: 'pending' },
   { id: 'S8', name: 'Singel 8', type: 'single', homePlayer: '', awayPlayer: '', homeScore: 0, awayScore: 0, currentHomePoints: 501, currentAwayPoints: 501, status: 'pending' },
+  // Block 4
   { id: 'AD', name: 'Avgörande Dubbel', type: 'double', homePlayer: '', awayPlayer: '', homeScore: 0, awayScore: 0, currentHomePoints: 501, currentAwayPoints: 501, status: 'pending' }
 ];
 
@@ -411,7 +416,7 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
   );
 }
 
-// --- 2. DOMAR VY (Med direkt-synk för liveställning & prestationer) ---
+// --- 2. DOMAR VY ---
 function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) {
   const [homeScore, setHomeScore] = useState(match.currentHomePoints ?? 501);
   const [awayScore, setAwayScore] = useState(match.currentAwayPoints ?? 501);
@@ -446,7 +451,7 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
     }
   }, [rounds, turn]);
 
-  // Uppdatera live-tillstånd till förälder så att publikvyn ser poäng/legs/prestationer live
+  // Uppdatera live-tillstånd till förälder
   useEffect(() => {
     if (onLiveUpdate) {
       onLiveUpdate(match.id, {
@@ -1018,6 +1023,10 @@ function PublicView({ matchData, onSelectMatch }) {
   const homeTotalMatches = matchData.subMatches.filter(m => m.homeScore === 3).length;
   const awayTotalMatches = matchData.subMatches.filter(m => m.awayScore === 3).length;
 
+  // Beräkna totalt antal vunna legs för alla matcher som avslutats/uppdaterats
+  const homeTotalLegs = matchData.subMatches.reduce((sum, m) => sum + (m.homeScore || 0), 0);
+  const awayTotalLegs = matchData.subMatches.reduce((sum, m) => sum + (m.awayScore || 0), 0);
+
   // Hjälpfunktion för att rendera spelarnamn med rätt vinnar-/förlorardesign
   const renderPlayerName = (name, isWinner, isLoser, isHome) => {
     const displayName = name || (isHome ? matchData.homeTeam : matchData.awayTeam) || 'Spelare';
@@ -1046,15 +1055,23 @@ function PublicView({ matchData, onSelectMatch }) {
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', fontFamily: 'sans-serif', color: '#fff' }}>
       
-      {/* Huvudresultat (Lag vs Lag) */}
+      {/* Huvudresultat (Lag vs Lag med både matchställning och totala legs) */}
       <div style={{ backgroundColor: '#0f172a', padding: '20px', borderRadius: '16px', border: '1px solid #1e293b', marginBottom: '20px', textAlign: 'center', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ flex: 1, fontSize: '24px', fontWeight: 'bold', color: '#60a5fa' }}>{matchData.homeTeam || 'Hemmalag'}</div>
-          <div style={{ backgroundColor: '#1e293b', padding: '10px 24px', borderRadius: '12px', border: '2px solid #334155' }}>
-            <span style={{ fontSize: '36px', fontWeight: '900', color: '#fcd34d' }}>{homeTotalMatches}</span>
-            <span style={{ fontSize: '24px', color: '#64748b', margin: '0 12px' }}>-</span>
-            <span style={{ fontSize: '36px', fontWeight: '900', color: '#fcd34d' }}>{awayTotalMatches}</span>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ backgroundColor: '#1e293b', padding: '8px 24px', borderRadius: '12px', border: '2px solid #334155' }}>
+              <span style={{ fontSize: '36px', fontWeight: '900', color: '#fcd34d' }}>{homeTotalMatches}</span>
+              <span style={{ fontSize: '24px', color: '#64748b', margin: '0 12px' }}>-</span>
+              <span style={{ fontSize: '36px', fontWeight: '900', color: '#fcd34d' }}>{awayTotalMatches}</span>
+            </div>
+            {/* Litet sekundärt resultat för totalt antal legs */}
+            <div style={{ marginTop: '8px', fontSize: '13px', color: '#94a3b8', fontWeight: 'bold' }}>
+              Totalt antal legs: <span style={{ color: '#38bdf8' }}>{homeTotalLegs}</span> - <span style={{ color: '#38bdf8' }}>{awayTotalLegs}</span>
+            </div>
           </div>
+
           <div style={{ flex: 1, fontSize: '24px', fontWeight: 'bold', color: '#f43f5e' }}>{matchData.awayTeam || 'Bortalag'}</div>
         </div>
       </div>
@@ -1070,7 +1087,7 @@ function PublicView({ matchData, onSelectMatch }) {
           const isHomeLoser = isCompleted && sm.awayScore === 3;
           const isAwayLoser = isCompleted && sm.homeScore === 3;
 
-          // Mellanrum efter S3, D2 och S8 (Block-uppdelning)
+          // Mellanrum efter Block 1 (S3), Block 2 (D2) och Block 3 (S8)
           const isBlockGap = sm.id === 'S3' || sm.id === 'D2' || sm.id === 'S8';
 
           return (
@@ -1161,7 +1178,7 @@ function PublicView({ matchData, onSelectMatch }) {
         })}
       </div>
 
-      {/* Prestationssektion (Live-uppdateras) */}
+      {/* Prestationssektion */}
       <div style={{ backgroundColor: '#0f172a', padding: '16px', borderRadius: '12px', border: '1px solid #1e293b' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <h3 style={{ color: '#fcd34d', margin: 0, fontSize: '15px', fontWeight: 'bold' }}>⭐ MATCHENS PRESTATIONER (180s / Utgångar)</h3>
@@ -1188,7 +1205,7 @@ function PublicView({ matchData, onSelectMatch }) {
 
 // --- 4. HUVUDKOMPONENT (App) ---
 export default function App() {
-  const [activeTab, setActiveTab] = useState('public'); // 'public', 'admin', 'scorer'
+  const [activeTab, setActiveTab] = useState('public');
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState(null);
 
@@ -1210,7 +1227,6 @@ export default function App() {
     setMatchData(prev => {
       const updatedMatches = prev.subMatches.map(sm => sm.id === subMatchId ? { ...sm, ...updatedSubMatchData } : sm);
       
-      // Slå ihop befintliga och nya unika prestationer i realtid
       const existingPerfIds = new Set(prev.performances.map(p => p.id));
       const newUniquePerformances = scorerPerformances.filter(p => !existingPerfIds.has(p.id));
 
