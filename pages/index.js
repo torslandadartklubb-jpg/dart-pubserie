@@ -261,13 +261,13 @@ export default function App() {
                       >
                         <option value="180">180</option>
                         <option value="Hög Utgång">Hög Utgång (100+)</option>
-                        <option value="Kort Leg">Kort Leg (<= 15 dilar)</option>
+                        <option value="Kort Leg">Kort Leg (≤ 15 pilar)</option>
                         <option value="Övrigt">Övrigt</option>
                       </select>
 
                       <input
                         type="text"
-                        placeholder="Värde (ex. 120 ut, 14 dilar)"
+                        placeholder="Värde (ex. 120 ut, 14 pilar)"
                         value={newAchValue}
                         onChange={(e) => setNewAchValue(e.target.value)}
                         className="bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white"
