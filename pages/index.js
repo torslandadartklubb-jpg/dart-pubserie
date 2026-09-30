@@ -2,6 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 
 // Ny matchordning uppdelad i de 4 blocken
+// Felfångare för äldre iPads
+if (typeof window !== 'undefined') {
+  window.onerror = function(msg, url, line) {
+    alert("iPad-fel: " + msg + " på rad " + line);
+  };
+}
 const INITIAL_SUB_MATCHES = [
   // Block 1
   { id: 'S1', name: 'Singel 1', type: 'single', homePlayer: '', awayPlayer: '', homeScore: 0, awayScore: 0, currentHomePoints: 501, currentAwayPoints: 501, status: 'pending' },
