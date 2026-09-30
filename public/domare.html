@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Dart Domarpanel (iOS 9)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0f172a; color: #fff; font-family: -apple-system, sans-serif; padding: 15px; }
+    
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    select { background: #1e293b; color: #fff; border: 1px solid #334155; padding: 10px; font-size: 16px; border-radius: 8px; width: 100%; max-width: 400px; }
+    
+    .match-box { background: #1e293b; border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 15px; }
+    .teams { font-size: 20px; font-weight: bold; color: #cbd5e1; margin-bottom: 8px; }
+    .scores { font-size: 36px; font-weight: bold; color: #f59e0b; }
+    
+    .input-section { background: #1e293b; border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 15px; }
+    .current-score { font-size: 48px; font-weight: bold; color: #38bdf8; min-height: 60px; margin-bottom: 10px; }
+    
+    .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 400px; margin: 0 auto; }
+    .btn { background: #334155; color: #fff; border: none; padding: 20px; font-size: 24px; font-weight: bold; border-radius: 8px; cursor: pointer; -webkit-appearance: none; }
+    .btn:active { background: #475569; }
+    .btn-action { background: #2563eb; }
+    .btn-clear { background: #dc2626; }
+    .btn-finish { background: #16a34a; width: 100%; max-width: 400px; margin: 15px auto 0; display: block; padding: 18px; font-size: 20px; }
+    
+    .status { text-align: center; font-size: 14px; color: #94a3b8; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <select id="match-select" onchange="selectMatch()">
+      <option value="">-- Välj match --</option>
+    </select>
+  </div>
+
+  <div class="match-box">
+    <div class="teams" id="teams-label">Välj en match ovan</div>
+    <div class="scores" id="score-label">0 - 0</div>
+  </div>
+
+  <div class="input-section">
+    <div class="current-score" id="score-input">0</div>
+    
+    <div class="numpad">
+      <button class="btn" onclick="addNum(1)">1</button>
+      <button class="btn" onclick="addNum(2)">2</button>
+      <button class="btn" onclick="addNum(3)">3</button>
+      <button class="btn" onclick="addNum(4)">4</button>
+      <button class="btn" onclick="addNum(5)">5</button>
+      <button class="btn" onclick="addNum(6)">6</button>
+      <button class="btn" onclick="addNum(7)">7</button>
+      <button class="btn" onclick="addNum(8)">8</button>
+      <button class="btn" onclick="addNum(9)">9</button>
+      <button class="btn btn-clear" onclick="clearScore()">C</button>
+      <button class="btn" onclick="addNum(0)">0</button>
+      <button class="btn btn-action" onclick="submitScore()">Registrera</button>
+    </div>
+
+    <button class="btn btn-finish" onclick="finishMatch()">Spara & Avsluta Match</button>
+  </div>
+
+  <div class="status" id="status-text">Status: Redo</div>
+
+  <script>
+    var SUPABASE_URL = 'https://luznainkmcogcqbuprzw.supabase.co';
+    var SUPABASE_KEY = 'sb_publishable_6psZleJBdhdZFhUTutZqnw_Rr4Y2SI6';
+    
+    var currentMatch = null;
+    var currentInputValue = '';
+
+    function apiRequest(method, endpoint, body, callback) {
+      var xhr = new XMLHttpRequest();
+      xhr.open(method, SUPABASE_URL + endpoint, true);
+      xhr.setRequestHeader('apikey', SUPABASE_KEY);
+      xhr.setRequestHeader('Authorization', 'Bearer ' + SUPABASE_KEY);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            var data = xhr.responseText ? JSON.parse(xhr.responseText) : null;
+            callback(null, data);
+          } else {
+            callback('Fel ' + xhr.status, null);
+          }
+        }
+      };
+      xhr.send(body ? JSON.stringify(body) : null);
+    }
+
+    function fetchMatches() {
+      document.getElementById('status-text').innerText = 'Hämtar matcher...';
+      apiRequest('GET', '/rest/v1/matches?select=*', null, function(err, data) {
+        if (err) {
+          document.getElementById('status-text').innerText = 'Kunde inte hämta matcher.';
+          return;
+        }
+        var select = document.getElementById('match-select');
+        select.innerHTML = '<option value="">-- Välj match --</option>';
+        for (var i = 0; i < data.length; i++) {
+          var m = data[i];
+          var opt = document.createElement('option');
+          opt.value = m.id;
+          opt.innerText = (m.data && m.data.homeTeam) ? (m.data.homeTeam + ' vs ' + m.data.awayTeam) : m.id;
+          select.appendChild(opt);
+        }
+        document.getElementById('status-text').innerText = 'Matcher hämtade.';
+      });
+    }
+
+    function selectMatch() {
+      var matchId = document.getElementById('match-select').value;
+      if (!matchId) return;
+
+      apiRequest('GET', '/rest/v1/matches?id=eq.' + matchId, null, function(err, data) {
+        if (!err && data.length > 0) {
+          currentMatch = data[0];
+          updateUI();
+        }
+      });
+    }
+
+    function updateUI() {
+      if (!currentMatch || !currentMatch.data) return;
+      var d = currentMatch.data;
+      document.getElementById('teams-label').innerText = d.homeTeam + ' vs ' + d.awayTeam;
+      
+      var homeScore = d.homeScore || 0;
+      var awayScore = d.awayScore || 0;
+      document.getElementById('score-label').innerText = homeScore + ' - ' + awayScore;
+    }
+
+    function addNum(n) {
+      if (currentInputValue.length < 3) {
+        currentInputValue += n;
+        document.getElementById('score-input').innerText = currentInputValue;
+      }
+    }
+
+    function clearScore() {
+      currentInputValue = '';
+      document.getElementById('score-input').innerText = '0';
+    }
+
+    function submitScore() {
+      if (!currentMatch || !currentInputValue) return;
+      
+      var scoreVal = parseInt(currentInputValue, 10);
+      document.getElementById('status-text').innerText = 'Sparar poäng...';
+
+      // Lägg till poäng/kast
+      if (!currentMatch.data.scores) currentMatch.data.scores = [];
+      currentMatch.data.scores.push(scoreVal);
+
+      apiRequest('PATCH', '/rest/v1/matches?id=eq.' + currentMatch.id, currentMatch.data, function(err) {
+        if (!err) {
+          document.getElementById('status-text').innerText = 'Poäng ' + scoreVal + ' sparad!';
+          clearScore();
+          updateUI();
+        } else {
+          document.getElementById('status-text').innerText = 'Fel vid sparning.';
+        }
+      });
+    }
+
+    function finishMatch() {
+      if (!currentMatch) return;
+      if (confirm('Vill du slutföra matchen och skicka resultatet till TV/publikvyn?')) {
+        currentMatch.data.status = 'finished';
+        apiRequest('PATCH', '/rest/v1/matches?id=eq.' + currentMatch.id, currentMatch.data, function(err) {
+          if (!err) {
+            alert('Matchen är avslutad och publicerad!');
+            document.getElementById('status-text').innerText = 'Match avsluts och skickad.';
+          }
+        });
+      }
+    }
+
+    // Ladda matcher vid start
+    fetchMatches();
+  </script>
+</body>
+</html>
