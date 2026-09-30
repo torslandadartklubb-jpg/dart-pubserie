@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
-  swcMinify: false,
   transpilePackages: ['@supabase/supabase-js', '@supabase/gotrue-js', '@supabase/realtime-js'],
   webpack: (config, { isServer }) => {
     if (!isServer) {
