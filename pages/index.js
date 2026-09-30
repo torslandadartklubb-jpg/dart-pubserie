@@ -1,13 +1,17 @@
+// 1. Felfångare allra högst upp (fångar alla fel på äldre iPads)
+if (typeof window !== 'undefined') {
+  if (typeof globalThis === 'undefined') {
+    window.globalThis = window;
+  }
+  window.onerror = function(msg, url, line) {
+    alert("iPad-fel: " + msg + " (rad " + line + ")");
+  };
+}
+
 import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 
 // Ny matchordning uppdelad i de 4 blocken
-// Felfångare för äldre iPads
-if (typeof window !== 'undefined') {
-  window.onerror = function(msg, url, line) {
-    alert("iPad-fel: " + msg + " på rad " + line);
-  };
-}
 const INITIAL_SUB_MATCHES = [
   // Block 1
   { id: 'S1', name: 'Singel 1', type: 'single', homePlayer: '', awayPlayer: '', homeScore: 0, awayScore: 0, currentHomePoints: 501, currentAwayPoints: 501, status: 'pending' },
@@ -27,11 +31,7 @@ const INITIAL_SUB_MATCHES = [
 ];
 
 const HOME_STARTS_MATCHES = ['S1', 'D1', 'S4', 'S6', 'S7'];
-
-// Omöjliga kast med 3 pilar
 const IMPOSSIBLE_SCORES = [163, 166, 169, 172, 173, 175, 176, 178, 179];
-
-// Omöjliga utgångar under/på 170
 const IMPOSSIBLE_CHECKOUTS = [159, 162, 163, 165, 166, 168, 169];
 
 // --- 1. ADMIN VY ---
@@ -57,7 +57,6 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
 
   const handleTeamChange = (e) => setMatchData({ ...matchData, [e.target.name]: e.target.value });
 
-  // Hantering av Spelartrupper (4-7 spelare)
   const handleRosterChange = (teamKey, index, value) => {
     const updatedRoster = [...matchData[teamKey]];
     updatedRoster[index] = value;
@@ -95,14 +94,13 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
     setMatchData({ ...matchData, subMatches: updated });
   };
 
-  // Hantering för dubbelspelare i rullistor
   const handleDoublePlayerChange = (id, side, playerNum, value) => {
     const fieldName = side === 'home' ? 'homePlayer' : 'awayPlayer';
     const match = matchData.subMatches.find(sm => sm.id === id);
     const currentName = match ? match[fieldName] || '' : '';
-    let [p1, p2] = currentName.split(' / ');
-    p1 = p1 || '';
-    p2 = p2 || '';
+    let parts = currentName.split(' / ');
+    let p1 = parts[0] || '';
+    let p2 = parts[1] || '';
 
     if (playerNum === 1) p1 = value;
     if (playerNum === 2) p2 = value;
@@ -120,11 +118,11 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
     let textToSave = '';
     if (newPerfTextType === '180') textToSave = '180';
     else if (newPerfTextType === 'utgang') {
-      if (!manualCheckoutScore || isNaN(manualCheckoutScore) || manualCheckoutScore < 100 || manualCheckoutScore > 170 || IMPOSSIBLE_CHECKOUTS.includes(parseInt(manualCheckoutScore))) {
+      if (!manualCheckoutScore || isNaN(manualCheckoutScore) || manualCheckoutScore < 100 || manualCheckoutScore > 170 || IMPOSSIBLE_CHECKOUTS.indexOf(parseInt(manualCheckoutScore, 10)) !== -1) {
         alert('Ange en giltig utgångspoäng (100-170).');
         return;
       }
-      textToSave = `${manualCheckoutScore} ut`;
+      textToSave = manualCheckoutScore + ' ut';
     }
     else if (newPerfTextType === 'custom') textToSave = customPerfText.trim();
 
@@ -140,10 +138,12 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
       text: textToSave
     };
 
-    setMatchData(prev => ({
-      ...prev,
-      performances: [...prev.performances, newPerf]
-    }));
+    setMatchData(function(prev) {
+      return {
+        ...prev,
+        performances: [...prev.performances, newPerf]
+      };
+    });
 
     setNewPerfPlayer('');
     setCustomPerfText('');
@@ -151,10 +151,12 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
   };
 
   const handleRemovePerformance = (indexToRemove) => {
-    setMatchData(prev => ({
-      ...prev,
-      performances: prev.performances.filter((_, idx) => idx !== indexToRemove)
-    }));
+    setMatchData(function(prev) {
+      return {
+        ...prev,
+        performances: prev.performances.filter((_, idx) => idx !== indexToRemove)
+      };
+    });
   };
 
   if (!isAdminAuthenticated) {
@@ -179,7 +181,6 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
     );
   }
 
-  // Samla alla aktiva spelarnamn för val i manuella prestationer
   const allActivePlayers = [
     ...(matchData.homeRoster || []).filter(n => n.trim() !== ''),
     ...(matchData.awayRoster || []).filter(n => n.trim() !== '')
@@ -194,12 +195,10 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
         </button>
       </div>
 
-      {/* LAGNAMN OCH TRUPPER */}
       <div style={{ backgroundColor: '#1e293b', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #334155' }}>
         <h2 style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: 'bold', marginBottom: '12px' }}>LAG OCH SPELARTRUPPER (4-7 Spelare)</h2>
         
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-          {/* HEMMALAG */}
           <div>
             <label style={{ display: 'block', color: '#60a5fa', fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>HEMMALAG</label>
             <input name="homeTeam" value={matchData.homeTeam} onChange={handleTeamChange} style={{ width: '100%', backgroundColor: '#334155', color: '#fff', padding: '8px', borderRadius: '4px', border: '1px solid #475569', marginBottom: '10px', boxSizing: 'border-box', fontWeight: 'bold' }} />
@@ -225,7 +224,6 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
             )}
           </div>
 
-          {/* BORTALAG */}
           <div>
             <label style={{ display: 'block', color: '#f43f5e', fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>BORTALAG</label>
             <input name="awayTeam" value={matchData.awayTeam} onChange={handleTeamChange} style={{ width: '100%', backgroundColor: '#334155', color: '#fff', padding: '8px', borderRadius: '4px', border: '1px solid #475569', marginBottom: '10px', boxSizing: 'border-box', fontWeight: 'bold' }} />
@@ -253,21 +251,24 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
         </div>
       </div>
 
-      {/* MATCHUPPDELNING & UTTAGNING */}
       <div style={{ backgroundColor: '#1e293b', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
         <h2 style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: 'bold', marginBottom: '10px' }}>VÄLJ SPELARE TILL MATCHERNAS UTTAGNING</h2>
 
         {matchData.subMatches.map((sm) => {
           const isDouble = sm.type === 'double';
-          const [hP1, hP2] = (sm.homePlayer || '').split(' / ');
-          const [aP1, aP2] = (sm.awayPlayer || '').split(' / ');
+          const homeParts = (sm.homePlayer || '').split(' / ');
+          const hP1 = homeParts[0] || '';
+          const hP2 = homeParts[1] || '';
+
+          const awayParts = (sm.awayPlayer || '').split(' / ');
+          const aP1 = awayParts[0] || '';
+          const aP2 = awayParts[1] || '';
 
           return (
             <div key={sm.id} style={{ borderBottom: '1px solid #334155', paddingBottom: '12px', marginBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                 <span style={{ width: '32px', color: '#eab308', fontWeight: 'bold', textAlign: 'center', fontSize: '14px' }}>{sm.id}</span>
                 
-                {/* Hemmaspelare Dropdown(s) */}
                 <div style={{ flex: 1 }}>
                   {!isDouble ? (
                     <select
@@ -280,11 +281,11 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
                     </select>
                   ) : (
                     <div style={{ display: 'flex', gap: '4px' }}>
-                      <select value={hP1 || ''} onChange={(e) => handleDoublePlayerChange(sm.id, 'home', 1, e.target.value)} style={{ flex: 1, backgroundColor: '#334155', color: '#fff', padding: '6px', borderRadius: '4px', border: '1px solid #475569', fontSize: '12px' }}>
+                      <select value={hP1} onChange={(e) => handleDoublePlayerChange(sm.id, 'home', 1, e.target.value)} style={{ flex: 1, backgroundColor: '#334155', color: '#fff', padding: '6px', borderRadius: '4px', border: '1px solid #475569', fontSize: '12px' }}>
                         <option value="">-- Spelare 1 --</option>
                         {matchData.homeRoster.filter(Boolean).map((p, i) => <option key={i} value={p}>{p}</option>)}
                       </select>
-                      <select value={hP2 || ''} onChange={(e) => handleDoublePlayerChange(sm.id, 'home', 2, e.target.value)} style={{ flex: 1, backgroundColor: '#334155', color: '#fff', padding: '6px', borderRadius: '4px', border: '1px solid #475569', fontSize: '12px' }}>
+                      <select value={hP2} onChange={(e) => handleDoublePlayerChange(sm.id, 'home', 2, e.target.value)} style={{ flex: 1, backgroundColor: '#334155', color: '#fff', padding: '6px', borderRadius: '4px', border: '1px solid #475569', fontSize: '12px' }}>
                         <option value="">-- Spelare 2 --</option>
                         {matchData.homeRoster.filter(Boolean).map((p, i) => <option key={i} value={p}>{p}</option>)}
                       </select>
@@ -294,7 +295,6 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
 
                 <span style={{ color: '#64748b', fontSize: '12px', fontWeight: 'bold' }}>VS</span>
 
-                {/* Bortaspelare Dropdown(s) */}
                 <div style={{ flex: 1 }}>
                   {!isDouble ? (
                     <select
@@ -307,11 +307,11 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
                     </select>
                   ) : (
                     <div style={{ display: 'flex', gap: '4px' }}>
-                      <select value={aP1 || ''} onChange={(e) => handleDoublePlayerChange(sm.id, 'away', 1, e.target.value)} style={{ flex: 1, backgroundColor: '#334155', color: '#fff', padding: '6px', borderRadius: '4px', border: '1px solid #475569', fontSize: '12px' }}>
+                      <select value={aP1} onChange={(e) => handleDoublePlayerChange(sm.id, 'away', 1, e.target.value)} style={{ flex: 1, backgroundColor: '#334155', color: '#fff', padding: '6px', borderRadius: '4px', border: '1px solid #475569', fontSize: '12px' }}>
                         <option value="">-- Spelare 1 --</option>
                         {matchData.awayRoster.filter(Boolean).map((p, i) => <option key={i} value={p}>{p}</option>)}
                       </select>
-                      <select value={aP2 || ''} onChange={(e) => handleDoublePlayerChange(sm.id, 'away', 2, e.target.value)} style={{ flex: 1, backgroundColor: '#334155', color: '#fff', padding: '6px', borderRadius: '4px', border: '1px solid #475569', fontSize: '12px' }}>
+                      <select value={aP2} onChange={(e) => handleDoublePlayerChange(sm.id, 'away', 2, e.target.value)} style={{ flex: 1, backgroundColor: '#334155', color: '#fff', padding: '6px', borderRadius: '4px', border: '1px solid #475569', fontSize: '12px' }}>
                         <option value="">-- Spelare 2 --</option>
                         {matchData.awayRoster.filter(Boolean).map((p, i) => <option key={i} value={p}>{p}</option>)}
                       </select>
@@ -320,7 +320,6 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
                 </div>
               </div>
 
-              {/* Legs och Status */}
               <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', fontSize: '12px', color: '#94a3b8' }}>
                 <span>Legs:</span>
                 <input type="number" min="0" max="3" value={sm.homeScore} onChange={(e) => handleSubMatchChange(sm.id, 'homeScore', e.target.value)} style={{ width: '45px', backgroundColor: '#0f172a', color: '#fcd34d', border: '1px solid #475569', borderRadius: '4px', textAlign: 'center', fontWeight: 'bold', padding: '2px' }} />
@@ -338,7 +337,6 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
         })}
       </div>
 
-      {/* MANUELLA PRESTATIONER */}
       <div style={{ backgroundColor: '#1e293b', padding: '15px', borderRadius: '8px' }}>
         <h2 style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: 'bold', marginBottom: '12px' }}>MANUELLA PRESTATIONER</h2>
 
@@ -425,15 +423,18 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
 
 // --- 2. DOMAR VY ---
 function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) {
-  const [homeScore, setHomeScore] = useState(match.currentHomePoints ?? 501);
-  const [awayScore, setAwayScore] = useState(match.currentAwayPoints ?? 501);
+  const initialHome = (match && typeof match.currentHomePoints === 'number') ? match.currentHomePoints : 501;
+  const initialAway = (match && typeof match.currentAwayPoints === 'number') ? match.currentAwayPoints : 501;
+
+  const [homeScore, setHomeScore] = useState(initialHome);
+  const [awayScore, setAwayScore] = useState(initialAway);
   const [homeLegs, setHomeLegs] = useState(match.homeScore || 0);
   const [awayLegs, setAwayLegs] = useState(match.awayScore || 0);
   const [inputVal, setInputVal] = useState('');
 
   const getInitialStarter = () => {
     if (match.id === 'AD') return null;
-    return HOME_STARTS_MATCHES.includes(match.id) ? 'home' : 'away';
+    return (HOME_STARTS_MATCHES.indexOf(match.id) !== -1) ? 'home' : 'away';
   };
 
   const [legStarter, setLegStarter] = useState(getInitialStarter);
@@ -442,7 +443,6 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
   const [rounds, setRounds] = useState([]);
   const [performances, setPerformances] = useState([]);
   const [confirmCheckout, setConfirmCheckout] = useState(null);
-
   const [confirmRemaining, setConfirmRemaining] = useState(null);
 
   const [scoringActive, setScoringActive] = useState(false);
@@ -458,7 +458,6 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
     }
   }, [rounds, turn]);
 
-  // Uppdatera live-tillstånd till förälder
   useEffect(() => {
     if (onLiveUpdate) {
       onLiveUpdate(match.id, {
@@ -488,7 +487,7 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
       if (r.home) {
         const score = r.home.rawScore;
         let rem = currentHome - score;
-        let isBust = rem < 0 || rem === 1 || (rem === 0 && (IMPOSSIBLE_CHECKOUTS.includes(score) || score > 170));
+        let isBust = rem < 0 || rem === 1 || (rem === 0 && (IMPOSSIBLE_CHECKOUTS.indexOf(score) !== -1 || score > 170));
 
         if (isBust) {
           rem = currentHome;
@@ -506,7 +505,7 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
       if (r.away) {
         const score = r.away.rawScore;
         let rem = currentAway - score;
-        let isBust = rem < 0 || rem === 1 || (rem === 0 && (IMPOSSIBLE_CHECKOUTS.includes(score) || score > 170));
+        let isBust = rem < 0 || rem === 1 || (rem === 0 && (IMPOSSIBLE_CHECKOUTS.indexOf(score) !== -1 || score > 170));
 
         if (isBust) {
           rem = currentAway;
@@ -529,7 +528,7 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
     });
 
     return {
-      updatedRounds,
+      updatedRounds: updatedRounds,
       newHomeScore: currentHome,
       newAwayScore: currentAway
     };
@@ -574,8 +573,8 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
       return;
     }
 
-    if (IMPOSSIBLE_SCORES.includes(score)) {
-      alert(`Det går inte att få ${score} poäng på 3 pilar!`);
+    if (IMPOSSIBLE_SCORES.indexOf(score) !== -1) {
+      alert('Det går inte att få ' + score + ' poäng på 3 pilar!');
       setInputVal('');
       return;
     }
@@ -584,11 +583,11 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
     const remaining = currentScore - score;
 
     if (remaining === 0) {
-      if (IMPOSSIBLE_CHECKOUTS.includes(score) || score > 170) {
+      if (IMPOSSIBLE_CHECKOUTS.indexOf(score) !== -1 || score > 170) {
         processScore(score);
         return;
       }
-      setConfirmCheckout({ score, player: activePlayerName, team: turn });
+      setConfirmCheckout({ score: score, player: activePlayerName, team: turn });
       return;
     }
 
@@ -602,19 +601,19 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
     const currentScore = turn === 'home' ? homeScore : awayScore;
 
     if (isNaN(targetRemaining) || targetRemaining < 0 || targetRemaining >= currentScore) {
-      alert(`Återstående poäng måste vara mindre än nuvarande poäng (${currentScore}).`);
+      alert('Återstående poäng måste vara mindre än nuvarande poäng (' + currentScore + ').');
       return;
     }
 
     const calculatedScored = currentScore - targetRemaining;
 
     if (calculatedScored > 180) {
-      alert(`Detta innebär att spelaren kastat ${calculatedScored} poäng, vilket är över max 180.`);
+      alert('Detta innebär att spelaren kastat ' + calculatedScored + ' poäng, vilket är över max 180.');
       return;
     }
 
-    if (IMPOSSIBLE_SCORES.includes(calculatedScored)) {
-      alert(`Detta innebär att spelaren kastat ${calculatedScored} poäng, vilket är ett omöjligt kast.`);
+    if (IMPOSSIBLE_SCORES.indexOf(calculatedScored) !== -1) {
+      alert('Detta innebär att spelaren kastat ' + calculatedScored + ' poäng, vilket är ett omöjligt kast.');
       return;
     }
 
@@ -623,14 +622,14 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
 
   const processRemainingScore = () => {
     if (!confirmRemaining) return;
-    const { calculatedScored } = confirmRemaining;
+    const calculatedScored = confirmRemaining.calculatedScored;
     setConfirmRemaining(null);
 
     const currentScore = turn === 'home' ? homeScore : awayScore;
     const remaining = currentScore - calculatedScored;
 
     if (remaining === 0) {
-      if (IMPOSSIBLE_CHECKOUTS.includes(calculatedScored) || calculatedScored > 170) {
+      if (IMPOSSIBLE_CHECKOUTS.indexOf(calculatedScored) !== -1 || calculatedScored > 170) {
         processScore(calculatedScored);
         return;
       }
@@ -647,7 +646,7 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
     let newScore = currentScore - score;
     let isBust = false;
 
-    if (newScore < 0 || newScore === 1 || (newScore === 0 && (IMPOSSIBLE_CHECKOUTS.includes(score) || score > 170))) {
+    if (newScore < 0 || newScore === 1 || (newScore === 0 && (IMPOSSIBLE_CHECKOUTS.indexOf(score) !== -1 || score > 170))) {
       isBust = true;
       newScore = currentScore;
     }
@@ -715,11 +714,11 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
     const newPerfs = [];
 
     if (checkoutScore >= 100) {
-      newPerfs.push({ id: Date.now() + 1, team, player, text: `${checkoutScore} ut` });
+      newPerfs.push({ id: Date.now() + 1, team, player, text: checkoutScore + ' ut' });
     }
 
     if (totalDarts <= 15) {
-      newPerfs.push({ id: Date.now() + 2, team, player, text: `${totalDarts} pilars leg` });
+      newPerfs.push({ id: Date.now() + 2, team, player, text: totalDarts + ' pilars leg' });
     }
 
     if (newPerfs.length > 0) {
@@ -731,12 +730,12 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
     const hVal = parseInt(scoringHomeInput, 10);
     const aVal = parseInt(scoringAwayInput, 10);
 
-    if (isNaN(hVal) || hVal < 0 || hVal > 180 || IMPOSSIBLE_SCORES.includes(hVal)) {
-      alert(`Ogiltig poäng för ${homeName}.`);
+    if (isNaN(hVal) || hVal < 0 || hVal > 180 || IMPOSSIBLE_SCORES.indexOf(hVal) !== -1) {
+      alert('Ogiltig poäng för ' + homeName);
       return;
     }
-    if (isNaN(aVal) || aVal < 0 || aVal > 180 || IMPOSSIBLE_SCORES.includes(aVal)) {
-      alert(`Ogiltig poäng för ${awayName}.`);
+    if (isNaN(aVal) || aVal < 0 || aVal > 180 || IMPOSSIBLE_SCORES.indexOf(aVal) !== -1) {
+      alert('Ogiltig poäng för ' + awayName);
       return;
     }
     if (hVal === aVal) {
@@ -786,11 +785,11 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
     if (!currentEntry) return;
 
     const currentVal = currentEntry.rawScore;
-    const newValStr = prompt(`Ändra kastad poäng för omgång ${index + 1}:`, currentVal);
+    const newValStr = prompt('Ändra kastad poäng för omgång ' + (index + 1) + ':', currentVal);
     if (newValStr === null) return;
 
     const newVal = parseInt(newValStr, 10);
-    if (isNaN(newVal) || newVal < 0 || newVal > 180 || IMPOSSIBLE_SCORES.includes(newVal)) {
+    if (isNaN(newVal) || newVal < 0 || newVal > 180 || IMPOSSIBLE_SCORES.indexOf(newVal) !== -1) {
       alert('Ogiltig poäng.');
       return;
     }
@@ -810,11 +809,11 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
       return r;
     });
 
-    const { updatedRounds, newHomeScore, newAwayScore } = recalculateRoundsAndScores(rawRounds);
+    const result = recalculateRoundsAndScores(rawRounds);
 
-    setRounds(updatedRounds);
-    setHomeScore(newHomeScore);
-    setAwayScore(newAwayScore);
+    setRounds(result.updatedRounds);
+    setHomeScore(result.newHomeScore);
+    setAwayScore(result.newAwayScore);
   };
 
   const renderCellContent = (entry) => {
@@ -864,7 +863,7 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
               <strong style={{ color: '#34d399' }}>{confirmCheckout.player}</strong> har knappat in <strong>{confirmCheckout.score}</strong>.
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <button onClick={() => { const { score } = confirmCheckout; setConfirmCheckout(null); processScore(score, true); }} style={{ backgroundColor: '#10b981', color: '#fff', border: 'none', padding: '16px', borderRadius: '10px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer' }}>
+              <button onClick={() => { const score = confirmCheckout.score; setConfirmCheckout(null); processScore(score, true); }} style={{ backgroundColor: '#10b981', color: '#fff', border: 'none', padding: '16px', borderRadius: '10px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer' }}>
                 JA (Vann leg)
               </button>
               <button onClick={() => setConfirmCheckout(null)} style={{ backgroundColor: '#dc2626', color: '#fff', border: 'none', padding: '16px', borderRadius: '10px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer' }}>
@@ -898,7 +897,6 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
         </div>
       )}
 
-      {/* Header med meny & knapp för att spara/slutföra */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
         <button onClick={onBack} style={{ backgroundColor: '#1e293b', color: '#94a3b8', border: 'none', padding: '8px 12px', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontWeight: 'bold' }}>
           ← Tillbaka
@@ -909,16 +907,13 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
         </button>
       </div>
 
-      {/* Spelarkort med poäng och legs */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
-        {/* Hemmaspelare */}
         <div style={{ backgroundColor: turn === 'home' ? '#1e293b' : '#0f172a', padding: '12px', borderRadius: '12px', border: turn === 'home' ? '2px solid #3b82f6' : '1px solid #1e293b', textAlign: 'center' }}>
           <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{homeName}</div>
           <div style={{ fontSize: '42px', fontWeight: '900', color: turn === 'home' ? '#60a5fa' : '#cbd5e1', lineHeight: '1' }}>{homeScore}</div>
           <div style={{ fontSize: '14px', color: '#fcd34d', fontWeight: 'bold', marginTop: '6px' }}>Legs: {homeLegs}</div>
         </div>
 
-        {/* Bortaspelare */}
         <div style={{ backgroundColor: turn === 'away' ? '#1e293b' : '#0f172a', padding: '12px', borderRadius: '12px', border: turn === 'away' ? '2px solid #f43f5e' : '1px solid #1e293b', textAlign: 'center' }}>
           <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{awayName}</div>
           <div style={{ fontSize: '42px', fontWeight: '900', color: turn === 'away' ? '#f43f5e' : '#cbd5e1', lineHeight: '1' }}>{awayScore}</div>
@@ -926,7 +921,6 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
         </div>
       </div>
 
-      {/* Protokoll över kastade pilar */}
       <div ref={logContainerRef} style={{ height: '140px', overflowY: 'auto', backgroundColor: '#090d16', borderRadius: '8px', padding: '8px', marginBottom: '12px', border: '1px solid #1e293b' }}>
         <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', textAlign: 'center' }}>
           <thead>
@@ -948,7 +942,6 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
         </table>
       </div>
 
-      {/* Knappsats för inmatning */}
       {!isMatchFinished && !scoringActive && (
         <div>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
@@ -982,7 +975,6 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
         </div>
       )}
 
-      {/* Extra scoringvy om matchen går till 13 omgångar utan utgång */}
       {scoringActive && (
         <div style={{ backgroundColor: '#1e293b', padding: '15px', borderRadius: '12px', border: '2px solid #eab308' }}>
           <h3 style={{ color: '#eab308', margin: '0 0 10px 0', fontSize: '16px', textAlign: 'center' }}>SCORING (Leg avgörs med flest poäng)</h3>
@@ -1026,15 +1018,12 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
 
 // --- 3. PUBLIK VY ---
 function PublicView({ matchData, onSelectMatch }) {
-  // Beräkna total lagställning (totalt antal vunna matcher per lag)
   const homeTotalMatches = matchData.subMatches.filter(m => m.homeScore === 3).length;
   const awayTotalMatches = matchData.subMatches.filter(m => m.awayScore === 3).length;
 
-  // Beräkna totalt antal vunna legs för alla matcher som avslutats/uppdaterats
   const homeTotalLegs = matchData.subMatches.reduce((sum, m) => sum + (m.homeScore || 0), 0);
   const awayTotalLegs = matchData.subMatches.reduce((sum, m) => sum + (m.awayScore || 0), 0);
 
-  // Hjälpfunktion för att rendera spelarnamn med rätt vinnar-/förlorardesign
   const renderPlayerName = (name, isWinner, isLoser, isHome) => {
     const displayName = name || (isHome ? matchData.homeTeam : matchData.awayTeam) || 'Spelare';
 
@@ -1062,7 +1051,6 @@ function PublicView({ matchData, onSelectMatch }) {
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', fontFamily: 'sans-serif', color: '#fff' }}>
       
-      {/* Huvudresultat (Lag vs Lag med både matchställning och totala legs) */}
       <div style={{ backgroundColor: '#0f172a', padding: '20px', borderRadius: '16px', border: '1px solid #1e293b', marginBottom: '20px', textAlign: 'center', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ flex: 1, fontSize: '24px', fontWeight: 'bold', color: '#60a5fa' }}>{matchData.homeTeam || 'Hemmalag'}</div>
@@ -1073,7 +1061,6 @@ function PublicView({ matchData, onSelectMatch }) {
               <span style={{ fontSize: '24px', color: '#64748b', margin: '0 12px' }}>-</span>
               <span style={{ fontSize: '36px', fontWeight: '900', color: '#fcd34d' }}>{awayTotalMatches}</span>
             </div>
-            {/* Litet sekundärt resultat för totalt antal legs */}
             <div style={{ marginTop: '8px', fontSize: '13px', color: '#94a3b8', fontWeight: 'bold' }}>
               Totalt antal legs: <span style={{ color: '#38bdf8' }}>{homeTotalLegs}</span> - <span style={{ color: '#38bdf8' }}>{awayTotalLegs}</span>
             </div>
@@ -1083,7 +1070,6 @@ function PublicView({ matchData, onSelectMatch }) {
         </div>
       </div>
 
-      {/* Matchlista med synliga block-mellanrum */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
         {matchData.subMatches.map((sm) => {
           const isLive = sm.status === 'live';
@@ -1094,7 +1080,6 @@ function PublicView({ matchData, onSelectMatch }) {
           const isHomeLoser = isCompleted && sm.awayScore === 3;
           const isAwayLoser = isCompleted && sm.homeScore === 3;
 
-          // Mellanrum efter Block 1 (S3), Block 2 (D2) och Block 3 (S8)
           const isBlockGap = sm.id === 'S3' || sm.id === 'D2' || sm.id === 'S8';
 
           return (
@@ -1112,7 +1097,6 @@ function PublicView({ matchData, onSelectMatch }) {
                   position: 'relative'
                 }}
               >
-                {/* LIVE Badge när matchen spelas */}
                 {isLive && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                     <span style={{ width: '10px', height: '10px', backgroundColor: '#22c55e', borderRadius: '50%', display: 'inline-block', boxShadow: '0 0 8px #22c55e' }}></span>
@@ -1123,40 +1107,32 @@ function PublicView({ matchData, onSelectMatch }) {
                 )}
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  {/* Hemmaspelare */}
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#eab308', width: '28px' }}>{sm.id}</span>
                     {renderPlayerName(sm.homePlayer, isHomeWinner, isHomeLoser, true)}
                   </div>
 
-                  {/* Sifferboxar / Resultat i mitten */}
                   {isLive ? (
-                    // STORA SIFFERBOXAR FÖR LIVE-MATCH
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '0 15px' }}>
-                      {/* Home Leg */}
                       <div style={{ backgroundColor: '#1e293b', color: '#fff', fontSize: '20px', fontWeight: 'bold', padding: '6px 14px', borderRadius: '8px', border: '1px solid #475569' }}>
                         {sm.homeScore}
                       </div>
 
-                      {/* Home Points Left Box */}
                       <div style={{ backgroundColor: '#020617', color: '#ffee00', fontSize: '30px', fontWeight: '900', padding: '6px 16px', borderRadius: '8px', border: '2px solid #ffee00', minWidth: '85px', textAlign: 'center', letterSpacing: '1px' }}>
                         {sm.currentHomePoints}
                       </div>
 
                       <span style={{ color: '#64748b', fontWeight: 'bold', fontSize: '14px' }}>VS</span>
 
-                      {/* Away Points Left Box */}
                       <div style={{ backgroundColor: '#020617', color: '#ffee00', fontSize: '30px', fontWeight: '900', padding: '6px 16px', borderRadius: '8px', border: '2px solid #ffee00', minWidth: '85px', textAlign: 'center', letterSpacing: '1px' }}>
                         {sm.currentAwayPoints}
                       </div>
 
-                      {/* Away Leg */}
                       <div style={{ backgroundColor: '#1e293b', color: '#fff', fontSize: '20px', fontWeight: 'bold', padding: '6px 14px', borderRadius: '8px', border: '1px solid #475569' }}>
                         {sm.awayScore}
                       </div>
                     </div>
                   ) : (
-                    // Standardvisning för Ej påbörjad / Klar match
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <div style={{ backgroundColor: '#0f172a', padding: '6px 16px', borderRadius: '8px', border: '1px solid #334155', display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span style={{ fontSize: '18px', fontWeight: 'bold', color: isCompleted ? '#fcd34d' : '#94a3b8' }}>{sm.homeScore}</span>
@@ -1171,21 +1147,18 @@ function PublicView({ matchData, onSelectMatch }) {
                     </div>
                   )}
 
-                  {/* Bortaspelare */}
                   <div style={{ flex: 1, textAlign: 'right' }}>
                     {renderPlayerName(sm.awayPlayer, isAwayWinner, isAwayLoser, false)}
                   </div>
                 </div>
               </div>
 
-              {/* Tydligt litet extra mellanrum mellan blocken */}
               {isBlockGap && <div style={{ height: '18px' }}></div>}
             </React.Fragment>
           );
         })}
       </div>
 
-      {/* Prestationssektion */}
       <div style={{ backgroundColor: '#0f172a', padding: '16px', borderRadius: '12px', border: '1px solid #1e293b' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <h3 style={{ color: '#fcd34d', margin: 0, fontSize: '15px', fontWeight: 'bold' }}>⭐ MATCHENS PRESTATIONER (180s / Utgångar)</h3>
@@ -1225,56 +1198,64 @@ export default function App() {
     performances: []
   });
 
-  // Hämta sparad matchdata från Supabase vid start och lyssna på LIVE-ändringar
   useEffect(() => {
     async function loadInitialData() {
-      const { data, error } = await supabase
-        .from('matches')
-        .select('data')
-        .eq('id', 'main_match')
-        .single();
+      try {
+        const res = await supabase
+          .from('matches')
+          .select('data')
+          .eq('id', 'main_match')
+          .single();
 
-      if (data && data.data) {
-        setMatchData(data.data);
-      } else if (error) {
-        console.log('Ingen tidigare data funnen, skapar ny match...');
+        if (res && res.data && res.data.data) {
+          setMatchData(res.data.data);
+        }
+      } catch (err) {
+        console.log('Kunde inte läsa in init-data:', err);
       }
     }
 
     loadInitialData();
 
-    // Koppla upp live-lyssnare mot Supabase
-    const channel = supabase
-      .channel('realtime_matches')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'matches',
-          filter: 'id=eq.main_match'
-        },
-        (payload) => {
-          if (payload.new && payload.new.data) {
-            setMatchData(payload.new.data);
+    let channel;
+    try {
+      channel = supabase
+        .channel('realtime_matches')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'matches',
+            filter: 'id=eq.main_match'
+          },
+          (payload) => {
+            if (payload && payload.new && payload.new.data) {
+              setMatchData(payload.new.data);
+            }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
+    } catch (e) {
+      console.log('Realtime stöds ej eller misslyckades:', e);
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, []);
 
-  // Spara all data till Supabase
   const saveToSupabase = async (newData) => {
     setMatchData(newData);
-    await supabase.from('matches').upsert({
-      id: 'main_match',
-      data: newData,
-      updated_at: new Date()
-    });
+    try {
+      await supabase.from('matches').upsert({
+        id: 'main_match',
+        data: newData,
+        updated_at: new Date()
+      });
+    } catch (e) {
+      console.log('Kunde inte spara:', e);
+    }
   };
 
   const handleSelectMatch = (match) => {
@@ -1285,8 +1266,8 @@ export default function App() {
   const handleLiveUpdateFromScorer = (subMatchId, updatedSubMatchData, scorerPerformances) => {
     const updatedMatches = matchData.subMatches.map(sm => sm.id === subMatchId ? { ...sm, ...updatedSubMatchData } : sm);
     
-    const existingPerfIds = new Set(matchData.performances.map(p => p.id));
-    const newUniquePerformances = scorerPerformances.filter(p => !existingPerfIds.has(p.id));
+    const existingIds = matchData.performances.map(p => p.id);
+    const newUniquePerformances = scorerPerformances.filter(p => existingIds.indexOf(p.id) === -1);
 
     const updatedMatchData = {
       ...matchData,
@@ -1302,8 +1283,8 @@ export default function App() {
 
     const updatedMatches = matchData.subMatches.map(sm => sm.id === selectedMatch.id ? { ...sm, ...updatedSubMatchData } : sm);
     
-    const existingPerfIds = new Set(matchData.performances.map(p => p.id));
-    const newUniquePerformances = newPerformances.filter(p => !existingPerfIds.has(p.id));
+    const existingIds = matchData.performances.map(p => p.id);
+    const newUniquePerformances = newPerformances.filter(p => existingIds.indexOf(p.id) === -1);
 
     const updatedMatchData = {
       ...matchData,
@@ -1323,7 +1304,6 @@ export default function App() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#020617', padding: '15px', boxSizing: 'border-box' }}>
-      {/* Navigationsmeny längst upp */}
       <div style={{ maxWidth: '900px', margin: '0 auto 20px auto', display: 'flex', justifyContent: 'center', gap: '10px' }}>
         <button
           onClick={() => setActiveTab('public')}
@@ -1357,7 +1337,6 @@ export default function App() {
         </button>
       </div>
 
-      {/* Innehålls-vyer */}
       {activeTab === 'public' && (
         <PublicView matchData={matchData} onSelectMatch={handleSelectMatch} />
       )}
