@@ -1,11 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
-  swcMinify: false, // Stäng av SWC (som genererar för modern ES-kod)
+  swcMinify: false,
   transpilePackages: ['@supabase/supabase-js', '@supabase/gotrue-js', '@supabase/realtime-js'],
   webpack: (config, { isServer }) => {
     if (!isServer) {
-      // Tvinga target till es5 för webbläsaren
       config.target = ['web', 'es5'];
     }
     return config;
