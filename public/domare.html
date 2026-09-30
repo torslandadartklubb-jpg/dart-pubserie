@@ -1,11 +1,3 @@
-Det blev helt fel infallsvinkel från min sida – nu förstår jag exakt hur din applikation är uppbyggd.
-
-I din modell finns det en huvudmatch (t.ex. två lag som möts), och den består av 8 eller 10 delmatcher (subMatches/matcher mellan enskilda spelare) där domaren väljer vilken delmatch som pågår och matar in poäng kast för kast (eller registrerar leg-vinster) som sedan uppdaterar publikvyn på TV:n.
-
-Här är en helt ombyggd public/domare.html som speglar den riktiga logiken från din originalkod, men skrivet i ren vanilla JavaScript som körs smidigt i iPadens gamla Safari:
-
-Ersätt hela innehållet i public/domare.html:
-HTML
 <!DOCTYPE html>
 <html lang="sv">
 <head>
