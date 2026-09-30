@@ -3,184 +3,313 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Dart Domarpanel (iOS 9)</title>
+  <title>Dart Pubserie - Domarvy</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #0f172a; color: #fff; font-family: -apple-system, sans-serif; padding: 15px; }
+    body { background-color: #020617; color: #ffffff; font-family: -apple-system, sans-serif; padding: 12px; }
     
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-    select { background: #1e293b; color: #fff; border: 1px solid #334155; padding: 10px; font-size: 16px; border-radius: 8px; width: 100%; max-width: 400px; }
+    /* Välj match-vy */
+    .view-select { max-width: 500px; margin: 20px auto; text-align: center; }
+    h1 { font-size: 24px; margin-bottom: 20px; color: #f8fafc; }
+    select { background: #0f172a; color: #fff; border: 2px solid #1e293b; padding: 15px; font-size: 18px; border-radius: 10px; width: 100%; margin-bottom: 15px; -webkit-appearance: none; }
+    .btn-main { background: #2563eb; color: #fff; border: none; padding: 16px; font-size: 18px; font-weight: bold; border-radius: 10px; width: 100%; cursor: pointer; -webkit-appearance: none; }
     
-    .match-box { background: #1e293b; border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 15px; }
-    .teams { font-size: 20px; font-weight: bold; color: #cbd5e1; margin-bottom: 8px; }
-    .scores { font-size: 36px; font-weight: bold; color: #f59e0b; }
+    /* Match-vy */
+    .view-match { display: none; max-width: 600px; margin: 0 auto; }
+    .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .btn-back { background: #334155; color: #fff; border: none; padding: 10px 16px; font-size: 14px; border-radius: 8px; cursor: pointer; -webkit-appearance: none; }
     
-    .input-section { background: #1e293b; border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 15px; }
-    .current-score { font-size: 48px; font-weight: bold; color: #38bdf8; min-height: 60px; margin-bottom: 10px; }
+    .match-card { background: #0f172a; border: 2px solid #1e293b; border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 15px; }
+    .teams-grid { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .team-name { font-size: 20px; font-weight: bold; width: 40%; }
+    .team-score { font-size: 32px; font-weight: bold; color: #fcd34d; width: 20%; }
     
-    .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 400px; margin: 0 auto; }
-    .btn { background: #334155; color: #fff; border: none; padding: 20px; font-size: 24px; font-weight: bold; border-radius: 8px; cursor: pointer; -webkit-appearance: none; }
-    .btn:active { background: #475569; }
-    .btn-action { background: #2563eb; }
-    .btn-clear { background: #dc2626; }
-    .btn-finish { background: #16a34a; width: 100%; max-width: 400px; margin: 15px auto 0; display: block; padding: 18px; font-size: 20px; }
+    /* Nuvarande delmatch / spelare */
+    .submatch-info { background: #1e293b; border-radius: 8px; padding: 10px; margin-top: 10px; font-size: 15px; color: #cbd5e1; }
     
-    .status { text-align: center; font-size: 14px; color: #94a3b8; margin-top: 10px; }
+    /* Tangentbord & Sifferinmatning */
+    .input-box { background: #0f172a; border: 2px solid #1e293b; border-radius: 12px; padding: 15px; margin-bottom: 15px; text-align: center; }
+    .score-display { font-size: 44px; font-weight: bold; color: #38bdf8; min-height: 55px; line-height: 55px; background: #020617; border-radius: 8px; margin-bottom: 15px; border: 1px solid #1e293b; }
+    
+    .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .key { background: #1e293b; color: #fff; border: none; padding: 18px 0; font-size: 24px; font-weight: bold; border-radius: 8px; cursor: pointer; -webkit-appearance: none; }
+    .key:active { background: #334155; }
+    .key-clear { background: #991b1b; }
+    .key-submit { background: #16a34a; }
+    
+    .submatch-controls { display: flex; gap: 10px; margin-top: 15px; }
+    .btn-leg { background: #d97706; color: #fff; border: none; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 8px; flex: 1; cursor: pointer; -webkit-appearance: none; }
+    
+    .status-bar { text-align: center; font-size: 13px; color: #64748b; margin-top: 10px; }
   </style>
 </head>
 <body>
 
-  <div class="header">
-    <select id="match-select" onchange="selectMatch()">
-      <option value="">-- Välj match --</option>
+  <!-- STEG 1: VÄLJ MATCH -->
+  <div id="view-select" class="view-select">
+    <h1>Dart Pubserie - Domare</h1>
+    <select id="match-dropdown">
+      <option value="">Laddar matcher från databasen...</option>
     </select>
+    <button class="btn-main" onclick="openSelectedMatch()">Starta Match</button>
+    <div class="status-bar" id="select-status">Hämtar tillgängliga matcher...</div>
   </div>
 
-  <div class="match-box">
-    <div class="teams" id="teams-label">Välj en match ovan</div>
-    <div class="scores" id="score-label">0 - 0</div>
-  </div>
-
-  <div class="input-section">
-    <div class="current-score" id="score-input">0</div>
-    
-    <div class="numpad">
-      <button class="btn" onclick="addNum(1)">1</button>
-      <button class="btn" onclick="addNum(2)">2</button>
-      <button class="btn" onclick="addNum(3)">3</button>
-      <button class="btn" onclick="addNum(4)">4</button>
-      <button class="btn" onclick="addNum(5)">5</button>
-      <button class="btn" onclick="addNum(6)">6</button>
-      <button class="btn" onclick="addNum(7)">7</button>
-      <button class="btn" onclick="addNum(8)">8</button>
-      <button class="btn" onclick="addNum(9)">9</button>
-      <button class="btn btn-clear" onclick="clearScore()">C</button>
-      <button class="btn" onclick="addNum(0)">0</button>
-      <button class="btn btn-action" onclick="submitScore()">Registrera</button>
+  <!-- STEG 2: DOMARVY -->
+  <div id="view-match" class="view-match">
+    <div class="header-bar">
+      <button class="btn-back" onclick="showSelectView()">← Välj annan match</button>
+      <span id="match-status-tag" style="color:#fcd34d; font-size: 14px;">Pågående</span>
     </div>
 
-    <button class="btn btn-finish" onclick="finishMatch()">Spara & Avsluta Match</button>
-  </div>
+    <!-- Lag & Huvudställning -->
+    <div class="match-card">
+      <div class="teams-grid">
+        <div class="team-name" id="home-name">Hemma</div>
+        <div class="team-score" id="total-score">0 - 0</div>
+        <div class="team-name" id="away-name">Borta</div>
+      </div>
+      
+      <div class="submatch-info" id="submatch-details">
+        Delmatch 1: Spelare laddas...
+      </div>
+    </div>
 
-  <div class="status" id="status-text">Status: Redo</div>
+    <!-- Sifferinmatning för poäng -->
+    <div class="input-box">
+      <div class="score-display" id="input-display">0</div>
+      
+      <div class="keypad">
+        <button class="key" onclick="pressKey('1')">1</button>
+        <button class="key" onclick="pressKey('2')">2</button>
+        <button class="key" onclick="pressKey('3')">3</button>
+        <button class="key" onclick="pressKey('4')">4</button>
+        <button class="key" onclick="pressKey('5')">5</button>
+        <button class="key" onclick="pressKey('6')">6</button>
+        <button class="key" onclick="pressKey('7')">7</button>
+        <button class="key" onclick="pressKey('8')">8</button>
+        <button class="key" onclick="pressKey('9')">9</button>
+        <button class="key key-clear" onclick="clearInput()">C</button>
+        <button class="key" onclick="pressKey('0')">0</button>
+        <button class="key key-submit" onclick="submitScore()">OK</button>
+      </div>
+
+      <!-- Snabbknappar för Leg-vinst -->
+      <div class="submatch-controls">
+        <button class="btn-leg" onclick="winLeg('home')">Leg Hemma</button>
+        <button class="btn-leg" onclick="winLeg('away')">Leg Borta</button>
+      </div>
+    </div>
+
+    <button class="btn-main" style="background:#16a34a; margin-top: 10px;" onclick="finishFullMatch()">Avsluta & Publicera Match</button>
+    <div class="status-bar" id="match-status-text">Redo</div>
+  </div>
 
   <script>
     var SUPABASE_URL = 'https://luznainkmcogcqbuprzw.supabase.co';
     var SUPABASE_KEY = 'sb_publishable_6psZleJBdhdZFhUTutZqnw_Rr4Y2SI6';
-    
-    var currentMatch = null;
-    var currentInputValue = '';
 
-    function apiRequest(method, endpoint, body, callback) {
+    var matchesList = [];
+    var activeMatch = null;
+    var currentInput = '';
+
+    // Universell XMLHttpRequest-funktion för iOS 9
+    function dbRequest(method, endpoint, body, callback) {
       var xhr = new XMLHttpRequest();
       xhr.open(method, SUPABASE_URL + endpoint, true);
       xhr.setRequestHeader('apikey', SUPABASE_KEY);
       xhr.setRequestHeader('Authorization', 'Bearer ' + SUPABASE_KEY);
       xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('Prefer', 'return=representation');
 
       xhr.onreadystatechange = function () {
         if (xhr.readyState === 4) {
           if (xhr.status >= 200 && xhr.status < 300) {
-            var data = xhr.responseText ? JSON.parse(xhr.responseText) : null;
-            callback(null, data);
+            var res = xhr.responseText ? JSON.parse(xhr.responseText) : null;
+            callback(null, res);
           } else {
-            callback('Fel ' + xhr.status, null);
+            callback('HTTP-fel ' + xhr.status, null);
           }
         }
       };
       xhr.send(body ? JSON.stringify(body) : null);
     }
 
-    function fetchMatches() {
-      document.getElementById('status-text').innerText = 'Hämtar matcher...';
-      apiRequest('GET', '/rest/v1/matches?select=*', null, function(err, data) {
-        if (err) {
-          document.getElementById('status-text').innerText = 'Kunde inte hämta matcher.';
+    // 1. Hämta matcher från administratörsvyn
+    function loadAdminMatches() {
+      document.getElementById('select-status').innerText = 'Hämtar matcher...';
+      dbRequest('GET', '/rest/v1/matches?select=*', null, function(err, data) {
+        if (err || !data) {
+          document.getElementById('select-status').innerText = 'Kunde inte hämta matcher från databasen.';
           return;
         }
-        var select = document.getElementById('match-select');
-        select.innerHTML = '<option value="">-- Välj match --</option>';
-        for (var i = 0; i < data.length; i++) {
-          var m = data[i];
+        
+        matchesList = data;
+        var dropdown = document.getElementById('match-dropdown');
+        dropdown.innerHTML = '';
+
+        if (matchesList.length === 0) {
+          dropdown.innerHTML = '<option value="">Inga matcher skapade än</option>';
+          document.getElementById('select-status').innerText = 'Skapa matcher i adminvyn först.';
+          return;
+        }
+
+        for (var i = 0; i < matchesList.length; i++) {
+          var item = matchesList[i];
+          var matchData = item.data || item;
+          var home = matchData.homeTeam || 'Hemma';
+          var away = matchData.awayTeam || 'Borta';
+          
           var opt = document.createElement('option');
-          opt.value = m.id;
-          opt.innerText = (m.data && m.data.homeTeam) ? (m.data.homeTeam + ' vs ' + m.data.awayTeam) : m.id;
-          select.appendChild(opt);
+          opt.value = item.id;
+          opt.innerText = home + ' vs ' + away + ' (' + (matchData.status || 'Ej startad') + ')';
+          dropdown.appendChild(opt);
         }
-        document.getElementById('status-text').innerText = 'Matcher hämtade.';
+        document.getElementById('select-status').innerText = 'Välj en match i listan.';
       });
     }
 
-    function selectMatch() {
-      var matchId = document.getElementById('match-select').value;
-      if (!matchId) return;
+    // 2. Öppna vald match
+    function openSelectedMatch() {
+      var dropdown = document.getElementById('match-dropdown');
+      var selectedId = dropdown.value;
+      if (!selectedId) return;
 
-      apiRequest('GET', '/rest/v1/matches?id=eq.' + matchId, null, function(err, data) {
-        if (!err && data.length > 0) {
-          currentMatch = data[0];
-          updateUI();
+      for (var i = 0; i < matchesList.length; i++) {
+        if (matchesList[i].id == selectedId) {
+          activeMatch = matchesList[i];
+          break;
         }
-      });
-    }
+      }
 
-    function updateUI() {
-      if (!currentMatch || !currentMatch.data) return;
-      var d = currentMatch.data;
-      document.getElementById('teams-label').innerText = d.homeTeam + ' vs ' + d.awayTeam;
-      
-      var homeScore = d.homeScore || 0;
-      var awayScore = d.awayScore || 0;
-      document.getElementById('score-label').innerText = homeScore + ' - ' + awayScore;
-    }
-
-    function addNum(n) {
-      if (currentInputValue.length < 3) {
-        currentInputValue += n;
-        document.getElementById('score-input').innerText = currentInputValue;
+      if (activeMatch) {
+        document.getElementById('view-select').style.display = 'none';
+        document.getElementById('view-match').style.display = 'block';
+        renderMatchUI();
       }
     }
 
-    function clearScore() {
-      currentInputValue = '';
-      document.getElementById('score-input').innerText = '0';
+    function showSelectView() {
+      document.getElementById('view-match').style.display = 'none';
+      document.getElementById('view-select').style.display = 'block';
+      loadAdminMatches();
     }
 
+    // 3. Rendera matchdata och ställning
+    function renderMatchUI() {
+      if (!activeMatch) return;
+      var d = activeMatch.data || activeMatch;
+
+      document.getElementById('home-name').innerText = d.homeTeam || 'Hemma';
+      document.getElementById('away-name').innerText = d.awayTeam || 'Borta';
+
+      // Räkna sammanlagda delmatch-vinster
+      var homeWins = 0;
+      var awayWins = 0;
+      var subMatches = d.subMatches || [];
+
+      for (var i = 0; i < subMatches.length; i++) {
+        if (subMatches[i].homeScore === 3) homeWins++;
+        if (subMatches[i].awayScore === 3) awayWins++;
+      }
+
+      document.getElementById('total-score').innerText = homeWins + ' - ' + awayWins;
+
+      // Hitta nuvarande pågående delmatch
+      var currentSubIndex = 0;
+      for (var j = 0; j < subMatches.length; j++) {
+        if (subMatches[j].homeScore < 3 && subMatches[j].awayScore < 3) {
+          currentSubIndex = j;
+          break;
+        }
+      }
+
+      var activeSub = subMatches[currentSubIndex] || { homePlayer: '-', awayPlayer: '-', homeScore: 0, awayScore: 0 };
+      document.getElementById('submatch-details').innerHTML = 
+        '<strong>Delmatch ' + (currentSubIndex + 1) + '</strong><br>' +
+        (activeSub.homePlayer || d.homeTeam) + ' (' + (activeSub.homeScore || 0) + ') vs ' +
+        (activeSub.awayPlayer || d.awayTeam) + ' (' + (activeSub.awayScore || 0) + ')';
+    }
+
+    // Keypad logik
+    function pressKey(num) {
+      if (currentInput.length < 3) {
+        currentInput += num;
+        document.getElementById('input-display').innerText = currentInput;
+      }
+    }
+
+    function clearInput() {
+      currentInput = '';
+      document.getElementById('input-display').innerText = '0';
+    }
+
+    // 4. Registrera poäng/kast i databasen
     function submitScore() {
-      if (!currentMatch || !currentInputValue) return;
+      if (!activeMatch || !currentInput) return;
+      var scoreVal = parseInt(currentInput, 10);
       
-      var scoreVal = parseInt(currentInputValue, 10);
-      document.getElementById('status-text').innerText = 'Sparar poäng...';
+      document.getElementById('match-status-text').innerText = 'Sparar poäng ' + scoreVal + '...';
 
-      // Lägg till poäng/kast
-      if (!currentMatch.data.scores) currentMatch.data.scores = [];
-      currentMatch.data.scores.push(scoreVal);
+      var matchData = activeMatch.data || activeMatch;
+      if (!matchData.scores) matchData.scores = [];
+      matchData.scores.push(scoreVal);
 
-      apiRequest('PATCH', '/rest/v1/matches?id=eq.' + currentMatch.id, currentMatch.data, function(err) {
+      // Uppdatera i Supabase
+      dbRequest('PATCH', '/rest/v1/matches?id=eq.' + activeMatch.id, { data: matchData }, function(err) {
         if (!err) {
-          document.getElementById('status-text').innerText = 'Poäng ' + scoreVal + ' sparad!';
-          clearScore();
-          updateUI();
+          document.getElementById('match-status-text').innerText = 'Kast ' + scoreVal + ' registrerat!';
+          clearInput();
+          renderMatchUI();
         } else {
-          document.getElementById('status-text').innerText = 'Fel vid sparning.';
+          document.getElementById('match-status-text').innerText = 'Kunde inte spara cast.';
         }
       });
     }
 
-    function finishMatch() {
-      if (!currentMatch) return;
-      if (confirm('Vill du slutföra matchen och skicka resultatet till TV/publikvyn?')) {
-        currentMatch.data.status = 'finished';
-        apiRequest('PATCH', '/rest/v1/matches?id=eq.' + currentMatch.id, currentMatch.data, function(err) {
+    // 5. Registrera Leg-vinst
+    function winLeg(team) {
+      if (!activeMatch) return;
+      var matchData = activeMatch.data || activeMatch;
+      var subMatches = matchData.subMatches || [];
+
+      // Hitta aktiv delmatch
+      for (var i = 0; i < subMatches.length; i++) {
+        if (subMatches[i].homeScore < 3 && subMatches[i].awayScore < 3) {
+          if (team === 'home') subMatches[i].homeScore = (subMatches[i].homeScore || 0) + 1;
+          if (team === 'away') subMatches[i].awayScore = (subMatches[i].awayScore || 0) + 1;
+          break;
+        }
+      }
+
+      document.getElementById('match-status-text').innerText = 'Uppdaterar leg...';
+
+      dbRequest('PATCH', '/rest/v1/matches?id=eq.' + activeMatch.id, { data: matchData }, function(err) {
+        if (!err) {
+          document.getElementById('match-status-text').innerText = 'Leg registrerat!';
+          renderMatchUI();
+        }
+      });
+    }
+
+    // 6. Avsluta hela matchen
+    function finishFullMatch() {
+      if (!activeMatch) return;
+      if (confirm('Vill du slutföra matchen och skicka alla resultat till TV/Publikvyn?')) {
+        var matchData = activeMatch.data || activeMatch;
+        matchData.status = 'finished';
+
+        dbRequest('PATCH', '/rest/v1/matches?id=eq.' + activeMatch.id, { data: matchData }, function(err) {
           if (!err) {
-            alert('Matchen är avslutad och publicerad!');
-            document.getElementById('status-text').innerText = 'Match avsluts och skickad.';
+            alert('Matchen är avslutad och publicerad till TV-skärmen!');
+            showSelectView();
           }
         });
       }
     }
 
-    // Ladda matcher vid start
-    fetchMatches();
+    // Starta genom att läsa in alla matcher
+    loadAdminMatches();
   </script>
 </body>
 </html>
