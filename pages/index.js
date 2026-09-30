@@ -1,3 +1,8 @@
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', function(e) {
+    alert('Krasch: ' + e.message + ' i ' + e.filename + ':' + e.lineno);
+  });
+}
 import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 
