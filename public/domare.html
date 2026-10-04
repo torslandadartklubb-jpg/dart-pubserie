@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+Här är hela koden för domare.html med den nya logiken inlagd i triggerLiveUpdate(). Du kan kopiera allt och ersätta hela innehållet i din fil:   HTML<!DOCTYPE html>
 <html lang="sv">
 <head>
   <meta charset="UTF-8">
@@ -683,6 +683,11 @@
       sm.turn = activeMatch.turn;
       sm.legStarter = activeMatch.legStarter;
       sm.scoringActive = activeMatch.scoringActive;
+
+      // Uppdatera huvudmatchens status till ongoing så fort domaren kör på iPad
+      if (fullMatchData.matchStatus !== 'finished') {
+        fullMatchData.matchStatus = 'ongoing';
+      }
 
       if (sm.homeScore >= 3 || sm.awayScore >= 3) {
         sm.status = 'finished';
