@@ -475,6 +475,7 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
   const [awayScore, setAwayScore] = useState(initialAway);
   const [homeLegs, setHomeLegs] = useState(match.homeScore || 0);
   const [awayLegs, setAwayLegs] = useState(match.awayScore || 0);
+  const [status, setStatus] = useState(match.status || 'live');
   const [inputVal, setInputVal] = useState('');
 
   const getInitialStarter = () => {
@@ -498,6 +499,13 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
 
   const logContainerRef = useRef(null);
 
+  // Sätt status till 'live' så fort domarvyn laddas om matchen inte är fullbordad
+  useEffect(() => {
+    if (match.status !== 'completed' && status !== 'live') {
+      setStatus('live');
+    }
+  }, []);
+
   useEffect(() => {
     if (logContainerRef.current) {
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
@@ -506,15 +514,16 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
 
   useEffect(() => {
     if (onLiveUpdate) {
+      const currentStatus = (homeLegs === 3 || awayLegs === 3) ? 'completed' : 'live';
       onLiveUpdate(match.id, {
         homeScore: homeLegs,
         awayScore: awayLegs,
         currentHomePoints: homeScore,
         currentAwayPoints: awayScore,
-        status: (homeLegs === 3 || awayLegs === 3) ? 'completed' : 'live'
+        status: currentStatus
       }, performances);
     }
-  }, [homeLegs, awayLegs, homeScore, awayScore, performances]);
+  }, [homeLegs, awayLegs, homeScore, awayScore, performances, status]);
 
   const homeName = match.homePlayer || homeTeam;
   const awayName = match.awayPlayer || awayTeam;
@@ -589,7 +598,7 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
   const saveStateToHistory = () => {
     setHistoryStack(function(prev) {
       return prev.concat([{
-        homeScore: homeScore, awayScore: awayScore, homeLegs: homeLegs, awayLegs: awayLegs, turn: turn, legStarter: legStarter, rounds: rounds, performances: performances
+        homeScore: homeScore, awayScore: awayScore, homeLegs: homeLegs, awayLegs: awayLegs, turn: turn, legStarter: legStarter, rounds: rounds, performances: performances, status: status
       }]);
     });
   };
@@ -605,6 +614,7 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
     setLegStarter(lastState.legStarter);
     setRounds(lastState.rounds);
     setPerformances(lastState.performances);
+    setStatus(lastState.status);
     setInputVal('');
     setScoringActive(false);
     setScoringConfirm(null);
@@ -624,6 +634,11 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
       alert('Det går inte att få ' + score + ' poäng på 3 pilar!');
       setInputVal('');
       return;
+    }
+
+    // Ändra status till live vid första poängen
+    if (status !== 'completed') {
+      setStatus('live');
     }
 
     const currentScore = turn === 'home' ? homeScore : awayScore;
@@ -672,6 +687,10 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
     const calculatedScored = confirmRemaining.calculatedScored;
     setConfirmRemaining(null);
 
+    if (status !== 'completed') {
+      setStatus('live');
+    }
+
     const currentScore = turn === 'home' ? homeScore : awayScore;
     const remaining = currentScore - calculatedScored;
 
@@ -714,7 +733,9 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
 
       if (confirmedCheckout) {
         checkAndAddCheckoutPerformances('home', activePlayerName, score, updatedRounds.length);
-        setHomeLegs(function(l) { return l + 1; });
+        const newHomeLegs = homeLegs + 1;
+        setHomeLegs(newHomeLegs);
+        if (newHomeLegs === 3) setStatus('completed');
         startNextLeg();
         setInputVal('');
         return;
@@ -736,7 +757,9 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
 
       if (confirmedCheckout) {
         checkAndAddCheckoutPerformances('away', activePlayerName, score, updatedRounds.length);
-        setAwayLegs(function(l) { return l + 1; });
+        const newAwayLegs = awayLegs + 1;
+        setAwayLegs(newAwayLegs);
+        if (newAwayLegs === 3) setStatus('completed');
         startNextLeg();
         setInputVal('');
         return;
@@ -800,9 +823,13 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
     if (!scoringConfirm) return;
 
     if (scoringConfirm.winner === 'home') {
-      setHomeLegs(function(l) { return l + 1; });
+      const newLegs = homeLegs + 1;
+      setHomeLegs(newLegs);
+      if (newLegs === 3) setStatus('completed');
     } else {
-      setAwayLegs(function(l) { return l + 1; });
+      const newLegs = awayLegs + 1;
+      setAwayLegs(newLegs);
+      if (newLegs === 3) setStatus('completed');
     }
 
     setScoringActive(false);
@@ -884,10 +911,10 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
         <h2 style={{ color: '#eab308', fontSize: '22px', marginBottom: '10px' }}>AVGÖRANDE DUBBEL (AD)</h2>
         <p style={{ color: '#94a3b8', fontSize: '15px', marginBottom: '20px' }}>Vem vann slantkastningen / omkastet och ska börja?</p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <button onClick={() => { setLegStarter('home'); setTurn('home'); }} style={{ backgroundColor: '#1e293b', color: '#60a5fa', border: '2px solid #3b82f6', padding: '20px', borderRadius: '12px', fontWeight: 'bold', fontSize: '18px', cursor: 'pointer' }}>
+          <button onClick={() => { setLegStarter('home'); setTurn('home'); setStatus('live'); }} style={{ backgroundColor: '#1e293b', color: '#60a5fa', border: '2px solid #3b82f6', padding: '20px', borderRadius: '12px', fontWeight: 'bold', fontSize: '18px', cursor: 'pointer' }}>
             {homeName}
           </button>
-          <button onClick={() => { setLegStarter('away'); setTurn('away'); }} style={{ backgroundColor: '#1e293b', color: '#f43f5e', border: '2px solid #f43f5e', padding: '20px', borderRadius: '12px', fontWeight: 'bold', fontSize: '18px', cursor: 'pointer' }}>
+          <button onClick={() => { setLegStarter('away'); setTurn('away'); setStatus('live'); }} style={{ backgroundColor: '#1e293b', color: '#f43f5e', border: '2px solid #f43f5e', padding: '20px', borderRadius: '12px', fontWeight: 'bold', fontSize: '18px', cursor: 'pointer' }}>
             {awayName}
           </button>
         </div>
