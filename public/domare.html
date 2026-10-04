@@ -9,16 +9,29 @@
     body { background-color: #020617; color: #ffffff; padding: 12px; }
 
     /* Huvudkort för lagställning */
-    .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 12px; text-align: center; margin-bottom: 12px; }
+    .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 14px; text-align: center; margin-bottom: 14px; }
     .teams-title { font-size: 18px; font-weight: bold; color: #94a3b8; }
-    .main-score { font-size: 36px; font-weight: bold; color: #f59e0b; margin: 4px 0; }
+    .main-score { font-size: 40px; font-weight: bold; color: #f59e0b; margin: 4px 0; }
 
-    /* Rullista för delmatcher */
-    .select-box { margin-bottom: 12px; }
-    select { background: #0f172a; color: #38bdf8; border: 2px solid #38bdf8; font-size: 16px; font-weight: bold; padding: 12px; border-radius: 10px; width: 100%; -webkit-appearance: none; }
+    /* STARTSIDA: Lista med matcher */
+    .section-title { font-size: 15px; font-weight: bold; color: #cbd5e1; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .match-list { display: flex; flex-direction: column; gap: 8px; }
+    .match-item { background: #1e293b; border: 2px solid #334155; border-radius: 10px; padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; -webkit-appearance: none; text-align: left; width: 100%; color: #fff; }
+    .match-item:active { background: #334155; }
+    .match-item.finished { border-color: #059669; opacity: 0.7; }
+    .match-info-tag { font-size: 12px; font-weight: bold; color: #38bdf8; }
+    .match-players { font-size: 15px; font-weight: bold; margin-top: 2px; }
+    .match-status { font-size: 14px; font-weight: bold; padding: 6px 12px; border-radius: 6px; background: #2563eb; color: #fff; }
+    .match-status.done { background: #059669; }
 
-    /* Domarvy - Spelarboxar & Återstående poäng i leget */
-    .players-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    /* DOMARVY: Döljs som standard */
+    #judge-view { display: none; }
+    
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .btn-back { background: #334155; color: #cbd5e1; border: none; padding: 8px 14px; font-size: 13px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+
+    /* Spelarboxar & Poäng */
+    .players-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
     .player-card { background: #1e293b; border: 2px solid #334155; border-radius: 10px; padding: 10px; text-align: center; position: relative; }
     .player-card.active { border-color: #f59e0b; background: #1e293b; }
     .p-name { font-size: 15px; font-weight: bold; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -37,64 +50,73 @@
 
     /* Ångra-knapp */
     .action-row { display: flex; justify-content: center; }
-    .btn-undo { background: #475569; color: #fff; border: none; padding: 12px 30px; font-size: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; -webkit-appearance: none; width: 100%; max-width: 300px; }
+    .btn-undo { background: #475569; color: #fff; border: none; padding: 12px 30px; font-size: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; -webkit-appearance: none; width: 100%; }
 
     .status-text { text-align: center; font-size: 12px; color: #64748b; margin-top: 10px; }
   </style>
 </head>
 <body>
 
-  <!-- Lag & Huvudställning -->
+  <!-- Lag & Huvudställning (Visas alltid högst upp) -->
   <div class="card">
-    <div class="teams-title" id="main-teams">Laddar matcher...</div>
+    <div class="teams-title" id="main-teams">Laddar lag...</div>
     <div class="main-score" id="main-score">0 - 0</div>
   </div>
 
-  <!-- Rullista för delmatch -->
-  <div class="select-box">
-    <select id="submatch-select" onchange="onSubMatchChange()">
-      <option value="">Laddar delmatcher...</option>
-    </select>
-  </div>
-
-  <!-- Spelarnas poängställning i nuvarande leg -->
-  <div class="players-grid">
-    <div class="player-card" id="card-home" onclick="setTurn('home')">
-      <span class="starter-badge" id="badge-home"></span>
-      <div class="p-name" id="p-home-name">Spelare Hemma</div>
-      <div class="p-legs" id="p-home-legs">Legs: 0</div>
-      <div class="p-rem-score" id="p-home-rem">501</div>
-    </div>
-    <div class="player-card" id="card-away" onclick="setTurn('away')">
-      <span class="starter-badge" id="badge-away"></span>
-      <div class="p-name" id="p-away-name">Spelare Borta</div>
-      <div class="p-legs" id="p-away-legs">Legs: 0</div>
-      <div class="p-rem-score" id="p-away-rem">501</div>
+  <!-- STARTSIDA: Välj delmatch -->
+  <div id="start-view">
+    <div class="section-title">Välj delmatch att döma:</div>
+    <div class="match-list" id="match-list-container">
+      <!-- Fylls dynamiskt -->
     </div>
   </div>
 
-  <!-- Inmatningsskärm för kast -->
-  <div class="input-display" id="input-display">0</div>
+  <!-- DOMARVY: Visas när en match har valts -->
+  <div id="judge-view">
+    <div class="top-bar">
+      <button class="btn-back" onclick="showStartView()">← Tillbaka till översikt</button>
+      <div id="current-submatch-title" style="font-weight: bold; color: #38bdf8;">Delmatch S1</div>
+    </div>
 
-  <!-- Knappsats -->
-  <div class="numpad">
-    <button class="num-btn" onclick="pressNum('1')">1</button>
-    <button class="num-btn" onclick="pressNum('2')">2</button>
-    <button class="num-btn" onclick="pressNum('3')">3</button>
-    <button class="num-btn" onclick="pressNum('4')">4</button>
-    <button class="num-btn" onclick="pressNum('5')">5</button>
-    <button class="num-btn" onclick="pressNum('6')">6</button>
-    <button class="num-btn" onclick="pressNum('7')">7</button>
-    <button class="num-btn" onclick="pressNum('8')">8</button>
-    <button class="num-btn" onclick="pressNum('9')">9</button>
-    <button class="num-btn btn-clear" onclick="clearNum()">C</button>
-    <button class="num-btn" onclick="pressNum('0')">0</button>
-    <button class="num-btn btn-ok" onclick="submitThrow()">OK</button>
-  </div>
+    <!-- Spelarnas poängställning i nuvarande leg -->
+    <div class="players-grid">
+      <div class="player-card" id="card-home" onclick="setTurn('home')">
+        <span class="starter-badge" id="badge-home"></span>
+        <div class="p-name" id="p-home-name">Spelare Hemma</div>
+        <div class="p-legs" id="p-home-legs">Legs: 0</div>
+        <div class="p-rem-score" id="p-home-rem">501</div>
+      </div>
+      <div class="player-card" id="card-away" onclick="setTurn('away')">
+        <span class="starter-badge" id="badge-away"></span>
+        <div class="p-name" id="p-away-name">Spelare Borta</div>
+        <div class="p-legs" id="p-away-legs">Legs: 0</div>
+        <div class="p-rem-score" id="p-away-rem">501</div>
+      </div>
+    </div>
 
-  <!-- Ångra senast registrerat kast -->
-  <div class="action-row">
-    <button class="btn-undo" onclick="undoLastThrow()">↺ Ångra Senaste Kast</button>
+    <!-- Inmatningsskärm för kast -->
+    <div class="input-display" id="input-display">0</div>
+
+    <!-- Knappsats -->
+    <div class="numpad">
+      <button class="num-btn" onclick="pressNum('1')">1</button>
+      <button class="num-btn" onclick="pressNum('2')">2</button>
+      <button class="num-btn" onclick="pressNum('3')">3</button>
+      <button class="num-btn" onclick="pressNum('4')">4</button>
+      <button class="num-btn" onclick="pressNum('5')">5</button>
+      <button class="num-btn" onclick="pressNum('6')">6</button>
+      <button class="num-btn" onclick="pressNum('7')">7</button>
+      <button class="num-btn" onclick="pressNum('8')">8</button>
+      <button class="num-btn" onclick="pressNum('9')">9</button>
+      <button class="num-btn btn-clear" onclick="clearNum()">C</button>
+      <button class="num-btn" onclick="pressNum('0')">0</button>
+      <button class="num-btn btn-ok" onclick="submitThrow()">OK</button>
+    </div>
+
+    <!-- Ångra senast registrerat kast -->
+    <div class="action-row">
+      <button class="btn-undo" onclick="undoLastThrow()">↺ Ångra Senaste Kast</button>
+    </div>
   </div>
 
   <div class="status-text" id="status-bar">Status: Synkar...</div>
@@ -106,7 +128,7 @@
     var IMPOSSIBLE_SCORES = [163, 166, 169, 172, 173, 175, 176, 178, 179];
 
     var fullMatchData = null;
-    var activeSubIndex = 0;
+    var activeSubIndex = null;
     var currentTurn = 'home'; 
     var currentInput = '';
 
@@ -164,6 +186,7 @@
     function renderUI() {
       if (!fullMatchData) return;
 
+      // Huvudställning
       document.getElementById('main-teams').innerText = fullMatchData.homeTeam + ' vs ' + fullMatchData.awayTeam;
       
       var homeWins = 0;
@@ -176,55 +199,77 @@
       }
       document.getElementById('main-score').innerText = homeWins + ' - ' + awayWins;
 
-      var select = document.getElementById('submatch-select');
-      select.innerHTML = '';
+      // Rendera lista på startsidan
+      var listContainer = document.getElementById('match-list-container');
+      listContainer.innerHTML = '';
 
       for (var j = 0; j < subMatches.length; j++) {
         var sm = subMatches[j];
         var isFinished = (sm.homeScore >= 3 || sm.awayScore >= 3);
-        var statusTag = isFinished ? ' [KLAR]' : '';
-        
-        var opt = document.createElement('option');
-        opt.value = j;
-        opt.innerText = 'Delmatch ' + (j + 1) + ' (S' + (j + 1) + '): ' + (sm.homePlayer || 'Hemma') + ' (' + (sm.homeScore||0) + ') vs ' + (sm.awayPlayer || 'Borta') + ' (' + (sm.awayScore||0) + ')' + statusTag;
-        select.appendChild(opt);
+
+        var btn = document.createElement('button');
+        btn.className = 'match-item' + (isFinished ? ' finished' : '');
+        btn.setAttribute('onclick', 'selectSubMatch(' + j + ')');
+
+        var infoDiv = document.createElement('div');
+        infoDiv.innerHTML = '<div class="match-info-tag">Delmatch ' + (j + 1) + ' (S' + (j + 1) + ')</div>' +
+                            '<div class="match-players">' + (sm.homePlayer || 'Hemma') + ' vs ' + (sm.awayPlayer || 'Borta') + '</div>';
+
+        var statusDiv = document.createElement('div');
+        statusDiv.className = 'match-status' + (isFinished ? ' done' : '');
+        statusDiv.innerText = (sm.homeScore || 0) + ' - ' + (sm.awayScore || 0) + (isFinished ? ' (KLAR)' : '');
+
+        btn.appendChild(infoDiv);
+        btn.appendChild(statusDiv);
+        listContainer.appendChild(btn);
       }
 
-      select.value = activeSubIndex;
+      // Rendera aktiv domarvy om en match är vald
+      if (activeSubIndex !== null) {
+        var activeSub = subMatches[activeSubIndex] || {};
+        document.getElementById('current-submatch-title').innerText = 'Delmatch ' + (activeSubIndex + 1) + ' (S' + (activeSubIndex + 1) + ')';
+        
+        document.getElementById('p-home-name').innerText = activeSub.homePlayer || fullMatchData.homeTeam;
+        document.getElementById('p-away-name').innerText = activeSub.awayPlayer || fullMatchData.awayTeam;
+        document.getElementById('p-home-legs').innerText = 'Legs: ' + (activeSub.homeScore || 0);
+        document.getElementById('p-away-legs').innerText = 'Legs: ' + (activeSub.awayScore || 0);
 
-      var activeSub = subMatches[activeSubIndex] || {};
-      document.getElementById('p-home-name').innerText = activeSub.homePlayer || fullMatchData.homeTeam;
-      document.getElementById('p-away-name').innerText = activeSub.awayPlayer || fullMatchData.awayTeam;
-      document.getElementById('p-home-legs').innerText = 'Legs: ' + (activeSub.homeScore || 0);
-      document.getElementById('p-away-legs').innerText = 'Legs: ' + (activeSub.awayScore || 0);
+        var homeThrows = activeSub.homeThrows || [];
+        var awayThrows = activeSub.awayThrows || [];
 
-      var homeThrows = activeSub.homeThrows || [];
-      var awayThrows = activeSub.awayThrows || [];
+        var homeSum = 0;
+        for (var k = 0; k < homeThrows.length; k++) homeSum += homeThrows[k];
+        
+        var awaySum = 0;
+        for (var l = 0; l < awayThrows.length; l++) awaySum += awayThrows[l];
 
-      var homeSum = 0;
-      for (var k = 0; k < homeThrows.length; k++) homeSum += homeThrows[k];
-      
-      var awaySum = 0;
-      for (var l = 0; l < awayThrows.length; l++) awaySum += awayThrows[l];
+        document.getElementById('p-home-rem').innerText = 501 - homeSum;
+        document.getElementById('p-away-rem').innerText = 501 - awaySum;
 
-      document.getElementById('p-home-rem').innerText = 501 - homeSum;
-      document.getElementById('p-away-rem').innerText = 501 - awaySum;
+        var legStarter = getLegStarter(activeSubIndex, activeSub.homeScore, activeSub.awayScore);
+        document.getElementById('badge-home').innerText = (legStarter === 'home') ? '🎯 START' : '';
+        document.getElementById('badge-away').innerText = (legStarter === 'away') ? '🎯 START' : '';
 
-      var legStarter = getLegStarter(activeSubIndex, activeSub.homeScore, activeSub.awayScore);
-      document.getElementById('badge-home').innerText = (legStarter === 'home') ? '🎯 START' : '';
-      document.getElementById('badge-away').innerText = (legStarter === 'away') ? '🎯 START' : '';
-
-      document.getElementById('card-home').className = 'player-card' + (currentTurn === 'home' ? ' active' : '');
-      document.getElementById('card-away').className = 'player-card' + (currentTurn === 'away' ? ' active' : '');
+        document.getElementById('card-home').className = 'player-card' + (currentTurn === 'home' ? ' active' : '');
+        document.getElementById('card-away').className = 'player-card' + (currentTurn === 'away' ? ' active' : '');
+      }
     }
 
-    function onSubMatchChange() {
-      var select = document.getElementById('submatch-select');
-      activeSubIndex = parseInt(select.value, 10);
-      
+    function selectSubMatch(index) {
+      activeSubIndex = index;
       var sm = fullMatchData.subMatches[activeSubIndex] || {};
       currentTurn = getLegStarter(activeSubIndex, sm.homeScore, sm.awayScore);
+      
+      document.getElementById('start-view').style.display = 'none';
+      document.getElementById('judge-view').style.display = 'block';
+      clearNum();
+      renderUI();
+    }
 
+    function showStartView() {
+      activeSubIndex = null;
+      document.getElementById('judge-view').style.display = 'none';
+      document.getElementById('start-view').style.display = 'block';
       renderUI();
     }
 
@@ -245,12 +290,13 @@
       document.getElementById('input-display').innerText = '0';
     }
 
-    function saveToDatabase() {
+    function saveToDatabase(onSuccess) {
       document.getElementById('status-bar').innerText = 'Sparar till TV...';
       apiCall('PATCH', '/rest/v1/matches?id=eq.main_match', { data: fullMatchData }, function(err) {
         if (!err) {
           document.getElementById('status-bar').innerText = 'Uppdaterat i realtid!';
           renderUI();
+          if (onSuccess) onSuccess();
         } else {
           document.getElementById('status-bar').innerText = 'Kunde inte spara.';
         }
@@ -262,11 +308,10 @@
 
       var sm = fullMatchData.subMatches[activeSubIndex];
 
-      // SPÄRR: Om delmatchen redan är avgjord (någon har nått 3 legs)
+      // Spärr: Om matchen redan är slut
       if ((sm.homeScore || 0) >= 3 || (sm.awayScore || 0) >= 3) {
-        var winner = (sm.homeScore >= 3) ? sm.homePlayer : sm.awayPlayer;
-        alert('Delmatchen är redan slut! ' + winner + ' har vunnit.');
-        clearNum();
+        alert('Delmatchen är redan klar! Återgår till startsidan.');
+        showStartView();
         return;
       }
 
@@ -295,6 +340,8 @@
         if (currentTurn === 'home') sm.homeThrows.push(0);
         else sm.awayThrows.push(0);
         currentTurn = (currentTurn === 'home') ? 'away' : 'home';
+        clearNum();
+        saveToDatabase();
       } 
       // Leg-vinst
       else if (scoreVal === currentRem) {
@@ -307,19 +354,18 @@
         sm.homeThrows = [];
         sm.awayThrows = [];
 
-        // Kontrollera om delmatchen tog slut (först till 3 legs)
+        // Om någon nådde 3 legs -> Matchen är slut!
         if (sm.homeScore >= 3 || sm.awayScore >= 3) {
-          alert('MATCH VUNNEN! ' + winnerName + ' vinner delmatchen med ' + sm.homeScore + ' - ' + sm.awayScore + '!');
-          
-          // Om det finns en nästa delmatch, hoppa automatiskt till den
-          if (activeSubIndex + 1 < fullMatchData.subMatches.length) {
-            activeSubIndex++;
-            var nextSm = fullMatchData.subMatches[activeSubIndex] || {};
-            currentTurn = getLegStarter(activeSubIndex, nextSm.homeScore, nextSm.awayScore);
-          }
+          clearNum();
+          saveToDatabase(function() {
+            alert('MATCH VUNNEN! ' + winnerName + ' vinner delmatchen med ' + sm.homeScore + ' - ' + sm.awayScore + '!');
+            showStartView(); // Återgå till startsidan!
+          });
         } else {
           alert('Leg Vinst för ' + winnerName + '!');
           currentTurn = getLegStarter(activeSubIndex, sm.homeScore, sm.awayScore);
+          clearNum();
+          saveToDatabase();
         }
       } 
       // Vanligt kast
@@ -328,13 +374,13 @@
         else sm.awayThrows.push(scoreVal);
 
         currentTurn = (currentTurn === 'home') ? 'away' : 'home';
+        clearNum();
+        saveToDatabase();
       }
-
-      clearNum();
-      saveToDatabase();
     }
 
     function undoLastThrow() {
+      if (activeSubIndex === null) return;
       var sm = fullMatchData.subMatches[activeSubIndex];
       if (currentTurn === 'away' && sm.homeThrows && sm.homeThrows.length > 0) {
         sm.homeThrows.pop();
