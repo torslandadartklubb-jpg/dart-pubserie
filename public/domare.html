@@ -4,10 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Dart Domarpanel</title>
-  <!-- React & Babel CDN -->
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background-color: #020617; color: #ffffff; padding: 12px; }
@@ -28,14 +24,18 @@
     .match-status { font-size: 14px; font-weight: bold; padding: 6px 12px; border-radius: 6px; background: #2563eb; color: #fff; }
     .match-status.done { background: #059669; }
 
-    /* DOMARVY: Döljs som standard */
-    #judge-view { display: none; }
+    /* DOMARVY */
+    #judge-view { display: none; max-width: 550px; margin: 0 auto; background-color: #020617; color: #fff; padding: 12px; border-radius: 16px; border: 1px solid #1e293b; user-select: none; }
     .status-text { text-align: center; font-size: 12px; color: #64748b; margin-top: 10px; word-break: break-all; }
+
+    /* Modal / Popups */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+    .modal-box { background-color: #0f172a; border-radius: 16px; padding: 24px; text-align: center; max-width: 400px; width: 100%; }
   </style>
 </head>
 <body>
 
-  <!-- Lag & Huvudställning (Visas alltid högst upp) -->
+  <!-- Lag & Huvudställning -->
   <div class="card">
     <div class="teams-title" id="main-teams">Laddar lag...</div>
     <div class="main-score" id="main-score">0 - 0</div>
@@ -44,63 +44,60 @@
   <!-- STARTSIDA: Välj delmatch -->
   <div id="start-view">
     <div class="section-title">Välj delmatch att döma:</div>
-    <div class="match-list" id="match-list-container">
-      <!-- Fylls dynamiskt -->
-    </div>
+    <div class="match-list" id="match-list-container"></div>
   </div>
 
-  <!-- DOMARVY: Visas när en match har valts -->
+  <!-- DOMARVY -->
   <div id="judge-view"></div>
 
   <div class="status-text" id="status-bar">Status: Synkar...</div>
 
-  <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
-
+  <script>
     var SUPABASE_URL = 'https://luznainkmcogcqbuprzw.supabase.co';
     var SUPABASE_KEY = 'sb_publishable_6psZleJBdhdZFhUTutZqnw_Rr4Y2SI6';
 
-    const IMPOSSIBLE_SCORES = [163, 166, 169, 172, 173, 175, 176, 178, 179];
-    const IMPOSSIBLE_CHECKOUTS = [159, 162, 163, 165, 166, 168, 169];
-    const HOME_STARTS_MATCHES = ['S1', 'S3', 'S5', 'S7', 'D1', 'D3', 'AD'];
+    var IMPOSSIBLE_SCORES = [163, 166, 169, 172, 173, 175, 176, 178, 179];
+    var IMPOSSIBLE_CHECKOUTS = [159, 162, 163, 165, 166, 168, 169];
+    var HOME_STARTS_MATCHES = ['S1', 'S3', 'S5', 'S7', 'D1', 'D3', 'AD'];
 
     var fullMatchData = null;
     var activeSubIndex = null;
-    let reactRoot = null;
+
+    // Tillstånd för aktiv domarmatch
+    var activeMatch = null;
 
     function apiCall(method, endpoint, body, callback) {
-      fetch(SUPABASE_URL + endpoint, {
-        method: method,
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': 'Bearer ' + SUPABASE_KEY,
-          'Content-Type': 'application/json'
-        },
-        body: body ? JSON.stringify(body) : null
-      })
-      .then(function(response) {
-        if (!response.ok) {
-          throw new Error('HTTP fel ' + response.status);
+      var xhr = new XMLHttpRequest();
+      xhr.open(method, SUPABASE_URL + endpoint, true);
+      xhr.setRequestHeader('apikey', SUPABASE_KEY);
+      xhr.setRequestHeader('Authorization', 'Bearer ' + SUPABASE_KEY);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            var data = xhr.responseText ? JSON.parse(xhr.responseText) : null;
+            callback(null, data);
+          } else {
+            callback('HTTP Fel ' + xhr.status, null);
+          }
         }
-        return response.json();
-      })
-      .then(function(data) {
-        callback(null, data);
-      })
-      .catch(function(err) {
-        callback(err.message || 'Nätverksfel', null);
-      });
+      };
+      xhr.onerror = function() {
+        callback('Nätverksfel vid anrop', null);
+      };
+      xhr.send(body ? JSON.stringify(body) : null);
     }
 
     function loadMatchData() {
-      document.getElementById('status-bar').innerText = 'Hämtar data från Supabase...';
+      document.getElementById('status-bar').innerText = 'Hämtar data...';
       apiCall('GET', '/rest/v1/matches?id=eq.main_match', null, function(err, res) {
         if (!err && res && res.length > 0) {
           fullMatchData = res[0].data;
           if (!fullMatchData.performances) {
             fullMatchData.performances = [];
           }
-          renderUI();
+          renderStartUI();
           document.getElementById('status-bar').innerText = 'Synkad: ' + new Date().toLocaleTimeString();
         } else {
           document.getElementById('status-bar').innerText = 'Fel vid hämtning: ' + (err || 'Ingen data hittades');
@@ -109,10 +106,9 @@
       });
     }
 
-    function renderUI() {
+    function renderStartUI() {
       if (!fullMatchData) return;
 
-      // Huvudställning
       document.getElementById('main-teams').innerText = (fullMatchData.homeTeam || 'Hemmalag') + ' vs ' + (fullMatchData.awayTeam || 'Bortalag');
       
       var homeWins = 0;
@@ -125,7 +121,6 @@
       }
       document.getElementById('main-score').innerText = homeWins + ' - ' + awayWins;
 
-      // Rendera lista på startsidan
       var listContainer = document.getElementById('match-list-container');
       listContainer.innerHTML = '';
 
@@ -159,59 +154,508 @@
 
     function selectSubMatch(index) {
       activeSubIndex = index;
+      var sm = fullMatchData.subMatches[index] || {};
+      var matchId = idxMatch(index);
+
+      var initialStarter = null;
+      if (matchId !== 'AD') {
+        initialStarter = HOME_STARTS_MATCHES.indexOf(matchId) !== -1 ? 'home' : 'away';
+      }
+
+      activeMatch = {
+        id: matchId,
+        type: index < 8 ? 'single' : 'double',
+        homePlayer: sm.homePlayer || fullMatchData.homeTeam,
+        awayPlayer: sm.awayPlayer || fullMatchData.awayTeam,
+        homeScore: (sm.currentHomePoints !== undefined && sm.currentHomePoints !== null) ? sm.currentHomePoints : 501,
+        awayScore: (sm.currentAwayPoints !== undefined && sm.currentAwayPoints !== null) ? sm.currentAwayPoints : 501,
+        homeLegs: sm.homeScore || 0,
+        awayLegs: sm.awayScore || 0,
+        legStarter: initialStarter,
+        turn: initialStarter,
+        inputVal: '',
+        historyStack: [],
+        rounds: [],
+        performances: [],
+        scoringActive: false,
+        scoringHomeInput: '',
+        scoringAwayInput: ''
+      };
+
       document.getElementById('start-view').style.display = 'none';
       document.getElementById('judge-view').style.display = 'block';
 
-      const sm = fullMatchData.subMatches[index] || {};
-      const matchObj = {
-        id: idxMatch(index),
-        type: index < 8 ? 'single' : 'double',
-        homePlayer: sm.homePlayer,
-        awayPlayer: sm.awayPlayer,
-        homeScore: sm.homeScore || 0,
-        awayScore: sm.awayScore || 0,
-        currentHomePoints: (sm.currentHomePoints !== undefined && sm.currentHomePoints !== null) ? sm.currentHomePoints : 501,
-        currentAwayPoints: (sm.currentAwayPoints !== undefined && sm.currentAwayPoints !== null) ? sm.currentAwayPoints : 501
-      };
-
-      if (!reactRoot) {
-        reactRoot = ReactDOM.createRoot(document.getElementById('judge-view'));
-      }
-
-      reactRoot.render(
-        <N01Scorer
-          key={index}
-          match={matchObj}
-          homeTeam={fullMatchData.homeTeam}
-          awayTeam={fullMatchData.awayTeam}
-          onBack={showStartView}
-          onSave={handleSaveMatch}
-          onLiveUpdate={handleLiveUpdate}
-        />
-      );
+      renderJudgeUI();
     }
 
     function showStartView() {
       activeSubIndex = null;
+      activeMatch = null;
       document.getElementById('judge-view').style.display = 'none';
       document.getElementById('start-view').style.display = 'block';
-      renderUI();
+      renderStartUI();
     }
 
-    function handleLiveUpdate(matchId, updatedData, newPerformances) {
-      if (activeSubIndex === null || !fullMatchData) return;
-      
-      const sm = fullMatchData.subMatches[activeSubIndex];
-      sm.homeScore = updatedData.homeScore;
-      sm.awayScore = updatedData.awayScore;
-      sm.currentHomePoints = updatedData.currentHomePoints;
-      sm.currentAwayPoints = updatedData.currentAwayPoints;
+    function renderJudgeUI() {
+      var container = document.getElementById('judge-view');
+      if (!activeMatch) { container.innerHTML = ''; return; }
 
-      if (newPerformances && newPerformances.length > 0) {
-        fullMatchData.performances = [...(fullMatchData.performances || []), ...newPerformances];
+      var m = activeMatch;
+      var isFinished = m.homeLegs === 3 || m.awayLegs === 3;
+
+      // Om det är AD och ingen startande är vald än
+      if (!m.turn && m.id === 'AD') {
+        container.innerHTML = 
+          '<div style="text-align: center; padding: 20px; border: 2px solid #eab308; border-radius: 16px;">' +
+            '<h2 style="color: #eab308; font-size: 22px; margin-bottom: 10px;">AVGÖRANDE DUBBEL (AD)</h2>' +
+            '<p style="color: #94a3b8; font-size: 15px; margin-bottom: 20px;">Vem vann slantkastningen / omkastet och ska börja?</p>' +
+            '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">' +
+              '<button onclick="setADStarter(\'home\')" style="background-color: #1e293b; color: #60a5fa; border: 2px solid #3b82f6; padding: 20px; border-radius: 12px; font-weight: bold; font-size: 18px; cursor: pointer;">' + m.homePlayer + '</button>' +
+              '<button onclick="setADStarter(\'away\')" style="background-color: #1e293b; color: #f43f5e; border: 2px solid #f43f5e; padding: 20px; border-radius: 12px; font-weight: bold; font-size: 18px; cursor: pointer;">' + m.awayPlayer + '</button>' +
+            '</div>' +
+          '</div>';
+        return;
       }
 
-      document.getElementById('status-bar').innerText = 'Sparar till TV...';
+      var html = '';
+
+      // Header
+      html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">' +
+                '<button onclick="showStartView()" style="background-color: #1e293b; color: #94a3b8; border: none; padding: 8px 12px; border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: bold;">← Tillbaka</button>' +
+                '<span style="color: #eab308; font-weight: bold; font-size: 16px;">Match ' + m.id + ' (' + (m.type === 'single' ? 'Singel' : 'Dubbel') + ')</span>' +
+                '<button onclick="saveAndCloseMatch()" style="background-color: #16a34a; color: #fff; border: none; padding: 8px 12px; border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: bold;">Spara & Stäng</button>' +
+              '</div>';
+
+      // Spelarkort
+      html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">' +
+                '<div style="background-color: ' + (m.turn === 'home' ? '#1e293b' : '#0f172a') + '; padding: 12px; border-radius: 12px; border: ' + (m.turn === 'home' ? '2px solid #3b82f6' : '1px solid #1e293b') + '; text-align: center;">' +
+                  '<div style="font-size: 13px; color: #94a3b8; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.homePlayer + '</div>' +
+                  '<div style="font-size: 42px; font-weight: 900; color: ' + (m.turn === 'home' ? '#60a5fa' : '#cbd5e1') + '; line-height: 1;">' + m.homeScore + '</div>' +
+                  '<div style="font-size: 14px; color: #fcd34d; font-weight: bold; margin-top: 6px;">Legs: ' + m.homeLegs + '</div>' +
+                '</div>' +
+                '<div style="background-color: ' + (m.turn === 'away' ? '#1e293b' : '#0f172a') + '; padding: 12px; border-radius: 12px; border: ' + (m.turn === 'away' ? '2px solid #f43f5e' : '1px solid #1e293b') + '; text-align: center;">' +
+                  '<div style="font-size: 13px; color: #94a3b8; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.awayPlayer + '</div>' +
+                  '<div style="font-size: 42px; font-weight: 900; color: ' + (m.turn === 'away' ? '#f43f5e' : '#cbd5e1') + '; line-height: 1;">' + m.awayScore + '</div>' +
+                  '<div style="font-size: 14px; color: #fcd34d; font-weight: bold; margin-top: 6px;">Legs: ' + m.awayLegs + '</div>' +
+                '</div>' +
+              '</div>';
+
+      // Omgångsprotokoll
+      html += '<div id="log-container" style="height: 140px; overflow-y: auto; background-color: #090d16; border-radius: 8px; padding: 8px; margin-bottom: 12px; border: 1px solid #1e293b;">' +
+                '<table style="width: 100%; font-size: 13px; border-collapse: collapse; text-align: center;">' +
+                  '<thead><tr style="color: #64748b; border-bottom: 1px solid #1e293b;"><th style="padding-bottom: 4px;">Hemmaspelare</th><th style="padding-bottom: 4px; width: 50px;">Pil</th><th style="padding-bottom: 4px;">Bortaspelare</th></tr></thead>' +
+                  '<tbody>';
+
+      for (var i = 0; i < m.rounds.length; i++) {
+        var r = m.rounds[i];
+        html += '<tr style="border-bottom: 1px solid #0f172a;">' +
+                  '<td onclick="handleEditRound(' + i + ', \'home\')" style="padding: 4px; cursor: pointer;">' + renderCellContent(r.home) + '</td>' +
+                  '<td style="color: #475569; font-size: 11px;">' + r.round + '</td>' +
+                  '<td onclick="handleEditRound(' + i + ', \'away\')" style="padding: 4px; cursor: pointer;">' + renderCellContent(r.away) + '</td>' +
+                '</tr>';
+      }
+
+      html +=     '</tbody></table></div>';
+
+      // Knappsats eller scoring
+      if (!isFinished && !m.scoringActive) {
+        html += '<div>' +
+                  '<div style="display: flex; gap: 8px; margin-bottom: 8px;">' +
+                    '<div style="flex: 1; background-color: #0f172a; padding: 12px; border-radius: 10px; text-align: center; font-size: 24px; font-weight: bold; color: #fff; border: 1px solid #334155;">' + (m.inputVal || '0') + '</div>' +
+                    '<button onclick="handleOpenRemainingModal()" style="background-color: #0284c7; color: #fff; border: none; padding: 0 12px; border-radius: 10px; font-weight: bold; font-size: 12px; cursor: pointer;">Sätt kvar</button>' +
+                    '<button onclick="handleUndo()" style="background-color: #334155; color: #fff; border: none; padding: 0 16px; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer;">Ångra</button>' +
+                  '</div>' +
+                  '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">';
+
+        var nums = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+        for (var k = 0; k < nums.length; k++) {
+          html += '<button onclick="handleNumClick(\'' + nums[k] + '\')" style="background-color: #1e293b; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 20px; font-weight: bold; cursor: pointer;">' + nums[k] + '</button>';
+        }
+
+        html +=     '<button onclick="handleClear()" style="background-color: #991b1b; color: #fff; border: none; padding: 14px; border-radius: 16px; font-size: 16px; font-weight: bold; cursor: pointer;">C</button>' +
+                    '<button onclick="handleNumClick(\'0\')" style="background-color: #1e293b; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 20px; font-weight: bold; cursor: pointer;">0</button>' +
+                    '<button onclick="handleEnterScore()" style="background-color: #2563eb; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;">OK</button>' +
+                  '</div>' +
+                '</div>';
+      } else if (m.scoringActive) {
+        html += '<div style="background-color: #1e293b; padding: 15px; border-radius: 12px; border: 2px solid #eab308;">' +
+                  '<h3 style="color: #eab308; margin: 0 0 6px 0; font-size: 16px; text-align: center;">SCORING (39 pilar nådda)</h3>' +
+                  '<p style="color: #94a3b8; font-size: 12px; text-align: center; margin-bottom: 12px;">Fyll i poäng för scoringomgången. Högst poäng vinner leget.</p>' +
+                  '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">' +
+                    '<div><label style="font-size: 12px; color: #60a5fa; font-weight: bold;">' + m.homePlayer + '</label><input type="number" id="sc-home" value="' + m.scoringHomeInput + '" oninput="activeMatch.scoringHomeInput=this.value" style="width: 100%; padding: 10px; border-radius: 6px; background-color: #0f172a; border: 1px solid #475569; color: #fff; font-size: 16px; font-weight: bold; text-align: center;"></div>' +
+                    '<div><label style="font-size: 12px; color: #f43f5e; font-weight: bold;">' + m.awayPlayer + '</label><input type="number" id="sc-away" value="' + m.scoringAwayInput + '" oninput="activeMatch.scoringAwayInput=this.value" style="width: 100%; padding: 10px; border-radius: 6px; background-color: #0f172a; border: 1px solid #475569; color: #fff; font-size: 16px; font-weight: bold; text-align: center;"></div>' +
+                  '</div>' +
+                  '<button onclick="handleScoringSubmit()" style="width: 100%; background-color: #16a34a; color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer;">Spara Scoring & Tilldela Leg</button>' +
+                '</div>';
+      }
+
+      container.innerHTML = html;
+
+      var logContainer = document.getElementById('log-container');
+      if (logContainer) logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    function setADStarter(team) {
+      activeMatch.legStarter = team;
+      activeMatch.turn = team;
+      renderJudgeUI();
+    }
+
+    function renderCellContent(entry) {
+      if (!entry) return '';
+      if (entry.score === 'BUST') {
+        return '<span><span style="color: #f43f5e;">BUST</span><span style="font-size: 13px; color: #94a3b8; margin-left: 6px;">(' + entry.remaining + ')</span></span>';
+      }
+      return '<span><span style="color: #fcd34d;">' + entry.score + '</span><span style="font-size: 14px; color: #38bdf8; margin-left: 6px;">(' + entry.remaining + ')</span></span>';
+    }
+
+    function handleNumClick(num) {
+      if (!activeMatch || activeMatch.inputVal.length >= 3) return;
+      activeMatch.inputVal += num;
+      renderJudgeUI();
+    }
+
+    function handleClear() {
+      if (!activeMatch) return;
+      activeMatch.inputVal = '';
+      renderJudgeUI();
+    }
+
+    function saveStateToHistory() {
+      var m = activeMatch;
+      m.historyStack.push({
+        homeScore: m.homeScore,
+        awayScore: m.awayScore,
+        homeLegs: m.homeLegs,
+        awayLegs: m.awayLegs,
+        turn: m.turn,
+        legStarter: m.legStarter,
+        rounds: JSON.parse(JSON.stringify(m.rounds)),
+        performances: JSON.parse(JSON.stringify(m.performances))
+      });
+    }
+
+    function handleUndo() {
+      var m = activeMatch;
+      if (!m || m.historyStack.length === 0) return;
+      var last = m.historyStack.pop();
+      m.homeScore = last.homeScore;
+      m.awayScore = last.awayScore;
+      m.homeLegs = last.homeLegs;
+      m.awayLegs = last.awayLegs;
+      m.turn = last.turn;
+      m.legStarter = last.legStarter;
+      m.rounds = last.rounds;
+      m.performances = last.performances;
+      m.inputVal = '';
+      m.scoringActive = false;
+      renderJudgeUI();
+      triggerLiveUpdate();
+    }
+
+    function handleEnterScore() {
+      var m = activeMatch;
+      if (!m || !m.turn) return;
+
+      var score = parseInt(m.inputVal || '0', 10);
+      if (isNaN(score) || score > 180) {
+        alert('Ange en giltig poäng mellan 0 och 180.');
+        return;
+      }
+
+      if (IMPOSSIBLE_SCORES.indexOf(score) !== -1) {
+        alert('Det går inte att få ' + score + ' poäng på 3 pilar!');
+        m.inputVal = '';
+        renderJudgeUI();
+        return;
+      }
+
+      var currentScore = m.turn === 'home' ? m.homeScore : m.awayScore;
+      var remaining = currentScore - score;
+
+      if (remaining === 0) {
+        if (IMPOSSIBLE_CHECKOUTS.indexOf(score) !== -1 || score > 170) {
+          processScore(score, false);
+          return;
+        }
+        showCheckoutModal(score);
+        return;
+      }
+
+      processScore(score, false);
+    }
+
+    function handleOpenRemainingModal() {
+      var m = activeMatch;
+      if (!m || !m.inputVal) return;
+
+      var targetRemaining = parseInt(m.inputVal, 10);
+      var currentScore = m.turn === 'home' ? m.homeScore : m.awayScore;
+
+      if (isNaN(targetRemaining) || targetRemaining < 0 || targetRemaining >= currentScore) {
+        alert('Återstående poäng måste vara mindre än nuvarande poäng (' + currentScore + ').');
+        return;
+      }
+
+      var calculatedScored = currentScore - targetRemaining;
+      if (calculatedScored > 180 || IMPOSSIBLE_SCORES.indexOf(calculatedScored) !== -1) {
+        alert('Detta innebär att spelaren kastat ' + calculatedScored + ' poäng, vilket är ett ogiltigt kast.');
+        return;
+      }
+
+      showRemainingModal(targetRemaining, calculatedScored);
+    }
+
+    function processScore(score, confirmedCheckout) {
+      saveStateToHistory();
+      var m = activeMatch;
+      var activePlayerName = m.turn === 'home' ? m.homePlayer : m.awayPlayer;
+      var currentScore = m.turn === 'home' ? m.homeScore : m.awayScore;
+      var newScore = currentScore - score;
+      var isBust = false;
+
+      if (newScore < 0 || newScore === 1 || (newScore === 0 && (IMPOSSIBLE_CHECKOUTS.indexOf(score) !== -1 || score > 170))) {
+        isBust = true;
+        newScore = currentScore;
+      }
+
+      if (score === 180 && !isBust) {
+        m.performances.push({ id: Date.now(), team: m.turn, player: activePlayerName, text: '180' });
+      }
+
+      var entryData = { rawScore: score, score: isBust ? 'BUST' : score, remaining: newScore };
+
+      if (m.turn === 'home') {
+        m.rounds.push({ round: (m.rounds.length + 1) * 3, home: entryData, away: null });
+
+        if (confirmedCheckout) {
+          checkAndAddCheckoutPerformances('home', activePlayerName, score, m.rounds.length);
+          m.homeLegs++;
+          startNextLeg();
+          return;
+        }
+
+        m.homeScore = newScore;
+        m.turn = 'away';
+      } else {
+        if (m.rounds.length === 0) {
+          m.rounds.push({ round: 3, home: null, away: entryData });
+        } else if (m.rounds[m.rounds.length - 1].away === null) {
+          m.rounds[m.rounds.length - 1].away = entryData;
+        } else {
+          m.rounds.push({ round: (m.rounds.length + 1) * 3, home: null, away: entryData });
+        }
+
+        if (confirmedCheckout) {
+          checkAndAddCheckoutPerformances('away', activePlayerName, score, m.rounds.length);
+          m.awayLegs++;
+          startNextLeg();
+          return;
+        }
+
+        m.awayScore = newScore;
+
+        if (m.rounds.length === 13) {
+          m.scoringActive = true;
+          m.inputVal = '';
+          renderJudgeUI();
+          triggerLiveUpdate();
+          return;
+        }
+
+        m.turn = 'home';
+      }
+
+      m.inputVal = '';
+      renderJudgeUI();
+      triggerLiveUpdate();
+    }
+
+    function checkAndAddCheckoutPerformances(team, player, checkoutScore, roundsCount) {
+      var totalDarts = roundsCount * 3;
+      if (checkoutScore >= 100) {
+        activeMatch.performances.push({ id: Date.now() + 1, team: team, player: player, text: checkoutScore + ' ut' });
+      }
+      if (totalDarts <= 15) {
+        activeMatch.performances.push({ id: Date.now() + 2, team: team, player: player, text: totalDarts + ' pilars leg' });
+      }
+    }
+
+    function startNextLeg() {
+      var m = activeMatch;
+      var nextStarter = m.legStarter === 'home' ? 'away' : 'home';
+      m.homeScore = 501;
+      m.awayScore = 501;
+      m.rounds = [];
+      m.legStarter = nextStarter;
+      m.turn = nextStarter;
+      m.inputVal = '';
+      renderJudgeUI();
+      triggerLiveUpdate();
+    }
+
+    function handleScoringSubmit() {
+      var m = activeMatch;
+      var hVal = parseInt(m.scoringHomeInput, 10);
+      var aVal = parseInt(m.scoringAwayInput, 10);
+
+      if (isNaN(hVal) || hVal < 0 || hVal > 180 || IMPOSSIBLE_SCORES.indexOf(hVal) !== -1) {
+        alert('Ogiltig poäng för hemmalaget.');
+        return;
+      }
+      if (isNaN(aVal) || aVal < 0 || aVal > 180 || IMPOSSIBLE_SCORES.indexOf(aVal) !== -1) {
+        alert('Ogiltig poäng för bortalaget.');
+        return;
+      }
+      if (hVal === aVal) {
+        alert('Det blev oavgjort! Scoring måste ge en vinnare.');
+        return;
+      }
+
+      if (hVal > aVal) m.homeLegs++;
+      else m.awayLegs++;
+
+      m.scoringActive = false;
+      m.scoringHomeInput = '';
+      m.scoringAwayInput = '';
+      startNextLeg();
+    }
+
+    function handleEditRound(index, team) {
+      var m = activeMatch;
+      var targetRound = m.rounds[index];
+      var currentEntry = team === 'home' ? targetRound.home : targetRound.away;
+      if (!currentEntry) return;
+
+      var newValStr = prompt('Ändra kastad poäng för omgång ' + (index + 1) + ':', currentEntry.rawScore);
+      if (newValStr === null) return;
+
+      var newVal = parseInt(newValStr, 10);
+      if (isNaN(newVal) || newVal < 0 || newVal > 180 || IMPOSSIBLE_SCORES.indexOf(newVal) !== -1) {
+        alert('Ogiltig poäng.');
+        return;
+      }
+
+      saveStateToHistory();
+
+      if (team === 'home') targetRound.home.rawScore = newVal;
+      else targetRound.away.rawScore = newVal;
+
+      recalculateRoundsAndScores();
+      renderJudgeUI();
+      triggerLiveUpdate();
+    }
+
+    function recalculateRoundsAndScores() {
+      var m = activeMatch;
+      var currentHome = 501;
+      var currentAway = 501;
+
+      for (var i = 0; i < m.rounds.length; i++) {
+        var r = m.rounds[i];
+        if (r.home) {
+          var s1 = r.home.rawScore;
+          var rem1 = currentHome - s1;
+          var isBust1 = rem1 < 0 || rem1 === 1 || (rem1 === 0 && (IMPOSSIBLE_CHECKOUTS.indexOf(s1) !== -1 || s1 > 170));
+          if (isBust1) rem1 = currentHome;
+          else currentHome = rem1;
+          r.home = { rawScore: s1, score: isBust1 ? 'BUST' : s1, remaining: rem1 };
+        }
+        if (r.away) {
+          var s2 = r.away.rawScore;
+          var rem2 = currentAway - s2;
+          var isBust2 = rem2 < 0 || rem2 === 1 || (rem2 === 0 && (IMPOSSIBLE_CHECKOUTS.indexOf(s2) !== -1 || s2 > 170));
+          if (isBust2) rem2 = currentAway;
+          else currentAway = rem2;
+          r.away = { rawScore: s2, score: isBust2 ? 'BUST' : s2, remaining: rem2 };
+        }
+      }
+
+      m.homeScore = currentHome;
+      m.awayScore = currentAway;
+    }
+
+    function showCheckoutModal(score) {
+      var m = activeMatch;
+      var playerName = m.turn === 'home' ? m.homePlayer : m.awayPlayer;
+
+      var modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.innerHTML = 
+        '<div class="modal-box" style="border: 2px solid #10b981;">' +
+          '<div style="font-size: 36px; margin-bottom: 8px;">🎯</div>' +
+          '<h3 style="color: #fff; font-size: 22px; margin-bottom: 10px;">Gick spelaren ut?</h3>' +
+          '<p style="color: #cbd5e1; font-size: 16px; margin-bottom: 20px;"><strong style="color: #34d399;">' + playerName + '</strong> har knappat in <strong>' + score + '</strong>.</p>' +
+          '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">' +
+            '<button id="btn-yes" style="background-color: #10b981; color: #fff; border: none; padding: 16px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer;">JA (Vann leg)</button>' +
+            '<button id="btn-no" style="background-color: #dc2626; color: #fff; border: none; padding: 16px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer;">NEJ (Fel)</button>' +
+          '</div>' +
+        '</div>';
+
+      document.body.appendChild(modal);
+
+      document.getElementById('btn-yes').onclick = function() {
+        document.body.removeChild(modal);
+        processScore(score, true);
+      };
+      document.getElementById('btn-no').onclick = function() {
+        document.body.removeChild(modal);
+      };
+    }
+
+    function showRemainingModal(targetRemaining, calculatedScored) {
+      var m = activeMatch;
+      var playerName = m.turn === 'home' ? m.homePlayer : m.awayPlayer;
+
+      var modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.innerHTML = 
+        '<div class="modal-box" style="border: 2px solid #3b82f6;">' +
+          '<div style="font-size: 36px; margin-bottom: 8px;">✏️</div>' +
+          '<h3 style="color: #fff; font-size: 20px; margin-bottom: 10px;">Sätt kvarvarande poäng?</h3>' +
+          '<p style="color: #cbd5e1; font-size: 16px; margin-bottom: 15px;">Sätt <strong style="color: #60a5fa;">' + playerName + 's</strong> kvarvarande poäng till <strong style="color: #fcd34d; font-size: 20px;">' + targetRemaining + '</strong>?</p>' +
+          '<p style="color: #94a3b8; font-size: 13px; margin-bottom: 20px; background-color: #1e293b; padding: 8px; border-radius: 6px;">(Registrerar <strong>' + calculatedScored + '</strong> poäng)</p>' +
+          '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">' +
+            '<button id="btn-rem-yes" style="background-color: #2563eb; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;">JA (Sätt)</button>' +
+            '<button id="btn-rem-no" style="background-color: #475569; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;">NEJ</button>' +
+          '</div>' +
+        '</div>';
+
+      document.body.appendChild(modal);
+
+      document.getElementById('btn-rem-yes').onclick = function() {
+        document.body.removeChild(modal);
+        var currentScore = m.turn === 'home' ? m.homeScore : m.awayScore;
+        var rem = currentScore - calculatedScored;
+        if (rem === 0) {
+          if (IMPOSSIBLE_CHECKOUTS.indexOf(calculatedScored) !== -1 || calculatedScored > 170) {
+            processScore(calculatedScored, false);
+            return;
+          }
+          showCheckoutModal(calculatedScored);
+          return;
+        }
+        processScore(calculatedScored, false);
+      };
+      document.getElementById('btn-rem-no').onclick = function() {
+        document.body.removeChild(modal);
+      };
+    }
+
+    function triggerLiveUpdate() {
+      if (activeSubIndex === null || !fullMatchData || !activeMatch) return;
+
+      var sm = fullMatchData.subMatches[activeSubIndex];
+      sm.homeScore = activeMatch.homeLegs;
+      sm.awayScore = activeMatch.awayLegs;
+      sm.currentHomePoints = activeMatch.homeScore;
+      sm.currentAwayPoints = activeMatch.awayScore;
+
+      if (activeMatch.performances && activeMatch.performances.length > 0) {
+        fullMatchData.performances = (fullMatchData.performances || []).concat(activeMatch.performances);
+      }
+
+      document.getElementById('status-bar').innerText = 'Sparar...';
       apiCall('PATCH', '/rest/v1/matches?id=eq.main_match', { data: fullMatchData }, function(err) {
         if (!err) {
           document.getElementById('status-bar').innerText = 'Uppdaterat i realtid!';
@@ -221,533 +665,12 @@
       });
     }
 
-    function handleSaveMatch(updatedData, newPerformances) {
-      handleLiveUpdate(null, updatedData, newPerformances);
+    function saveAndCloseMatch() {
+      triggerLiveUpdate();
       showStartView();
     }
 
-    // --- DOMARVY (N01Scorer Komponent) ---
-    function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) {
-      const initialHomePts = (match.currentHomePoints !== undefined && match.currentHomePoints !== null) ? match.currentHomePoints : 501;
-      const initialAwayPts = (match.currentAwayPoints !== undefined && match.currentAwayPoints !== null) ? match.currentAwayPoints : 501;
-
-      const [homeScore, setHomeScore] = useState(initialHomePts);
-      const [awayScore, setAwayScore] = useState(initialAwayPts);
-      const [homeLegs, setHomeLegs] = useState(match.homeScore || 0);
-      const [awayLegs, setAwayLegs] = useState(match.awayScore || 0);
-      const [inputVal, setInputVal] = useState('');
-
-      const getInitialStarter = () => {
-        if (match.id === 'AD') return null;
-        return HOME_STARTS_MATCHES.includes(match.id) ? 'home' : 'away';
-      };
-
-      const [legStarter, setLegStarter] = useState(getInitialStarter);
-      const [turn, setTurn] = useState(getInitialStarter);
-      const [historyStack, setHistoryStack] = useState([]);
-      const [rounds, setRounds] = useState([]);
-      const [performances, setPerformances] = useState([]);
-      const [confirmCheckout, setConfirmCheckout] = useState(null);
-      const [confirmRemaining, setConfirmRemaining] = useState(null);
-
-      const [scoringActive, setScoringActive] = useState(false);
-      const [scoringHomeInput, setScoringHomeInput] = useState('');
-      const [scoringAwayInput, setScoringAwayInput] = useState('');
-
-      const logContainerRef = useRef(null);
-
-      useEffect(() => {
-        if (logContainerRef.current) {
-          logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
-        }
-      }, [rounds, turn]);
-
-      useEffect(() => {
-        if (onLiveUpdate) {
-          onLiveUpdate(match.id, {
-            homeScore: homeLegs,
-            awayScore: awayLegs,
-            currentHomePoints: homeScore,
-            currentAwayPoints: awayScore,
-            status: (homeLegs === 3 || awayLegs === 3) ? 'completed' : 'live'
-          }, performances);
-        }
-      }, [homeLegs, awayLegs, homeScore, awayScore, performances]);
-
-      const homeName = match.homePlayer || homeTeam;
-      const awayName = match.awayPlayer || awayTeam;
-      const isMatchFinished = homeLegs === 3 || awayLegs === 3;
-      const activePlayerName = turn === 'home' ? homeName : awayName;
-
-      const recalculateRoundsAndScores = (currentRounds) => {
-        let currentHome = 501;
-        let currentAway = 501;
-
-        const updatedRounds = currentRounds.map((r) => {
-          let newHomeEntry = r.home;
-          let newAwayEntry = r.away;
-
-          if (r.home) {
-            const score = r.home.rawScore;
-            let rem = currentHome - score;
-            let isBust = rem < 0 || rem === 1 || (rem === 0 && (IMPOSSIBLE_CHECKOUTS.includes(score) || score > 170));
-
-            if (isBust) rem = currentHome;
-            else currentHome = rem;
-
-            newHomeEntry = { rawScore: score, score: isBust ? 'BUST' : score, remaining: rem };
-          }
-
-          if (r.away) {
-            const score = r.away.rawScore;
-            let rem = currentAway - score;
-            let isBust = rem < 0 || rem === 1 || (rem === 0 && (IMPOSSIBLE_CHECKOUTS.includes(score) || score > 170));
-
-            if (isBust) rem = currentAway;
-            else currentAway = rem;
-
-            newAwayEntry = { rawScore: score, score: isBust ? 'BUST' : score, remaining: rem };
-          }
-
-          return { ...r, home: newHomeEntry, away: newAwayEntry };
-        });
-
-        return { updatedRounds, newHomeScore: currentHome, newAwayScore: currentAway };
-      };
-
-      const handleNumClick = (num) => {
-        if (isMatchFinished || !turn) return;
-        if (inputVal.length < 3) setInputVal(prev => prev + num);
-      };
-
-      const handleClear = () => setInputVal('');
-
-      const saveStateToHistory = () => {
-        setHistoryStack(prev => [...prev, { homeScore, awayScore, homeLegs, awayLegs, turn, legStarter, rounds, performances }]);
-      };
-
-      const handleUndo = () => {
-        if (historyStack.length === 0) return;
-        const lastState = historyStack[historyStack.length - 1];
-        setHomeScore(lastState.homeScore);
-        setAwayScore(lastState.awayScore);
-        setHomeLegs(lastState.homeLegs);
-        setAwayLegs(lastState.awayLegs);
-        setTurn(lastState.turn);
-        setLegStarter(lastState.legStarter);
-        setRounds(lastState.rounds);
-        setPerformances(lastState.performances);
-        setInputVal('');
-        setScoringActive(false);
-        setConfirmRemaining(null);
-      };
-
-      const handleEnterScore = () => {
-        if (isMatchFinished || !turn) return;
-        const score = parseInt(inputVal || '0', 10);
-
-        if (isNaN(score) || score > 180) {
-          alert('Ange en giltig poäng mellan 0 och 180.');
-          return;
-        }
-
-        if (IMPOSSIBLE_SCORES.includes(score)) {
-          alert(`Det går inte att få ${score} poäng på 3 pilar!`);
-          setInputVal('');
-          return;
-        }
-
-        const currentScore = turn === 'home' ? homeScore : awayScore;
-        const remaining = currentScore - score;
-
-        if (remaining === 0) {
-          if (IMPOSSIBLE_CHECKOUTS.includes(score) || score > 170) {
-            processScore(score);
-            return;
-          }
-          setConfirmCheckout({ score, player: activePlayerName, team: turn });
-          return;
-        }
-
-        processScore(score);
-      };
-
-      const handleOpenRemainingModal = () => {
-        if (isMatchFinished || !turn || !inputVal) return;
-
-        const targetRemaining = parseInt(inputVal, 10);
-        const currentScore = turn === 'home' ? homeScore : awayScore;
-
-        if (isNaN(targetRemaining) || targetRemaining < 0 || targetRemaining >= currentScore) {
-          alert(`Återstående poäng måste vara mindre än nuvarande poäng (${currentScore}).`);
-          return;
-        }
-
-        const calculatedScored = currentScore - targetRemaining;
-
-        if (calculatedScored > 180) {
-          alert(`Detta innebär att spelaren kastat ${calculatedScored} poäng, vilket är över max 180.`);
-          return;
-        }
-
-        if (IMPOSSIBLE_SCORES.includes(calculatedScored)) {
-          alert(`Detta innebär att spelaren kastat ${calculatedScored} poäng, vilket är ett omöjligt kast.`);
-          return;
-        }
-
-        setConfirmRemaining({ targetRemaining, calculatedScored, player: activePlayerName });
-      };
-
-      const processRemainingScore = () => {
-        if (!confirmRemaining) return;
-        const { calculatedScored } = confirmRemaining;
-        setConfirmRemaining(null);
-
-        const currentScore = turn === 'home' ? homeScore : awayScore;
-        const remaining = currentScore - calculatedScored;
-
-        if (remaining === 0) {
-          if (IMPOSSIBLE_CHECKOUTS.includes(calculatedScored) || calculatedScored > 170) {
-            processScore(calculatedScored);
-            return;
-          }
-          setConfirmCheckout({ score: calculatedScored, player: activePlayerName, team: turn });
-          return;
-        }
-
-        processScore(calculatedScored);
-      };
-
-      const processScore = (score, confirmedCheckout = false) => {
-        saveStateToHistory();
-        const currentScore = turn === 'home' ? homeScore : awayScore;
-        let newScore = currentScore - score;
-        let isBust = false;
-
-        if (newScore < 0 || newScore === 1 || (newScore === 0 && (IMPOSSIBLE_CHECKOUTS.includes(score) || score > 170))) {
-          isBust = true;
-          newScore = currentScore;
-        }
-
-        if (score === 180 && !isBust) {
-          setPerformances(prev => [...prev, { id: Date.now(), team: turn, player: activePlayerName, text: '180' }]);
-        }
-
-        const entryData = { rawScore: score, score: isBust ? 'BUST' : score, remaining: newScore };
-
-        if (turn === 'home') {
-          const updatedRounds = [...rounds, { round: (rounds.length + 1) * 3, home: entryData, away: null }];
-          setRounds(updatedRounds);
-
-          if (confirmedCheckout) {
-            checkAndAddCheckoutPerformances('home', activePlayerName, score, updatedRounds.length);
-            setHomeLegs(l => l + 1);
-            startNextLeg();
-            setInputVal('');
-            return;
-          }
-
-          setHomeScore(newScore);
-          setTurn('away');
-        } else {
-          let updatedRounds;
-          if (rounds.length === 0) {
-            updatedRounds = [{ round: 3, home: null, away: entryData }];
-          } else if (rounds[rounds.length - 1].away === null) {
-            updatedRounds = rounds.map((r, i) => i === rounds.length - 1 ? { ...r, away: entryData } : r);
-          } else {
-            updatedRounds = [...rounds, { round: (rounds.length + 1) * 3, home: null, away: entryData }];
-          }
-
-          setRounds(updatedRounds);
-
-          if (confirmedCheckout) {
-            checkAndAddCheckoutPerformances('away', activePlayerName, score, updatedRounds.length);
-            setAwayLegs(l => l + 1);
-            startNextLeg();
-            setInputVal('');
-            return;
-          }
-
-          setAwayScore(newScore);
-
-          if (updatedRounds.length === 13) {
-            setScoringActive(true);
-            setInputVal('');
-            return;
-          }
-
-          setTurn('home');
-        }
-
-        setInputVal('');
-      };
-
-      const checkAndAddCheckoutPerformances = (team, player, checkoutScore, roundsCount) => {
-        const totalDarts = roundsCount * 3;
-        const newPerfs = [];
-
-        if (checkoutScore >= 100) {
-          newPerfs.push({ id: Date.now() + 1, team, player, text: `${checkoutScore} ut` });
-        }
-
-        if (totalDarts <= 15) {
-          newPerfs.push({ id: Date.now() + 2, team, player, text: `${totalDarts} pilars leg` });
-        }
-
-        if (newPerfs.length > 0) {
-          setPerformances(prev => [...prev, ...newPerfs]);
-        }
-      };
-
-      const handleScoringSubmit = () => {
-        const hVal = parseInt(scoringHomeInput, 10);
-        const aVal = parseInt(scoringAwayInput, 10);
-
-        if (isNaN(hVal) || hVal < 0 || hVal > 180 || IMPOSSIBLE_SCORES.includes(hVal)) {
-          alert(`Ogiltig poäng för ${homeName}.`);
-          return;
-        }
-        if (isNaN(aVal) || aVal < 0 || aVal > 180 || IMPOSSIBLE_SCORES.includes(aVal)) {
-          alert(`Ogiltig poäng för ${awayName}.`);
-          return;
-        }
-        if (hVal === aVal) {
-          alert('Det blev oavgjort! Scoring måste ge en vinnare.');
-          return;
-        }
-
-        if (hVal > aVal) setHomeLegs(l => l + 1);
-        else setAwayLegs(l => l + 1);
-
-        setScoringActive(false);
-        setScoringHomeInput('');
-        setScoringAwayInput('');
-        startNextLeg();
-      };
-
-      const startNextLeg = () => {
-        const nextStarter = legStarter === 'home' ? 'away' : 'home';
-        setHomeScore(501);
-        setAwayScore(501);
-        setRounds([]);
-        setLegStarter(nextStarter);
-        setTurn(nextStarter);
-      };
-
-      const handleEditRound = (index, team) => {
-        const targetRound = rounds[index];
-        const currentEntry = team === 'home' ? targetRound.home : targetRound.away;
-        if (!currentEntry) return;
-
-        const currentVal = currentEntry.rawScore;
-        const newValStr = prompt(`Ändra kastad poäng för omgång ${index + 1}:`, currentVal);
-        if (newValStr === null) return;
-
-        const newVal = parseInt(newValStr, 10);
-        if (isNaN(newVal) || newVal < 0 || newVal > 180 || IMPOSSIBLE_SCORES.includes(newVal)) {
-          alert('Ogiltig poäng.');
-          return;
-        }
-
-        saveStateToHistory();
-
-        const rawRounds = rounds.map((r, i) => i === index ? { ...r, [team]: { ...r[team], rawScore: newVal } } : r);
-        const { updatedRounds, newHomeScore, newAwayScore } = recalculateRoundsAndScores(rawRounds);
-
-        setRounds(updatedRounds);
-        setHomeScore(newHomeScore);
-        setAwayScore(newAwayScore);
-      };
-
-      const renderCellContent = (entry) => {
-        if (!entry) return '';
-        if (entry.score === 'BUST') {
-          return (
-            <span>
-              <span style={{ color: '#f43f5e' }}>BUST</span>
-              <span style={{ fontSize: '13px', color: '#94a3b8', marginLeft: '6px' }}>({entry.remaining})</span>
-            </span>
-          );
-        }
-        return (
-          <span>
-            <span style={{ color: '#fcd34d' }}>{entry.score}</span>
-            <span style={{ fontSize: '14px', color: '#38bdf8', marginLeft: '6px', fontWeight: 'normal' }}>({entry.remaining})</span>
-          </span>
-        );
-      };
-
-      if (!turn && match.id === 'AD') {
-        return (
-          <div style={{ maxWidth: '500px', margin: '20px auto', backgroundColor: '#020617', padding: '25px', borderRadius: '16px', textAlign: 'center', border: '2px solid #eab308' }}>
-            <h2 style={{ color: '#eab308', fontSize: '22px', marginBottom: '10px' }}>AVGÖRANDE DUBBEL (AD)</h2>
-            <p style={{ color: '#94a3b8', fontSize: '15px', marginBottom: '20px' }}>Vem vann slantkastningen / omkastet och ska börja?</p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <button onClick={() => { setLegStarter('home'); setTurn('home'); }} style={{ backgroundColor: '#1e293b', color: '#60a5fa', border: '2px solid #3b82f6', padding: '20px', borderRadius: '12px', fontWeight: 'bold', fontSize: '18px', cursor: 'pointer' }}>
-                {homeName}
-              </button>
-              <button onClick={() => { setLegStarter('away'); setTurn('away'); }} style={{ backgroundColor: '#1e293b', color: '#f43f5e', border: '2px solid #f43f5e', padding: '20px', borderRadius: '12px', fontWeight: 'bold', fontSize: '18px', cursor: 'pointer' }}>
-                {awayName}
-              </button>
-            </div>
-          </div>
-        );
-      }
-
-      return (
-        <div style={{ maxWidth: '550px', margin: '0 auto', backgroundColor: '#020617', color: '#fff', padding: '12px', borderRadius: '16px', border: '1px solid #1e293b', fontFamily: 'sans-serif', userSelect: 'none' }}>
-
-          {confirmCheckout && (
-            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '20px' }}>
-              <div style={{ backgroundColor: '#0f172a', border: '2px solid #10b981', borderRadius: '16px', padding: '24px', textAlign: 'center', maxWidth: '400px', width: '100%' }}>
-                <div style={{ fontSize: '36px', marginBottom: '8px' }}>🎯</div>
-                <h3 style={{ color: '#fff', fontSize: '22px', margin: '0 0 10px 0' }}>Gick spelaren ut?</h3>
-                <p style={{ color: '#cbd5e1', fontSize: '16px', marginBottom: '20px' }}>
-                  <strong style={{ color: '#34d399' }}>{confirmCheckout.player}</strong> har knappat in <strong>{confirmCheckout.score}</strong>.
-                </p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <button onClick={() => { const { score } = confirmCheckout; setConfirmCheckout(null); processScore(score, true); }} style={{ backgroundColor: '#10b981', color: '#fff', border: 'none', padding: '16px', borderRadius: '10px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer' }}>
-                    JA (Vann leg)
-                  </button>
-                  <button onClick={() => setConfirmCheckout(null)} style={{ backgroundColor: '#dc2626', color: '#fff', border: 'none', padding: '16px', borderRadius: '10px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer' }}>
-                    NEJ (Fel)
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {confirmRemaining && (
-            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 105, padding: '20px' }}>
-              <div style={{ backgroundColor: '#0f172a', border: '2px solid #3b82f6', borderRadius: '16px', padding: '24px', textAlign: 'center', maxWidth: '400px', width: '100%' }}>
-                <div style={{ fontSize: '36px', marginBottom: '8px' }}>✏️</div>
-                <h3 style={{ color: '#fff', fontSize: '20px', margin: '0 0 10px 0' }}>Sätt kvarvarande poäng?</h3>
-                <p style={{ color: '#cbd5e1', fontSize: '16px', marginBottom: '15px' }}>
-                  Sätt <strong style={{ color: '#60a5fa' }}>{confirmRemaining.player}s</strong> kvarvarande poäng till <strong style={{ color: '#fcd34d', fontSize: '20px' }}>{confirmRemaining.targetRemaining}</strong>?
-                </p>
-                <p style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '20px', backgroundColor: '#1e293b', padding: '8px', borderRadius: '6px' }}>
-                  (Detta innebär en registrering av <strong>{confirmRemaining.calculatedScored}</strong> poäng)
-                </p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <button onClick={processRemainingScore} style={{ backgroundColor: '#2563eb', color: '#fff', border: 'none', padding: '14px', borderRadius: '10px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>
-                    JA (Registrera)
-                  </button>
-                  <button onClick={() => setConfirmRemaining(null)} style={{ backgroundColor: '#475569', color: '#fff', border: 'none', padding: '14px', borderRadius: '10px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>
-                    NEJ (Avbryt)
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <button onClick={onBack} style={{ backgroundColor: '#1e293b', color: '#94a3b8', border: 'none', padding: '8px 12px', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontWeight: 'bold' }}>
-              ← Tillbaka
-            </button>
-            <span style={{ color: '#eab308', fontWeight: 'bold', fontSize: '16px' }}>Match {match.id} ({match.type === 'single' ? 'Singel' : 'Dubbel'})</span>
-            <button onClick={() => onSave({ homeScore: homeLegs, awayScore: awayLegs, currentHomePoints: homeScore, currentAwayPoints: awayScore, status: isMatchFinished ? 'completed' : 'live' }, performances)} style={{ backgroundColor: '#16a34a', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontWeight: 'bold' }}>
-              Spara & Stäng
-            </button>
-          </div>
-
-          {/* Spelarkort */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
-            <div style={{ backgroundColor: turn === 'home' ? '#1e293b' : '#0f172a', padding: '12px', borderRadius: '12px', border: turn === 'home' ? '2px solid #3b82f6' : '1px solid #1e293b', textAlign: 'center' }}>
-              <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{homeName}</div>
-              <div style={{ fontSize: '42px', fontWeight: '900', color: turn === 'home' ? '#60a5fa' : '#cbd5e1', lineHeight: '1' }}>{homeScore}</div>
-              <div style={{ fontSize: '14px', color: '#fcd34d', fontWeight: 'bold', marginTop: '6px' }}>Legs: {homeLegs}</div>
-            </div>
-
-            <div style={{ backgroundColor: turn === 'away' ? '#1e293b' : '#0f172a', padding: '12px', borderRadius: '12px', border: turn === 'away' ? '2px solid #f43f5e' : '1px solid #1e293b', textAlign: 'center' }}>
-              <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{awayName}</div>
-              <div style={{ fontSize: '42px', fontWeight: '900', color: turn === 'away' ? '#f43f5e' : '#cbd5e1', lineHeight: '1' }}>{awayScore}</div>
-              <div style={{ fontSize: '14px', color: '#fcd34d', fontWeight: 'bold', marginTop: '6px' }}>Legs: {awayLegs}</div>
-            </div>
-          </div>
-
-          {/* Omgångsprotokoll */}
-          <div ref={logContainerRef} style={{ height: '140px', overflowY: 'auto', backgroundColor: '#090d16', borderRadius: '8px', padding: '8px', marginBottom: '12px', border: '1px solid #1e293b' }}>
-            <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', textAlign: 'center' }}>
-              <thead>
-                <tr style={{ color: '#64748b', borderBottom: '1px solid #1e293b' }}>
-                  <th style={{ paddingBottom: '4px' }}>Hemmaspelare</th>
-                  <th style={{ paddingBottom: '4px', width: '50px' }}>Pil</th>
-                  <th style={{ paddingBottom: '4px' }}>Bortaspelare</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rounds.map((r, i) => (
-                  <tr key={i} style={{ borderBottom: '1px solid #0f172a' }}>
-                    <td onClick={() => handleEditRound(i, 'home')} style={{ padding: '4px', cursor: 'pointer' }}>{renderCellContent(r.home)}</td>
-                    <td style={{ color: '#475569', fontSize: '11px' }}>{r.round}</td>
-                    <td onClick={() => handleEditRound(i, 'away')} style={{ padding: '4px', cursor: 'pointer' }}>{renderCellContent(r.away)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Knappsats för vanliga kast */}
-          {!isMatchFinished && !scoringActive && (
-            <div>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                <div style={{ flex: 1, backgroundColor: '#0f172a', padding: '12px', borderRadius: '10px', textAlign: 'center', fontSize: '24px', fontWeight: 'bold', color: '#fff', border: '1px solid #334155' }}>
-                  {inputVal || '0'}
-                </div>
-                <button onClick={handleOpenRemainingModal} style={{ backgroundColor: '#0284c7', color: '#fff', border: 'none', padding: '0 12px', borderRadius: '10px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>
-                  Sätt kvar
-                </button>
-                <button onClick={handleUndo} style={{ backgroundColor: '#334155', color: '#fff', border: 'none', padding: '0 16px', borderRadius: '10px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>
-                  Ångra
-                </button>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-                  <button key={num} onClick={() => handleNumClick(num.toString())} style={{ backgroundColor: '#1e293b', color: '#fff', border: 'none', padding: '14px', borderRadius: '10px', fontSize: '20px', fontWeight: 'bold', cursor: 'pointer' }}>
-                    {num}
-                  </button>
-                ))}
-                <button onClick={handleClear} style={{ backgroundColor: '#991b1b', color: '#fff', border: 'none', padding: '14px', borderRadius: '16px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>
-                  C
-                </button>
-                <button onClick={() => handleNumClick('0')} style={{ backgroundColor: '#1e293b', color: '#fff', border: 'none', padding: '14px', borderRadius: '10px', fontSize: '20px', fontWeight: 'bold', cursor: 'pointer' }}>
-                  0
-                </button>
-                <button onClick={handleEnterScore} style={{ backgroundColor: '#2563eb', color: '#fff', border: 'none', padding: '14px', borderRadius: '10px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>
-                  OK
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Scoringvy */}
-          {scoringActive && (
-            <div style={{ backgroundColor: '#1e293b', padding: '15px', borderRadius: '12px', border: '2px solid #eab308' }}>
-              <h3 style={{ color: '#eab308', margin: '0 0 6px 0', fontSize: '16px', textAlign: 'center' }}>SCORING (Ingen gått ut på 39 pilar)</h3>
-              <p style={{ color: '#94a3b8', fontSize: '12px', textAlign: 'center', marginBottom: '12px' }}>Fyll i poäng för scoringomgången. Den med högst poäng vinner leget.</p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
-                <div>
-                  <label style={{ fontSize: '12px', color: '#60a5fa', fontWeight: 'bold' }}>{homeName}</label>
-                  <input type="number" placeholder="Poäng" value={scoringHomeInput} onChange={(e) => setScoringHomeInput(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', backgroundColor: '#0f172a', border: '1px solid #475569', color: '#fff', boxSizing: 'border-box', fontSize: '16px', fontWeight: 'bold', textAlign: 'center' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '12px', color: '#f43f5e', fontWeight: 'bold' }}>{awayName}</label>
-                  <input type="number" placeholder="Poäng" value={scoringAwayInput} onChange={(e) => setScoringAwayInput(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', backgroundColor: '#0f172a', border: '1px solid #475569', color: '#fff', boxSizing: 'border-box', fontSize: '16px', fontWeight: 'bold', textAlign: 'center' }} />
-                </div>
-              </div>
-              <button onClick={handleScoringSubmit} style={{ width: '100%', backgroundColor: '#16a34a', color: '#fff', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}>
-                Spara Scoring & Tilldela Leg
-              </button>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // Starta laddning från Supabase
+    // Starta hämtning när sidan laddas
     loadMatchData();
   </script>
 </body>
