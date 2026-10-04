@@ -164,6 +164,28 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
     }));
   };
 
+  const handleResetMatchKeepTeams = () => {
+    if (window.confirm('Är du säker på att du vill nollställa alla resultat och delmatcher? Lagnamn och spelartrupper behålls.')) {
+      setMatchData(Object.assign({}, matchData, {
+        subMatches: INITIAL_SUB_MATCHES,
+        performances: []
+      }));
+    }
+  };
+
+  const handleResetEntireMatch = () => {
+    if (window.confirm('⚠️ Är du helt säker? Detta nollställer HELA matchen inklusive alla lagnamn, spelartrupper och resultat!')) {
+      setMatchData({
+        homeTeam: 'Hemmalag',
+        awayTeam: 'Bortalag',
+        homeRoster: ['Spelare H1', 'Spelare H2', 'Spelare H3', 'Spelare H4'],
+        awayRoster: ['Spelare B1', 'Spelare B2', 'Spelare B3', 'Spelare B4'],
+        subMatches: INITIAL_SUB_MATCHES,
+        performances: []
+      });
+    }
+  };
+
   if (!isAdminAuthenticated) {
     return (
       <div style={{ maxWidth: '400px', margin: '40px auto', backgroundColor: '#1e293b', padding: '24px', borderRadius: '12px', border: '1px solid #334155', textAlign: 'center' }}>
@@ -195,6 +217,19 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
         <button onClick={() => setIsAdminAuthenticated(false)} style={{ backgroundColor: '#475569', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}>
           🔒 Lås Admin
         </button>
+      </div>
+
+      {/* NOLLSTÄLLNINGSKNAPPAR */}
+      <div style={{ backgroundColor: '#1e293b', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #334155', display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ color: '#e2e8f0', fontSize: '13px', fontWeight: 'bold' }}>🔄 MATCH-NOLLSTÄLLNING:</span>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={handleResetMatchKeepTeams} style={{ backgroundColor: '#d97706', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+            Nollställ Match (Behåll lag & spelare)
+          </button>
+          <button onClick={handleResetEntireMatch} style={{ backgroundColor: '#dc2626', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+            ⚠️ HELT ny match (Nollställ allt)
+          </button>
+        </div>
       </div>
 
       {/* LAGNAMN OCH TRUPPER */}
