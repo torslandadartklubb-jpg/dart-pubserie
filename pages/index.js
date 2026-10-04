@@ -1,3 +1,18 @@
+Här är den kompletta koden för index.js med en "Nollställ"-knapp inlagd för varje enskild match i Adminvyn.
+
+När du trycker på "Nollställ" för en specifik delmatch:
+
+Nollställs poängen (0 - 0) och status sätts till 'pending'.
+
+Live-ställningen återställs till 501 - 501.
+
+Prestationer (180s, utgångar, korta leg) kopplade till spelarna i just den matchen rensas automatiskt från performances.
+
+Ändringarna sparas direkt mot Supabase.
+
+Du kan kopiera hela koden nedan och ersätta ditt innehåll i index.js:
+
+JavaScript
 if (typeof window !== 'undefined') {
   window.addEventListener('error', function(e) {
     alert('Krasch: ' + e.message + ' i ' + e.filename + ':' + e.lineno);
@@ -103,6 +118,41 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
       return sm;
     });
     setMatchData(Object.assign({}, matchData, { subMatches: updated }));
+  };
+
+  const handleResetSingleSubMatch = (id) => {
+    const targetMatch = (matchData.subMatches || []).find(sm => sm.id === id);
+    if (!targetMatch) return;
+
+    if (!window.confirm(`Är du säker på att du vill nollställa Match ${id}? Det rensar poäng, legs och prestationer för denna match.`)) {
+      return;
+    }
+
+    const homePlayers = (targetMatch.homePlayer || '').split(' / ').filter(Boolean);
+    const awayPlayers = (targetMatch.awayPlayer || '').split(' / ').filter(Boolean);
+    const matchPlayers = [...homePlayers, ...awayPlayers];
+
+    const updatedSubMatches = (matchData.subMatches || []).map(sm => {
+      if (sm.id === id) {
+        return Object.assign({}, sm, {
+          homeScore: 0,
+          awayScore: 0,
+          currentHomePoints: 501,
+          currentAwayPoints: 501,
+          status: 'pending'
+        });
+      }
+      return sm;
+    });
+
+    const updatedPerformances = (matchData.performances || []).filter(p => {
+      return matchPlayers.indexOf(p.player) === -1;
+    });
+
+    setMatchData(Object.assign({}, matchData, {
+      subMatches: updatedSubMatches,
+      performances: updatedPerformances
+    }));
   };
 
   const handleDoublePlayerChange = (id, side, playerNum, value) => {
@@ -224,7 +274,7 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
         <span style={{ color: '#e2e8f0', fontSize: '13px', fontWeight: 'bold' }}>🔄 MATCH-NOLLSTÄLLNING:</span>
         <div style={{ display: 'flex', gap: '10px' }}>
           <button onClick={handleResetMatchKeepTeams} style={{ backgroundColor: '#d97706', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
-            Nollställ Match (Behåll lag & spelare)
+            Nollställ Alla Matcher (Behåll lag & spelare)
           </button>
           <button onClick={handleResetEntireMatch} style={{ backgroundColor: '#dc2626', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
             ⚠️ HELT ny match (Nollställ allt)
@@ -363,18 +413,37 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
                 </div>
               </div>
 
-              {/* Legs och Status */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', fontSize: '12px', color: '#94a3b8' }}>
-                <span>Legs:</span>
-                <input type="number" min="0" max="3" value={sm.homeScore} onChange={(e) => handleSubMatchChange(sm.id, 'homeScore', e.target.value)} style={{ width: '45px', backgroundColor: '#0f172a', color: '#fcd34d', border: '1px solid #475569', borderRadius: '4px', textAlign: 'center', fontWeight: 'bold', padding: '2px' }} />
-                <span>-</span>
-                <input type="number" min="0" max="3" value={sm.awayScore} onChange={(e) => handleSubMatchChange(sm.id, 'awayScore', e.target.value)} style={{ width: '45px', backgroundColor: '#0f172a', color: '#fcd34d', border: '1px solid #475569', borderRadius: '4px', textAlign: 'center', fontWeight: 'bold', padding: '2px' }} />
+              {/* Legs, Status och Enskild Nollställning */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => handleResetSingleSubMatch(sm.id)}
+                  style={{
+                    backgroundColor: '#dc2626',
+                    color: '#fff',
+                    border: 'none',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🔄 Nollställ Match
+                </button>
 
-                <select value={sm.status} onChange={(e) => handleSubMatchChange(sm.id, 'status', e.target.value)} style={{ backgroundColor: '#0f172a', color: '#fff', border: '1px solid #475569', borderRadius: '4px', padding: '3px 6px' }}>
-                  <option value="pending">Ej påbörjad</option>
-                  <option value="live">Pågår (LIVE)</option>
-                  <option value="completed">Klar (Spelad)</option>
-                </select>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', color: '#94a3b8' }}>
+                  <span>Legs:</span>
+                  <input type="number" min="0" max="3" value={sm.homeScore} onChange={(e) => handleSubMatchChange(sm.id, 'homeScore', e.target.value)} style={{ width: '45px', backgroundColor: '#0f172a', color: '#fcd34d', border: '1px solid #475569', borderRadius: '4px', textAlign: 'center', fontWeight: 'bold', padding: '2px' }} />
+                  <span>-</span>
+                  <input type="number" min="0" max="3" value={sm.awayScore} onChange={(e) => handleSubMatchChange(sm.id, 'awayScore', e.target.value)} style={{ width: '45px', backgroundColor: '#0f172a', color: '#fcd34d', border: '1px solid #475569', borderRadius: '4px', textAlign: 'center', fontWeight: 'bold', padding: '2px' }} />
+
+                  <select value={sm.status} onChange={(e) => handleSubMatchChange(sm.id, 'status', e.target.value)} style={{ backgroundColor: '#0f172a', color: '#fff', border: '1px solid #475569', borderRadius: '4px', padding: '3px 6px' }}>
+                    <option value="pending">Ej påbörjad</option>
+                    <option value="live">Pågår (LIVE)</option>
+                    <option value="completed">Klar (Spelad)</option>
+                  </select>
+                </div>
               </div>
             </div>
           );
@@ -499,7 +568,6 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
 
   const logContainerRef = useRef(null);
 
-  // Sätt status till 'live' så fort domarvyn laddas om matchen inte är fullbordad
   useEffect(() => {
     if (match.status !== 'completed' && status !== 'live') {
       setStatus('live');
@@ -636,7 +704,6 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
       return;
     }
 
-    // Ändra status till live vid första poängen
     if (status !== 'completed') {
       setStatus('live');
     }
@@ -1156,7 +1223,6 @@ function PublicView({ matchData, onSelectMatch }) {
 
           return (
             <React.Fragment key={sm.id}>
-              {/* Använd button-element för perfekt touch/klick på iPad */}
               <button
                 type="button"
                 onClick={() => onSelectMatch(sm)}
