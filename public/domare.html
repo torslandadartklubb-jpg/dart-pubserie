@@ -103,10 +103,20 @@
     var SUPABASE_URL = 'https://luznainkmcogcqbuprzw.supabase.co';
     var SUPABASE_KEY = 'sb_publishable_6psZleJBdhdZFhUTutZqnw_Rr4Y2SI6';
 
+    var IMPOSSIBLE_SCORES = [163, 166, 169, 172, 173, 175, 176, 178, 179];
+
     var fullMatchData = null;
     var activeSubIndex = 0;
     var currentTurn = 'home'; 
     var currentInput = '';
+
+    function isValidDartScore(score) {
+      if (score < 0 || score > 180) return false;
+      for (var i = 0; i < IMPOSSIBLE_SCORES.length; i++) {
+        if (IMPOSSIBLE_SCORES[i] === score) return false;
+      }
+      return true;
+    }
 
     function apiCall(method, endpoint, body, callback) {
       var xhr = new XMLHttpRequest();
@@ -140,6 +150,18 @@
       });
     }
 
+    // Beräkna vem som startar nuvarande leg baserat på delmatch och leg-nummer
+    function getLegStarter(subIndex, homeScore, awayScore) {
+      var matchStarter = (subIndex % 2 === 0) ? 'home' : 'away'; // S1=Hemma, S2=Borta, S3=Hemma osv.
+      var legCount = (homeScore || 0) + (awayScore || 0);
+
+      if (legCount % 2 === 0) {
+        return matchStarter;
+      } else {
+        return (matchStarter === 'home') ? 'away' : 'home';
+      }
+    }
+
     function renderUI() {
       if (!fullMatchData) return;
 
@@ -164,7 +186,7 @@
         var sm = subMatches[j];
         var opt = document.createElement('option');
         opt.value = j;
-        opt.innerText = 'Delmatch ' + (j + 1) + ': ' + (sm.homePlayer || 'Hemma') + ' (' + (sm.homeScore||0) + ') vs ' + (sm.awayPlayer || 'Borta') + ' (' + (sm.awayScore||0) + ')';
+        opt.innerText = 'Delmatch ' + (j + 1) + ' (S' + (j + 1) + '): ' + (sm.homePlayer || 'Hemma') + ' (' + (sm.homeScore||0) + ') vs ' + (sm.awayPlayer || 'Borta') + ' (' + (sm.awayScore||0) + ')';
         select.appendChild(opt);
       }
 
@@ -190,10 +212,8 @@
       document.getElementById('p-home-rem').innerText = 501 - homeSum;
       document.getElementById('p-away-rem').innerText = 501 - awaySum;
 
-      // Räkna ut vem som startade nuvarande leg
-      var currentLegCount = (activeSub.homeScore || 0) + (activeSub.awayScore || 0);
-      var legStarter = (currentLegCount % 2 === 0) ? 'home' : 'away'; // Jämnt leg = Hemma börjar, Udda leg = Borta börjar
-
+      // Visa vem som startade nuvarande leg
+      var legStarter = getLegStarter(activeSubIndex, activeSub.homeScore, activeSub.awayScore);
       document.getElementById('badge-home').innerText = (legStarter === 'home') ? '🎯 START' : '';
       document.getElementById('badge-away').innerText = (legStarter === 'away') ? '🎯 START' : '';
 
@@ -206,10 +226,8 @@
       var select = document.getElementById('submatch-select');
       activeSubIndex = parseInt(select.value, 10);
       
-      // Sätt tur till den som ska starta leget
       var sm = fullMatchData.subMatches[activeSubIndex] || {};
-      var currentLegCount = (sm.homeScore || 0) + (sm.awayScore || 0);
-      currentTurn = (currentLegCount % 2 === 0) ? 'home' : 'away';
+      currentTurn = getLegStarter(activeSubIndex, sm.homeScore, sm.awayScore);
 
       renderUI();
     }
@@ -232,7 +250,7 @@
     }
 
     function saveToDatabase() {
-      document.getElementById('status-bar').innerText = 'Sparar...';
+      document.getElementById('status-bar').innerText = 'Sparar till TV...';
       apiCall('PATCH', '/rest/v1/matches?id=eq.main_match', { data: fullMatchData }, function(err) {
         if (!err) {
           document.getElementById('status-bar').innerText = 'Uppdaterat i realtid!';
@@ -246,8 +264,15 @@
     function submitThrow() {
       if (!currentInput || activeSubIndex === null) return;
       var scoreVal = parseInt(currentInput, 10);
-      var sm = fullMatchData.subMatches[activeSubIndex];
 
+      // 1. Spärr för ogiltiga dartpoäng
+      if (!isValidDartScore(scoreVal)) {
+        alert('Ogiltig dartpoäng! (' + scoreVal + ' går inte att få på 3 pilar eller är över 180)');
+        clearNum();
+        return;
+      }
+
+      var sm = fullMatchData.subMatches[activeSubIndex];
       if (!sm.homeThrows) sm.homeThrows = [];
       if (!sm.awayThrows) sm.awayThrows = [];
 
@@ -259,32 +284,32 @@
 
       var currentRem = (currentTurn === 'home') ? (501 - homeSum) : (501 - awaySum);
 
-      // Logik för leg-vinst / överpil (bust)
+      // 2. Överpil (Bust) eller kvar på 1 poäng
       if (scoreVal > currentRem || currentRem - scoreVal === 1) {
-        // Bust! Kastet blir 0
         alert('Bust / Överpil! 0 poäng.');
         if (currentTurn === 'home') sm.homeThrows.push(0);
         else sm.awayThrows.push(0);
-      } else if (scoreVal === currentRem) {
-        // AUTOMATISK LEG-VINST!
+        currentTurn = (currentTurn === 'home') ? 'away' : 'home';
+      } 
+      // 3. Exakt 0 (Leg-vinst)
+      else if (scoreVal === currentRem) {
         if (currentTurn === 'home') sm.homeScore = (sm.homeScore || 0) + 1;
         else sm.awayScore = (sm.awayScore || 0) + 1;
 
-        alert('Leg Vinst för ' + (currentTurn === 'home' ? sm.homePlayer : sm.awayPlayer) + '!');
+        alert('Leg Vinst för ' + (currentTurn === 'home' ? (sm.homePlayer || 'Hemma') : (sm.awayPlayer || 'Borta')) + '!');
 
         // Nollställ kast inför nästa leg
         sm.homeThrows = [];
         sm.awayThrows = [];
 
-        // Växla startare inför nästa leg
-        var nextLegCount = (sm.homeScore || 0) + (sm.awayScore || 0);
-        currentTurn = (nextLegCount % 2 === 0) ? 'home' : 'away';
-      } else {
-        // Vanligt giltigt kast
+        // Räkna ut vem som startar nästa leg
+        currentTurn = getLegStarter(activeSubIndex, sm.homeScore, sm.awayScore);
+      } 
+      // 4. Vanligt giltigt kast
+      else {
         if (currentTurn === 'home') sm.homeThrows.push(scoreVal);
         else sm.awayThrows.push(scoreVal);
 
-        // Växla tur
         currentTurn = (currentTurn === 'home') ? 'away' : 'home';
       }
 
