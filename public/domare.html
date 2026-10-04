@@ -172,6 +172,12 @@
         initialStarter = HOME_STARTS_MATCHES.indexOf(matchId) !== -1 ? 'home' : 'away';
       }
 
+      // Läs in sparat tillstånd om det finns, annars initiera nytt
+      var restoredRounds = sm.rounds ? JSON.parse(JSON.stringify(sm.rounds)) : [];
+      var restoredHistory = sm.historyStack ? JSON.parse(JSON.stringify(sm.historyStack)) : [];
+      var restoredLegStarter = sm.legStarter || initialStarter;
+      var restoredTurn = sm.turn || restoredLegStarter;
+
       activeMatch = {
         id: matchId,
         type: index < 8 ? 'single' : 'double',
@@ -181,13 +187,13 @@
         awayScore: (sm.currentAwayPoints !== undefined && sm.currentAwayPoints !== null) ? sm.currentAwayPoints : 501,
         homeLegs: sm.homeScore || 0,
         awayLegs: sm.awayScore || 0,
-        legStarter: initialStarter,
-        turn: initialStarter,
+        legStarter: restoredLegStarter,
+        turn: restoredTurn,
         inputVal: '',
-        historyStack: [],
-        rounds: [],
+        historyStack: restoredHistory,
+        rounds: restoredRounds,
         performances: [],
-        scoringActive: false,
+        scoringActive: sm.scoringActive || false,
         scoringHomeInput: '',
         scoringAwayInput: ''
       };
@@ -240,22 +246,22 @@
                 '<button onclick="saveAndCloseMatch()" style="background-color: #16a34a; color: #fff; border: none; padding: 12px 18px; border-radius: 10px; font-size: 16px; cursor: pointer; font-weight: bold;">Spara & Stäng</button>' +
               '</div>';
 
-      // Spelarkort
+      // Spelarkort med 80px poängsiffror
       html += '<div style="display: flex; display: -webkit-flex; margin-bottom: 14px;">' +
                 '<div style="width: 49%; margin-right: 2%; background-color: ' + (m.turn === 'home' ? '#1e293b' : '#0f172a') + '; padding: 16px; border-radius: 14px; border: ' + (m.turn === 'home' ? '3px solid #3b82f6' : '1px solid #1e293b') + '; text-align: center;">' +
-                  '<div style="font-size: 18px; color: #94a3b8; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.homePlayer + '</div>' +
-                  '<div style="font-size: 64px; font-weight: 900; color: ' + (m.turn === 'home' ? '#60a5fa' : '#cbd5e1') + '; line-height: 1;">' + m.homeScore + '</div>' +
-                  '<div style="font-size: 18px; color: #fcd34d; font-weight: bold; margin-top: 8px;">Legs: ' + m.homeLegs + '</div>' +
+                  '<div style="font-size: 20px; color: #94a3b8; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.homePlayer + '</div>' +
+                  '<div style="font-size: 80px; font-weight: 900; color: ' + (m.turn === 'home' ? '#60a5fa' : '#cbd5e1') + '; line-height: 1;">' + m.homeScore + '</div>' +
+                  '<div style="font-size: 20px; color: #fcd34d; font-weight: bold; margin-top: 8px;">Legs: ' + m.homeLegs + '</div>' +
                 '</div>' +
                 '<div style="width: 49%; background-color: ' + (m.turn === 'away' ? '#1e293b' : '#0f172a') + '; padding: 16px; border-radius: 14px; border: ' + (m.turn === 'away' ? '3px solid #f43f5e' : '1px solid #1e293b') + '; text-align: center;">' +
-                  '<div style="font-size: 18px; color: #94a3b8; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.awayPlayer + '</div>' +
-                  '<div style="font-size: 64px; font-weight: 900; color: ' + (m.turn === 'away' ? '#f43f5e' : '#cbd5e1') + '; line-height: 1;">' + m.awayScore + '</div>' +
-                  '<div style="font-size: 18px; color: #fcd34d; font-weight: bold; margin-top: 8px;">Legs: ' + m.awayLegs + '</div>' +
+                  '<div style="font-size: 20px; color: #94a3b8; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.awayPlayer + '</div>' +
+                  '<div style="font-size: 80px; font-weight: 900; color: ' + (m.turn === 'away' ? '#f43f5e' : '#cbd5e1') + '; line-height: 1;">' + m.awayScore + '</div>' +
+                  '<div style="font-size: 20px; color: #fcd34d; font-weight: bold; margin-top: 8px;">Legs: ' + m.awayLegs + '</div>' +
                 '</div>' +
               '</div>';
 
       // Logg
-      html += '<div id="log-container" style="height: 160px; overflow-y: auto; background-color: #090d16; border-radius: 10px; padding: 10px; margin-bottom: 14px; border: 1px solid #1e293b;">' +
+      html += '<div id="log-container" style="height: 150px; overflow-y: auto; background-color: #090d16; border-radius: 10px; padding: 10px; margin-bottom: 14px; border: 1px solid #1e293b;">' +
                 '<table style="width: 100%; font-size: 16px; border-collapse: collapse; text-align: center;">' +
                   '<thead><tr style="color: #64748b; border-bottom: 1px solid #1e293b;"><th style="padding-bottom: 6px;">Hemmaspelare</th><th style="padding-bottom: 6px; width: 60px;">Pil</th><th style="padding-bottom: 6px;">Bortaspelare</th></tr></thead>' +
                   '<tbody>';
@@ -271,11 +277,11 @@
 
       html +=     '</tbody></table></div>';
 
-      // Knappsats
+      // Knappsats & inmatningsruta
       if (!isFinished && !m.scoringActive) {
         html += '<div>' +
                   '<div style="display: flex; display: -webkit-flex; margin-bottom: 10px;">' +
-                    '<div style="width: 50%; background-color: #0f172a; padding: 14px; border-radius: 12px; text-align: center; font-size: 32px; font-weight: bold; color: #fff; border: 1px solid #334155; margin-right: 2%;">' + (m.inputVal || '0') + '</div>' +
+                    '<div style="width: 50%; background-color: #0f172a; padding: 12px; border-radius: 12px; text-align: center; font-size: 40px; font-weight: bold; color: #fff; border: 1px solid #334155; margin-right: 2%;">' + (m.inputVal || '0') + '</div>' +
                     '<button onclick="handleOpenRemainingModal()" style="width: 23%; background-color: #0284c7; color: #fff; border: none; padding: 0 4px; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer; margin-right: 2%;">Sätt kvar</button>' +
                     '<button onclick="handleUndo()" style="width: 23%; background-color: #334155; color: #fff; border: none; padding: 0 4px; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer;">Ångra</button>' +
                   '</div>' +
@@ -503,6 +509,7 @@
       m.homeScore = 501;
       m.awayScore = 501;
       m.rounds = [];
+      m.historyStack = [];
       m.legStarter = nextStarter;
       m.turn = nextStarter;
       m.inputVal = '';
@@ -632,7 +639,7 @@
       modal.className = 'modal-overlay';
       modal.innerHTML = 
         '<div class="modal-box" style="border: 3px solid #3b82f6;">' +
-          '<div style="font-size: 48px; margin-bottom: 12px;">✏️</div>' +
+          '<div style="font-size: 48px; margin-bottom: 12px;">✏</div>' +
           '<h3 style="color: #fff; font-size: 24px; margin-bottom: 12px;">Sätt kvarvarande poäng?</h3>' +
           '<p style="color: #cbd5e1; font-size: 18px; margin-bottom: 18px;">Sätt <strong style="color: #60a5fa;">' + playerName + 's</strong> kvarvarande poäng till <strong style="color: #fcd34d; font-size: 24px;">' + targetRemaining + '</strong>?</p>' +
           '<p style="color: #94a3b8; font-size: 15px; margin-bottom: 24px; background-color: #1e293b; padding: 10px; border-radius: 8px;">(Registrerar <strong>' + calculatedScored + '</strong> poäng)</p>' +
@@ -671,6 +678,13 @@
       sm.awayScore = activeMatch.awayLegs;
       sm.currentHomePoints = activeMatch.homeScore;
       sm.currentAwayPoints = activeMatch.awayScore;
+
+      // Spara hela tillståndet för delmatchen
+      sm.rounds = activeMatch.rounds;
+      sm.historyStack = activeMatch.historyStack;
+      sm.turn = activeMatch.turn;
+      sm.legStarter = activeMatch.legStarter;
+      sm.scoringActive = activeMatch.scoringActive;
 
       if (sm.homeScore >= 3 || sm.awayScore >= 3) {
         sm.status = 'finished';
