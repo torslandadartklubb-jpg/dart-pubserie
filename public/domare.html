@@ -9,7 +9,7 @@
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background-color: #020617; color: #ffffff; padding: 12px; }
 
     /* Huvudkort för lagställning */
@@ -30,7 +30,7 @@
 
     /* DOMARVY: Döljs som standard */
     #judge-view { display: none; }
-    .status-text { text-align: center; font-size: 12px; color: #64748b; margin-top: 10px; }
+    .status-text { text-align: center; font-size: 12px; color: #64748b; margin-top: 10px; word-break: break-all; }
   </style>
 </head>
 <body>
@@ -69,26 +69,31 @@
     let reactRoot = null;
 
     function apiCall(method, endpoint, body, callback) {
-      var xhr = new XMLHttpRequest();
-      xhr.open(method, SUPABASE_URL + endpoint, true);
-      xhr.setRequestHeader('apikey', SUPABASE_KEY);
-      xhr.setRequestHeader('Authorization', 'Bearer ' + SUPABASE_KEY);
-      xhr.setRequestHeader('Content-Type', 'application/json');
-
-      xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4) {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            var data = xhr.responseText ? JSON.parse(xhr.responseText) : null;
-            callback(null, data);
-          } else {
-            callback('HTTP Error ' + xhr.status, null);
-          }
+      fetch(SUPABASE_URL + endpoint, {
+        method: method,
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: body ? JSON.stringify(body) : null
+      })
+      .then(function(response) {
+        if (!response.ok) {
+          throw new Error('HTTP fel ' + response.status);
         }
-      };
-      xhr.send(body ? JSON.stringify(body) : null);
+        return response.json();
+      })
+      .then(function(data) {
+        callback(null, data);
+      })
+      .catch(function(err) {
+        callback(err.message || 'Nätverksfel', null);
+      });
     }
 
     function loadMatchData() {
+      document.getElementById('status-bar').innerText = 'Hämtar data från Supabase...';
       apiCall('GET', '/rest/v1/matches?id=eq.main_match', null, function(err, res) {
         if (!err && res && res.length > 0) {
           fullMatchData = res[0].data;
@@ -98,7 +103,8 @@
           renderUI();
           document.getElementById('status-bar').innerText = 'Synkad: ' + new Date().toLocaleTimeString();
         } else {
-          document.getElementById('status-bar').innerText = 'Kunde inte hämta data.';
+          document.getElementById('status-bar').innerText = 'Fel vid hämtning: ' + (err || 'Ingen data hittades');
+          document.getElementById('main-teams').innerText = 'Kunde inte ladda lag';
         }
       });
     }
@@ -107,7 +113,7 @@
       if (!fullMatchData) return;
 
       // Huvudställning
-      document.getElementById('main-teams').innerText = fullMatchData.homeTeam + ' vs ' + fullMatchData.awayTeam;
+      document.getElementById('main-teams').innerText = (fullMatchData.homeTeam || 'Hemmalag') + ' vs ' + (fullMatchData.awayTeam || 'Bortalag');
       
       var homeWins = 0;
       var awayWins = 0;
@@ -164,8 +170,8 @@
         awayPlayer: sm.awayPlayer,
         homeScore: sm.homeScore || 0,
         awayScore: sm.awayScore || 0,
-        currentHomePoints: sm.currentHomePoints ?? 501,
-        currentAwayPoints: sm.currentAwayPoints ?? 501
+        currentHomePoints: (sm.currentHomePoints !== undefined && sm.currentHomePoints !== null) ? sm.currentHomePoints : 501,
+        currentAwayPoints: (sm.currentAwayPoints !== undefined && sm.currentAwayPoints !== null) ? sm.currentAwayPoints : 501
       };
 
       if (!reactRoot) {
@@ -210,7 +216,7 @@
         if (!err) {
           document.getElementById('status-bar').innerText = 'Uppdaterat i realtid!';
         } else {
-          document.getElementById('status-bar').innerText = 'Kunde inte spara.';
+          document.getElementById('status-bar').innerText = 'Kunde inte spara: ' + err;
         }
       });
     }
@@ -222,8 +228,11 @@
 
     // --- DOMARVY (N01Scorer Komponent) ---
     function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) {
-      const [homeScore, setHomeScore] = useState(match.currentHomePoints ?? 501);
-      const [awayScore, setAwayScore] = useState(match.currentAwayPoints ?? 501);
+      const initialHomePts = (match.currentHomePoints !== undefined && match.currentHomePoints !== null) ? match.currentHomePoints : 501;
+      const initialAwayPts = (match.currentAwayPoints !== undefined && match.currentAwayPoints !== null) ? match.currentAwayPoints : 501;
+
+      const [homeScore, setHomeScore] = useState(initialHomePts);
+      const [awayScore, setAwayScore] = useState(initialAwayPts);
       const [homeLegs, setHomeLegs] = useState(match.homeScore || 0);
       const [awayLegs, setAwayLegs] = useState(match.awayScore || 0);
       const [inputVal, setInputVal] = useState('');
