@@ -30,6 +30,13 @@
     .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .btn-back { background: #334155; color: #cbd5e1; border: none; padding: 8px 14px; font-size: 13px; font-weight: bold; border-radius: 6px; cursor: pointer; }
 
+    /* Info & Statusfält för Pilar & Scoring */
+    .info-bar { display: flex; justify-content: space-between; align-items: center; background: #1e293b; border: 1px solid #334155; padding: 8px 12px; border-radius: 8px; margin-bottom: 10px; font-size: 13px; font-weight: bold; }
+    .darts-count { color: #cbd5e1; }
+    .scoring-badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; display: none; }
+    .scoring-badge.active-scoring { display: inline-block; background: #dc2626; color: #ffffff; }
+    .scoring-badge.checkout-zone { display: inline-block; background: #16a34a; color: #ffffff; }
+
     /* Spelarboxar & Poäng */
     .players-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
     .player-card { background: #1e293b; border: 2px solid #334155; border-radius: 10px; padding: 10px; text-align: center; position: relative; }
@@ -76,6 +83,12 @@
     <div class="top-bar">
       <button class="btn-back" onclick="showStartView()">← Tillbaka till översikt</button>
       <div id="current-submatch-title" style="font-weight: bold; color: #38bdf8;">Delmatch S1</div>
+    </div>
+
+    <!-- Informationsbar för Pilar & Scoring-status -->
+    <div class="info-bar">
+      <div class="darts-count" id="darts-count-display">Pilar i leg: 0</div>
+      <div id="scoring-badge" class="scoring-badge">SCORING</div>
     </div>
 
     <!-- Spelarnas poängställning i nuvarande leg -->
@@ -164,6 +177,9 @@
       apiCall('GET', '/rest/v1/matches?id=eq.main_match', null, function(err, res) {
         if (!err && res && res.length > 0) {
           fullMatchData = res[0].data;
+          if (!fullMatchData.performances) {
+            fullMatchData.performances = [];
+          }
           renderUI();
           document.getElementById('status-bar').innerText = 'Synkad: ' + new Date().toLocaleTimeString();
         } else {
@@ -181,6 +197,21 @@
       } else {
         return (matchStarter === 'home') ? 'away' : 'home';
       }
+    }
+
+    function addPerformance(team, player, type, text) {
+      if (!fullMatchData.performances) {
+        fullMatchData.performances = [];
+      }
+      fullMatchData.performances.push({
+        id: Date.now() + Math.random(),
+        subIndex: activeSubIndex,
+        team: team,
+        player: player,
+        type: type,
+        text: text,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
     }
 
     function renderUI() {
@@ -243,8 +274,28 @@
         var awaySum = 0;
         for (var l = 0; l < awayThrows.length; l++) awaySum += awayThrows[l];
 
-        document.getElementById('p-home-rem').innerText = 501 - homeSum;
-        document.getElementById('p-away-rem').innerText = 501 - awaySum;
+        var homeRem = 501 - homeSum;
+        var awayRem = 501 - awaySum;
+
+        document.getElementById('p-home-rem').innerText = homeRem;
+        document.getElementById('p-away-rem').innerText = awayRem;
+
+        // Beräkna totalt antal pilar kastade i nuvarande leg
+        var totalDarts = (homeThrows.length + awayThrows.length) * 3;
+        document.getElementById('darts-count-display').innerText = 'Pilar i leg: ' + totalDarts;
+
+        // Uppdatera SCORING-status & Badges
+        var scoringBadge = document.getElementById('scoring-badge');
+        if (totalDarts >= 39) {
+          scoringBadge.className = 'scoring-badge active-scoring';
+          scoringBadge.innerText = '⚠ SCORING (39+ PILAR)';
+        } else if (homeRem <= 170 || awayRem <= 170) {
+          scoringBadge.className = 'scoring-badge checkout-zone';
+          scoringBadge.innerText = '🎯 UTGÅNGSLÄGE';
+        } else {
+          scoringBadge.className = 'scoring-badge';
+          scoringBadge.innerText = '';
+        }
 
         var legStarter = getLegStarter(activeSubIndex, activeSub.homeScore, activeSub.awayScore);
         document.getElementById('badge-home').innerText = (legStarter === 'home') ? '🎯 START' : '';
@@ -333,6 +384,12 @@
       for (var j = 0; j < sm.awayThrows.length; j++) awaySum += sm.awayThrows[j];
 
       var currentRem = (currentTurn === 'home') ? (501 - homeSum) : (501 - awaySum);
+      var activePlayerName = (currentTurn === 'home') ? (sm.homePlayer || 'Hemma') : (sm.awayPlayer || 'Borta');
+
+      // 1. Kolla och spara 180-prestation
+      if (scoreVal === 180) {
+        addPerformance(currentTurn, activePlayerName, '180', '180!');
+      }
 
       // Överpil (Bust)
       if (scoreVal > currentRem || currentRem - scoreVal === 1) {
@@ -343,13 +400,23 @@
         clearNum();
         saveToDatabase();
       } 
-      // Leg-vinst
+      // Leg-vinst / Checkout
       else if (scoreVal === currentRem) {
+        var totalDartsInLeg = (sm.homeThrows.length + sm.awayThrows.length + 1) * 3;
+
+        // 2. Kolla Hög Utgång (100+)
+        if (scoreVal >= 100) {
+          addPerformance(currentTurn, activePlayerName, 'checkout', 'Utgång ' + scoreVal);
+        }
+
+        // 3. Kolla Snabb Leg (<= 15 pilar)
+        if (totalDartsInLeg <= 15) {
+          addPerformance(currentTurn, activePlayerName, 'short_leg', totalDartsInLeg + ' pilars leg');
+        }
+
         if (currentTurn === 'home') sm.homeScore = (sm.homeScore || 0) + 1;
         else sm.awayScore = (sm.awayScore || 0) + 1;
 
-        var winnerName = (currentTurn === 'home' ? (sm.homePlayer || 'Hemma') : (sm.awayPlayer || 'Borta'));
-        
         // Nollställ kast inför nästa leg
         sm.homeThrows = [];
         sm.awayThrows = [];
@@ -358,11 +425,11 @@
         if (sm.homeScore >= 3 || sm.awayScore >= 3) {
           clearNum();
           saveToDatabase(function() {
-            alert('MATCH VUNNEN! ' + winnerName + ' vinner delmatchen med ' + sm.homeScore + ' - ' + sm.awayScore + '!');
+            alert('MATCH VUNNEN! ' + activePlayerName + ' vinner delmatchen med ' + sm.homeScore + ' - ' + sm.awayScore + '!');
             showStartView(); // Återgå till startsidan!
           });
         } else {
-          alert('Leg Vinst för ' + winnerName + '!');
+          alert('Leg Vinst för ' + activePlayerName + ' (' + totalDartsInLeg + ' pilar)!');
           currentTurn = getLegStarter(activeSubIndex, sm.homeScore, sm.awayScore);
           clearNum();
           saveToDatabase();
