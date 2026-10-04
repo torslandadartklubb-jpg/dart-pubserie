@@ -150,9 +150,8 @@
       });
     }
 
-    // Beräkna vem som startar nuvarande leg baserat på delmatch och leg-nummer
     function getLegStarter(subIndex, homeScore, awayScore) {
-      var matchStarter = (subIndex % 2 === 0) ? 'home' : 'away'; // S1=Hemma, S2=Borta, S3=Hemma osv.
+      var matchStarter = (subIndex % 2 === 0) ? 'home' : 'away';
       var legCount = (homeScore || 0) + (awayScore || 0);
 
       if (legCount % 2 === 0) {
@@ -165,7 +164,6 @@
     function renderUI() {
       if (!fullMatchData) return;
 
-      // Lag och huvudställning
       document.getElementById('main-teams').innerText = fullMatchData.homeTeam + ' vs ' + fullMatchData.awayTeam;
       
       var homeWins = 0;
@@ -178,28 +176,28 @@
       }
       document.getElementById('main-score').innerText = homeWins + ' - ' + awayWins;
 
-      // Fyll rullgardinsmenyn med delmatcher
       var select = document.getElementById('submatch-select');
       select.innerHTML = '';
 
       for (var j = 0; j < subMatches.length; j++) {
         var sm = subMatches[j];
+        var isFinished = (sm.homeScore >= 3 || sm.awayScore >= 3);
+        var statusTag = isFinished ? ' [KLAR]' : '';
+        
         var opt = document.createElement('option');
         opt.value = j;
-        opt.innerText = 'Delmatch ' + (j + 1) + ' (S' + (j + 1) + '): ' + (sm.homePlayer || 'Hemma') + ' (' + (sm.homeScore||0) + ') vs ' + (sm.awayPlayer || 'Borta') + ' (' + (sm.awayScore||0) + ')';
+        opt.innerText = 'Delmatch ' + (j + 1) + ' (S' + (j + 1) + '): ' + (sm.homePlayer || 'Hemma') + ' (' + (sm.homeScore||0) + ') vs ' + (sm.awayPlayer || 'Borta') + ' (' + (sm.awayScore||0) + ')' + statusTag;
         select.appendChild(opt);
       }
 
       select.value = activeSubIndex;
 
-      // Hämta aktiv delmatch
       var activeSub = subMatches[activeSubIndex] || {};
       document.getElementById('p-home-name').innerText = activeSub.homePlayer || fullMatchData.homeTeam;
       document.getElementById('p-away-name').innerText = activeSub.awayPlayer || fullMatchData.awayTeam;
       document.getElementById('p-home-legs').innerText = 'Legs: ' + (activeSub.homeScore || 0);
       document.getElementById('p-away-legs').innerText = 'Legs: ' + (activeSub.awayScore || 0);
 
-      // Beräkna återstående poäng i leget (start 501)
       var homeThrows = activeSub.homeThrows || [];
       var awayThrows = activeSub.awayThrows || [];
 
@@ -212,12 +210,10 @@
       document.getElementById('p-home-rem').innerText = 501 - homeSum;
       document.getElementById('p-away-rem').innerText = 501 - awaySum;
 
-      // Visa vem som startade nuvarande leg
       var legStarter = getLegStarter(activeSubIndex, activeSub.homeScore, activeSub.awayScore);
       document.getElementById('badge-home').innerText = (legStarter === 'home') ? '🎯 START' : '';
       document.getElementById('badge-away').innerText = (legStarter === 'away') ? '🎯 START' : '';
 
-      // Markera vems tur det är
       document.getElementById('card-home').className = 'player-card' + (currentTurn === 'home' ? ' active' : '');
       document.getElementById('card-away').className = 'player-card' + (currentTurn === 'away' ? ' active' : '');
     }
@@ -263,16 +259,25 @@
 
     function submitThrow() {
       if (!currentInput || activeSubIndex === null) return;
+
+      var sm = fullMatchData.subMatches[activeSubIndex];
+
+      // SPÄRR: Om delmatchen redan är avgjord (någon har nått 3 legs)
+      if ((sm.homeScore || 0) >= 3 || (sm.awayScore || 0) >= 3) {
+        var winner = (sm.homeScore >= 3) ? sm.homePlayer : sm.awayPlayer;
+        alert('Delmatchen är redan slut! ' + winner + ' har vunnit.');
+        clearNum();
+        return;
+      }
+
       var scoreVal = parseInt(currentInput, 10);
 
-      // 1. Spärr för ogiltiga dartpoäng
       if (!isValidDartScore(scoreVal)) {
         alert('Ogiltig dartpoäng! (' + scoreVal + ' går inte att få på 3 pilar eller är över 180)');
         clearNum();
         return;
       }
 
-      var sm = fullMatchData.subMatches[activeSubIndex];
       if (!sm.homeThrows) sm.homeThrows = [];
       if (!sm.awayThrows) sm.awayThrows = [];
 
@@ -284,28 +289,40 @@
 
       var currentRem = (currentTurn === 'home') ? (501 - homeSum) : (501 - awaySum);
 
-      // 2. Överpil (Bust) eller kvar på 1 poäng
+      // Överpil (Bust)
       if (scoreVal > currentRem || currentRem - scoreVal === 1) {
         alert('Bust / Överpil! 0 poäng.');
         if (currentTurn === 'home') sm.homeThrows.push(0);
         else sm.awayThrows.push(0);
         currentTurn = (currentTurn === 'home') ? 'away' : 'home';
       } 
-      // 3. Exakt 0 (Leg-vinst)
+      // Leg-vinst
       else if (scoreVal === currentRem) {
         if (currentTurn === 'home') sm.homeScore = (sm.homeScore || 0) + 1;
         else sm.awayScore = (sm.awayScore || 0) + 1;
 
-        alert('Leg Vinst för ' + (currentTurn === 'home' ? (sm.homePlayer || 'Hemma') : (sm.awayPlayer || 'Borta')) + '!');
-
+        var winnerName = (currentTurn === 'home' ? (sm.homePlayer || 'Hemma') : (sm.awayPlayer || 'Borta'));
+        
         // Nollställ kast inför nästa leg
         sm.homeThrows = [];
         sm.awayThrows = [];
 
-        // Räkna ut vem som startar nästa leg
-        currentTurn = getLegStarter(activeSubIndex, sm.homeScore, sm.awayScore);
+        // Kontrollera om delmatchen tog slut (först till 3 legs)
+        if (sm.homeScore >= 3 || sm.awayScore >= 3) {
+          alert('MATCH VUNNEN! ' + winnerName + ' vinner delmatchen med ' + sm.homeScore + ' - ' + sm.awayScore + '!');
+          
+          // Om det finns en nästa delmatch, hoppa automatiskt till den
+          if (activeSubIndex + 1 < fullMatchData.subMatches.length) {
+            activeSubIndex++;
+            var nextSm = fullMatchData.subMatches[activeSubIndex] || {};
+            currentTurn = getLegStarter(activeSubIndex, nextSm.homeScore, nextSm.awayScore);
+          }
+        } else {
+          alert('Leg Vinst för ' + winnerName + '!');
+          currentTurn = getLegStarter(activeSubIndex, sm.homeScore, sm.awayScore);
+        }
       } 
-      // 4. Vanligt giltigt kast
+      // Vanligt kast
       else {
         if (currentTurn === 'home') sm.homeThrows.push(scoreVal);
         else sm.awayThrows.push(scoreVal);
