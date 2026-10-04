@@ -1,3 +1,11 @@
+Det går alldeles utmärkt att lösa båda delarna!
+
+1. Ännu större poängsiffror i domare.html
+Poängsiffrorna i spelarkorten har höjts från 80px till 105px (ytterligare drygt 30 % större). För att inte korten ska ta över hela skärmen vertikalt har padding i korten tightats till något.
+
+Här är den uppdaterade koden för domare.html:
+
+HTML
 <!DOCTYPE html>
 <html lang="sv">
 <head>
@@ -172,7 +180,6 @@
         initialStarter = HOME_STARTS_MATCHES.indexOf(matchId) !== -1 ? 'home' : 'away';
       }
 
-      // Läs in sparat tillstånd om det finns, annars initiera nytt
       var restoredRounds = sm.rounds ? JSON.parse(JSON.stringify(sm.rounds)) : [];
       var restoredHistory = sm.historyStack ? JSON.parse(JSON.stringify(sm.historyStack)) : [];
       var restoredLegStarter = sm.legStarter || initialStarter;
@@ -240,48 +247,48 @@
       var html = '';
 
       // Header
-      html += '<div style="display: flex; display: -webkit-flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">' +
-                '<button onclick="showStartView()" style="background-color: #1e293b; color: #94a3b8; border: none; padding: 12px 18px; border-radius: 10px; font-size: 16px; cursor: pointer; font-weight: bold;">← Tillbaka</button>' +
+      html += '<div style="display: flex; display: -webkit-flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">' +
+                '<button onclick="showStartView()" style="background-color: #1e293b; color: #94a3b8; border: none; padding: 10px 16px; border-radius: 10px; font-size: 16px; cursor: pointer; font-weight: bold;">← Tillbaka</button>' +
                 '<span style="color: #eab308; font-weight: bold; font-size: 20px;">Match ' + m.id + ' (' + (m.type === 'single' ? 'Singel' : 'Dubbel') + ')</span>' +
-                '<button onclick="saveAndCloseMatch()" style="background-color: #16a34a; color: #fff; border: none; padding: 12px 18px; border-radius: 10px; font-size: 16px; cursor: pointer; font-weight: bold;">Spara & Stäng</button>' +
+                '<button onclick="saveAndCloseMatch()" style="background-color: #16a34a; color: #fff; border: none; padding: 10px 16px; border-radius: 10px; font-size: 16px; cursor: pointer; font-weight: bold;">Spara & Stäng</button>' +
               '</div>';
 
-      // Spelarkort med 80px poängsiffror
-      html += '<div style="display: flex; display: -webkit-flex; margin-bottom: 14px;">' +
-                '<div style="width: 49%; margin-right: 2%; background-color: ' + (m.turn === 'home' ? '#1e293b' : '#0f172a') + '; padding: 16px; border-radius: 14px; border: ' + (m.turn === 'home' ? '3px solid #3b82f6' : '1px solid #1e293b') + '; text-align: center;">' +
-                  '<div style="font-size: 20px; color: #94a3b8; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.homePlayer + '</div>' +
-                  '<div style="font-size: 80px; font-weight: 900; color: ' + (m.turn === 'home' ? '#60a5fa' : '#cbd5e1') + '; line-height: 1;">' + m.homeScore + '</div>' +
-                  '<div style="font-size: 20px; color: #fcd34d; font-weight: bold; margin-top: 8px;">Legs: ' + m.homeLegs + '</div>' +
+      // Spelarkort med extra stora poängsiffror (105px)
+      html += '<div style="display: flex; display: -webkit-flex; margin-bottom: 12px;">' +
+                '<div style="width: 49%; margin-right: 2%; background-color: ' + (m.turn === 'home' ? '#1e293b' : '#0f172a') + '; padding: 10px 8px; border-radius: 14px; border: ' + (m.turn === 'home' ? '3px solid #3b82f6' : '1px solid #1e293b') + '; text-align: center;">' +
+                  '<div style="font-size: 18px; color: #94a3b8; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.homePlayer + '</div>' +
+                  '<div style="font-size: 105px; font-weight: 900; color: ' + (m.turn === 'home' ? '#60a5fa' : '#cbd5e1') + '; line-height: 0.95;">' + m.homeScore + '</div>' +
+                  '<div style="font-size: 18px; color: #fcd34d; font-weight: bold; margin-top: 4px;">Legs: ' + m.homeLegs + '</div>' +
                 '</div>' +
-                '<div style="width: 49%; background-color: ' + (m.turn === 'away' ? '#1e293b' : '#0f172a') + '; padding: 16px; border-radius: 14px; border: ' + (m.turn === 'away' ? '3px solid #f43f5e' : '1px solid #1e293b') + '; text-align: center;">' +
-                  '<div style="font-size: 20px; color: #94a3b8; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.awayPlayer + '</div>' +
-                  '<div style="font-size: 80px; font-weight: 900; color: ' + (m.turn === 'away' ? '#f43f5e' : '#cbd5e1') + '; line-height: 1;">' + m.awayScore + '</div>' +
-                  '<div style="font-size: 20px; color: #fcd34d; font-weight: bold; margin-top: 8px;">Legs: ' + m.awayLegs + '</div>' +
+                '<div style="width: 49%; background-color: ' + (m.turn === 'away' ? '#1e293b' : '#0f172a') + '; padding: 10px 8px; border-radius: 14px; border: ' + (m.turn === 'away' ? '3px solid #f43f5e' : '1px solid #1e293b') + '; text-align: center;">' +
+                  '<div style="font-size: 18px; color: #94a3b8; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.awayPlayer + '</div>' +
+                  '<div style="font-size: 105px; font-weight: 900; color: ' + (m.turn === 'away' ? '#f43f5e' : '#cbd5e1') + '; line-height: 0.95;">' + m.awayScore + '</div>' +
+                  '<div style="font-size: 18px; color: #fcd34d; font-weight: bold; margin-top: 4px;">Legs: ' + m.awayLegs + '</div>' +
                 '</div>' +
               '</div>';
 
       // Logg
-      html += '<div id="log-container" style="height: 150px; overflow-y: auto; background-color: #090d16; border-radius: 10px; padding: 10px; margin-bottom: 14px; border: 1px solid #1e293b;">' +
+      html += '<div id="log-container" style="height: 140px; overflow-y: auto; background-color: #090d16; border-radius: 10px; padding: 8px; margin-bottom: 12px; border: 1px solid #1e293b;">' +
                 '<table style="width: 100%; font-size: 16px; border-collapse: collapse; text-align: center;">' +
-                  '<thead><tr style="color: #64748b; border-bottom: 1px solid #1e293b;"><th style="padding-bottom: 6px;">Hemmaspelare</th><th style="padding-bottom: 6px; width: 60px;">Pil</th><th style="padding-bottom: 6px;">Bortaspelare</th></tr></thead>' +
+                  '<thead><tr style="color: #64748b; border-bottom: 1px solid #1e293b;"><th style="padding-bottom: 4px;">Hemmaspelare</th><th style="padding-bottom: 4px; width: 60px;">Pil</th><th style="padding-bottom: 4px;">Bortaspelare</th></tr></thead>' +
                   '<tbody>';
 
       for (var i = 0; i < m.rounds.length; i++) {
         var r = m.rounds[i];
         html += '<tr style="border-bottom: 1px solid #0f172a;">' +
-                  '<td onclick="handleEditRound(' + i + ', \'home\')" style="padding: 6px; cursor: pointer;">' + renderCellContent(r.home) + '</td>' +
+                  '<td onclick="handleEditRound(' + i + ', \'home\')" style="padding: 5px; cursor: pointer;">' + renderCellContent(r.home) + '</td>' +
                   '<td style="color: #475569; font-size: 13px;">' + r.round + '</td>' +
-                  '<td onclick="handleEditRound(' + i + ', \'away\')" style="padding: 6px; cursor: pointer;">' + renderCellContent(r.away) + '</td>' +
+                  '<td onclick="handleEditRound(' + i + ', \'away\')" style="padding: 5px; cursor: pointer;">' + renderCellContent(r.away) + '</td>' +
                 '</tr>';
       }
 
       html +=     '</tbody></table></div>';
 
-      // Knappsats & inmatningsruta
+      // Knappsats
       if (!isFinished && !m.scoringActive) {
         html += '<div>' +
                   '<div style="display: flex; display: -webkit-flex; margin-bottom: 10px;">' +
-                    '<div style="width: 50%; background-color: #0f172a; padding: 12px; border-radius: 12px; text-align: center; font-size: 40px; font-weight: bold; color: #fff; border: 1px solid #334155; margin-right: 2%;">' + (m.inputVal || '0') + '</div>' +
+                    '<div style="width: 50%; background-color: #0f172a; padding: 10px; border-radius: 12px; text-align: center; font-size: 38px; font-weight: bold; color: #fff; border: 1px solid #334155; margin-right: 2%;">' + (m.inputVal || '0') + '</div>' +
                     '<button onclick="handleOpenRemainingModal()" style="width: 23%; background-color: #0284c7; color: #fff; border: none; padding: 0 4px; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer; margin-right: 2%;">Sätt kvar</button>' +
                     '<button onclick="handleUndo()" style="width: 23%; background-color: #334155; color: #fff; border: none; padding: 0 4px; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer;">Ångra</button>' +
                   '</div>' +
@@ -289,12 +296,12 @@
 
         var nums = [1, 2, 3, 4, 5, 6, 7, 8, 9];
         for (var k = 0; k < nums.length; k++) {
-          html += '<button onclick="handleNumClick(\'' + nums[k] + '\')" class="numpad-btn" style="background-color: #1e293b; color: #fff; border: none; padding: 22px 0; border-radius: 12px; font-size: 28px; font-weight: bold; cursor: pointer; text-align: center;">' + nums[k] + '</button>';
+          html += '<button onclick="handleNumClick(\'' + nums[k] + '\')" class="numpad-btn" style="background-color: #1e293b; color: #fff; border: none; padding: 20px 0; border-radius: 12px; font-size: 28px; font-weight: bold; cursor: pointer; text-align: center;">' + nums[k] + '</button>';
         }
 
-        html +=     '<button onclick="handleClear()" class="numpad-btn" style="background-color: #991b1b; color: #fff; border: none; padding: 22px 0; border-radius: 12px; font-size: 22px; font-weight: bold; cursor: pointer; text-align: center;">C</button>' +
-                    '<button onclick="handleNumClick(\'0\')" class="numpad-btn" style="background-color: #1e293b; color: #fff; border: none; padding: 22px 0; border-radius: 12px; font-size: 28px; font-weight: bold; cursor: pointer; text-align: center;">0</button>' +
-                    '<button onclick="handleEnterScore()" class="numpad-btn" style="background-color: #2563eb; color: #fff; border: none; padding: 22px 0; border-radius: 12px; font-size: 22px; font-weight: bold; cursor: pointer; text-align: center;">OK</button>' +
+        html +=     '<button onclick="handleClear()" class="numpad-btn" style="background-color: #991b1b; color: #fff; border: none; padding: 20px 0; border-radius: 12px; font-size: 22px; font-weight: bold; cursor: pointer; text-align: center;">C</button>' +
+                    '<button onclick="handleNumClick(\'0\')" class="numpad-btn" style="background-color: #1e293b; color: #fff; border: none; padding: 20px 0; border-radius: 12px; font-size: 28px; font-weight: bold; cursor: pointer; text-align: center;">0</button>' +
+                    '<button onclick="handleEnterScore()" class="numpad-btn" style="background-color: #2563eb; color: #fff; border: none; padding: 20px 0; border-radius: 12px; font-size: 22px; font-weight: bold; cursor: pointer; text-align: center;">OK</button>' +
                   '</div>' +
                   '<div style="clear: both;"></div>' +
                 '</div>';
@@ -679,7 +686,6 @@
       sm.currentHomePoints = activeMatch.homeScore;
       sm.currentAwayPoints = activeMatch.awayScore;
 
-      // Spara hela tillståndet för delmatchen
       sm.rounds = activeMatch.rounds;
       sm.historyStack = activeMatch.historyStack;
       sm.turn = activeMatch.turn;
