@@ -15,22 +15,28 @@
 
     /* STARTSIDA: Lista med matcher */
     .section-title { font-size: 15px; font-weight: bold; color: #cbd5e1; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .match-list { display: flex; flex-direction: column; gap: 8px; }
-    .match-item { background: #1e293b; border: 2px solid #334155; border-radius: 10px; padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; -webkit-appearance: none; text-align: left; width: 100%; color: #fff; }
+    .match-list { display: block; }
+    .match-item { background: #1e293b; border: 2px solid #334155; border-radius: 10px; padding: 12px; display: flex; display: -webkit-flex; justify-content: space-between; align-items: center; cursor: pointer; -webkit-appearance: none; text-align: left; width: 100%; color: #fff; margin-bottom: 8px; }
     .match-item:active { background: #334155; }
     .match-item.finished { border-color: #059669; opacity: 0.7; }
+    .match-item.ongoing { border-color: #38bdf8; background-color: #0f172a; }
     .match-info-tag { font-size: 12px; font-weight: bold; color: #38bdf8; }
     .match-players { font-size: 15px; font-weight: bold; margin-top: 2px; }
     .match-status { font-size: 14px; font-weight: bold; padding: 6px 12px; border-radius: 6px; background: #2563eb; color: #fff; }
     .match-status.done { background: #059669; }
+    .match-status.ongoing { background: #0284c7; }
 
     /* DOMARVY */
     #judge-view { display: none; max-width: 550px; margin: 0 auto; background-color: #020617; color: #fff; padding: 12px; border-radius: 16px; border: 1px solid #1e293b; user-select: none; }
     .status-text { text-align: center; font-size: 12px; color: #64748b; margin-top: 10px; word-break: break-all; }
 
     /* Modal / Popups */
-    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.85); display: flex; display: -webkit-flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
     .modal-box { background-color: #0f172a; border-radius: 16px; padding: 24px; text-align: center; max-width: 400px; width: 100%; }
+
+    /* Numpad-layout för gamla iPads */
+    .numpad-grid { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; margin: -4px; }
+    .numpad-btn { width: 31.33%; margin: 1%; box-sizing: border-box; float: left; }
   </style>
 </head>
 <body>
@@ -62,8 +68,6 @@
 
     var fullMatchData = null;
     var activeSubIndex = null;
-
-    // Tillstånd för aktiv domarmatch
     var activeMatch = null;
 
     function apiCall(method, endpoint, body, callback) {
@@ -127,18 +131,23 @@
       for (var j = 0; j < subMatches.length; j++) {
         var sm = subMatches[j];
         var isFinished = (sm.homeScore >= 3 || sm.awayScore >= 3);
+        var isOngoing = !isFinished && sm.status === 'ongoing';
 
         var btn = document.createElement('button');
-        btn.className = 'match-item' + (isFinished ? ' finished' : '');
+        btn.className = 'match-item' + (isFinished ? ' finished' : (isOngoing ? ' ongoing' : ''));
         btn.onclick = (function(idx) { return function() { selectSubMatch(idx); }; })(j);
 
         var infoDiv = document.createElement('div');
         infoDiv.innerHTML = '<div class="match-info-tag">Delmatch ' + (idxMatch(j)) + '</div>' +
                             '<div class="match-players">' + (sm.homePlayer || 'Hemma') + ' vs ' + (sm.awayPlayer || 'Borta') + '</div>';
 
+        var statusText = (sm.homeScore || 0) + ' - ' + (sm.awayScore || 0);
+        if (isFinished) statusText += ' (KLAR)';
+        else if (isOngoing) statusText += ' (PÅGÅENDE)';
+
         var statusDiv = document.createElement('div');
-        statusDiv.className = 'match-status' + (isFinished ? ' done' : '');
-        statusDiv.innerText = (sm.homeScore || 0) + ' - ' + (sm.awayScore || 0) + (isFinished ? ' (KLAR)' : '');
+        statusDiv.className = 'match-status' + (isFinished ? ' done' : (isOngoing ? ' ongoing' : ''));
+        statusDiv.innerText = statusText;
 
         btn.appendChild(infoDiv);
         btn.appendChild(statusDiv);
@@ -182,10 +191,16 @@
         scoringAwayInput: ''
       };
 
+      // Markera matchen som pågående om den inte redan är klar
+      if (sm.homeScore < 3 && sm.awayScore < 3) {
+        sm.status = 'ongoing';
+      }
+
       document.getElementById('start-view').style.display = 'none';
       document.getElementById('judge-view').style.display = 'block';
 
       renderJudgeUI();
+      triggerLiveUpdate(); // Skicka direkt till publikvyn att matchen startat/är pågående
     }
 
     function showStartView() {
@@ -193,7 +208,7 @@
       activeMatch = null;
       document.getElementById('judge-view').style.display = 'none';
       document.getElementById('start-view').style.display = 'block';
-      renderStartUI();
+      loadMatchData(); // Ladda om från servern
     }
 
     function renderJudgeUI() {
@@ -203,15 +218,14 @@
       var m = activeMatch;
       var isFinished = m.homeLegs === 3 || m.awayLegs === 3;
 
-      // Om det är AD och ingen startande är vald än
       if (!m.turn && m.id === 'AD') {
         container.innerHTML = 
           '<div style="text-align: center; padding: 20px; border: 2px solid #eab308; border-radius: 16px;">' +
             '<h2 style="color: #eab308; font-size: 22px; margin-bottom: 10px;">AVGÖRANDE DUBBEL (AD)</h2>' +
             '<p style="color: #94a3b8; font-size: 15px; margin-bottom: 20px;">Vem vann slantkastningen / omkastet och ska börja?</p>' +
-            '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">' +
-              '<button onclick="setADStarter(\'home\')" style="background-color: #1e293b; color: #60a5fa; border: 2px solid #3b82f6; padding: 20px; border-radius: 12px; font-weight: bold; font-size: 18px; cursor: pointer;">' + m.homePlayer + '</button>' +
-              '<button onclick="setADStarter(\'away\')" style="background-color: #1e293b; color: #f43f5e; border: 2px solid #f43f5e; padding: 20px; border-radius: 12px; font-weight: bold; font-size: 18px; cursor: pointer;">' + m.awayPlayer + '</button>' +
+            '<div style="display: flex; display: -webkit-flex;">' +
+              '<button onclick="setADStarter(\'home\')" style="width: 48%; margin-right: 4%; background-color: #1e293b; color: #60a5fa; border: 2px solid #3b82f6; padding: 20px; border-radius: 12px; font-weight: bold; font-size: 18px; cursor: pointer;">' + m.homePlayer + '</button>' +
+              '<button onclick="setADStarter(\'away\')" style="width: 48%; background-color: #1e293b; color: #f43f5e; border: 2px solid #f43f5e; padding: 20px; border-radius: 12px; font-weight: bold; font-size: 18px; cursor: pointer;">' + m.awayPlayer + '</button>' +
             '</div>' +
           '</div>';
         return;
@@ -219,28 +233,25 @@
 
       var html = '';
 
-      // Header
-      html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">' +
+      html += '<div style="display: flex; display: -webkit-flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">' +
                 '<button onclick="showStartView()" style="background-color: #1e293b; color: #94a3b8; border: none; padding: 8px 12px; border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: bold;">← Tillbaka</button>' +
                 '<span style="color: #eab308; font-weight: bold; font-size: 16px;">Match ' + m.id + ' (' + (m.type === 'single' ? 'Singel' : 'Dubbel') + ')</span>' +
                 '<button onclick="saveAndCloseMatch()" style="background-color: #16a34a; color: #fff; border: none; padding: 8px 12px; border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: bold;">Spara & Stäng</button>' +
               '</div>';
 
-      // Spelarkort
-      html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">' +
-                '<div style="background-color: ' + (m.turn === 'home' ? '#1e293b' : '#0f172a') + '; padding: 12px; border-radius: 12px; border: ' + (m.turn === 'home' ? '2px solid #3b82f6' : '1px solid #1e293b') + '; text-align: center;">' +
+      html += '<div style="display: flex; display: -webkit-flex; margin-bottom: 12px;">' +
+                '<div style="width: 49%; margin-right: 2%; background-color: ' + (m.turn === 'home' ? '#1e293b' : '#0f172a') + '; padding: 12px; border-radius: 12px; border: ' + (m.turn === 'home' ? '2px solid #3b82f6' : '1px solid #1e293b') + '; text-align: center;">' +
                   '<div style="font-size: 13px; color: #94a3b8; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.homePlayer + '</div>' +
                   '<div style="font-size: 42px; font-weight: 900; color: ' + (m.turn === 'home' ? '#60a5fa' : '#cbd5e1') + '; line-height: 1;">' + m.homeScore + '</div>' +
                   '<div style="font-size: 14px; color: #fcd34d; font-weight: bold; margin-top: 6px;">Legs: ' + m.homeLegs + '</div>' +
                 '</div>' +
-                '<div style="background-color: ' + (m.turn === 'away' ? '#1e293b' : '#0f172a') + '; padding: 12px; border-radius: 12px; border: ' + (m.turn === 'away' ? '2px solid #f43f5e' : '1px solid #1e293b') + '; text-align: center;">' +
+                '<div style="width: 49%; background-color: ' + (m.turn === 'away' ? '#1e293b' : '#0f172a') + '; padding: 12px; border-radius: 12px; border: ' + (m.turn === 'away' ? '2px solid #f43f5e' : '1px solid #1e293b') + '; text-align: center;">' +
                   '<div style="font-size: 13px; color: #94a3b8; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.awayPlayer + '</div>' +
                   '<div style="font-size: 42px; font-weight: 900; color: ' + (m.turn === 'away' ? '#f43f5e' : '#cbd5e1') + '; line-height: 1;">' + m.awayScore + '</div>' +
                   '<div style="font-size: 14px; color: #fcd34d; font-weight: bold; margin-top: 6px;">Legs: ' + m.awayLegs + '</div>' +
                 '</div>' +
               '</div>';
 
-      // Omgångsprotokoll
       html += '<div id="log-container" style="height: 140px; overflow-y: auto; background-color: #090d16; border-radius: 8px; padding: 8px; margin-bottom: 12px; border: 1px solid #1e293b;">' +
                 '<table style="width: 100%; font-size: 13px; border-collapse: collapse; text-align: center;">' +
                   '<thead><tr style="color: #64748b; border-bottom: 1px solid #1e293b;"><th style="padding-bottom: 4px;">Hemmaspelare</th><th style="padding-bottom: 4px; width: 50px;">Pil</th><th style="padding-bottom: 4px;">Bortaspelare</th></tr></thead>' +
@@ -257,33 +268,33 @@
 
       html +=     '</tbody></table></div>';
 
-      // Knappsats eller scoring
       if (!isFinished && !m.scoringActive) {
         html += '<div>' +
-                  '<div style="display: flex; gap: 8px; margin-bottom: 8px;">' +
-                    '<div style="flex: 1; background-color: #0f172a; padding: 12px; border-radius: 10px; text-align: center; font-size: 24px; font-weight: bold; color: #fff; border: 1px solid #334155;">' + (m.inputVal || '0') + '</div>' +
-                    '<button onclick="handleOpenRemainingModal()" style="background-color: #0284c7; color: #fff; border: none; padding: 0 12px; border-radius: 10px; font-weight: bold; font-size: 12px; cursor: pointer;">Sätt kvar</button>' +
-                    '<button onclick="handleUndo()" style="background-color: #334155; color: #fff; border: none; padding: 0 16px; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer;">Ångra</button>' +
+                  '<div style="display: flex; display: -webkit-flex; margin-bottom: 8px;">' +
+                    '<div style="width: 50%; background-color: #0f172a; padding: 10px; border-radius: 10px; text-align: center; font-size: 24px; font-weight: bold; color: #fff; border: 1px solid #334155; margin-right: 2%;">' + (m.inputVal || '0') + '</div>' +
+                    '<button onclick="handleOpenRemainingModal()" style="width: 23%; background-color: #0284c7; color: #fff; border: none; padding: 0 4px; border-radius: 10px; font-weight: bold; font-size: 12px; cursor: pointer; margin-right: 2%;">Sätt kvar</button>' +
+                    '<button onclick="handleUndo()" style="width: 23%; background-color: #334155; color: #fff; border: none; padding: 0 4px; border-radius: 10px; font-weight: bold; font-size: 13px; cursor: pointer;">Ångra</button>' +
                   '</div>' +
-                  '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">';
+                  '<div class="numpad-grid">';
 
         var nums = [1, 2, 3, 4, 5, 6, 7, 8, 9];
         for (var k = 0; k < nums.length; k++) {
-          html += '<button onclick="handleNumClick(\'' + nums[k] + '\')" style="background-color: #1e293b; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 20px; font-weight: bold; cursor: pointer;">' + nums[k] + '</button>';
+          html += '<button onclick="handleNumClick(\'' + nums[k] + '\')" class="numpad-btn" style="background-color: #1e293b; color: #fff; border: none; padding: 14px 0; border-radius: 10px; font-size: 20px; font-weight: bold; cursor: pointer; text-align: center;">' + nums[k] + '</button>';
         }
 
-        html +=     '<button onclick="handleClear()" style="background-color: #991b1b; color: #fff; border: none; padding: 14px; border-radius: 16px; font-size: 16px; font-weight: bold; cursor: pointer;">C</button>' +
-                    '<button onclick="handleNumClick(\'0\')" style="background-color: #1e293b; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 20px; font-weight: bold; cursor: pointer;">0</button>' +
-                    '<button onclick="handleEnterScore()" style="background-color: #2563eb; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;">OK</button>' +
+        html +=     '<button onclick="handleClear()" class="numpad-btn" style="background-color: #991b1b; color: #fff; border: none; padding: 14px 0; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; text-align: center;">C</button>' +
+                    '<button onclick="handleNumClick(\'0\')" class="numpad-btn" style="background-color: #1e293b; color: #fff; border: none; padding: 14px 0; border-radius: 10px; font-size: 20px; font-weight: bold; cursor: pointer; text-align: center;">0</button>' +
+                    '<button onclick="handleEnterScore()" class="numpad-btn" style="background-color: #2563eb; color: #fff; border: none; padding: 14px 0; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; text-align: center;">OK</button>' +
                   '</div>' +
+                  '<div style="clear: both;"></div>' +
                 '</div>';
       } else if (m.scoringActive) {
         html += '<div style="background-color: #1e293b; padding: 15px; border-radius: 12px; border: 2px solid #eab308;">' +
                   '<h3 style="color: #eab308; margin: 0 0 6px 0; font-size: 16px; text-align: center;">SCORING (39 pilar nådda)</h3>' +
                   '<p style="color: #94a3b8; font-size: 12px; text-align: center; margin-bottom: 12px;">Fyll i poäng för scoringomgången. Högst poäng vinner leget.</p>' +
-                  '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">' +
-                    '<div><label style="font-size: 12px; color: #60a5fa; font-weight: bold;">' + m.homePlayer + '</label><input type="number" id="sc-home" value="' + m.scoringHomeInput + '" oninput="activeMatch.scoringHomeInput=this.value" style="width: 100%; padding: 10px; border-radius: 6px; background-color: #0f172a; border: 1px solid #475569; color: #fff; font-size: 16px; font-weight: bold; text-align: center;"></div>' +
-                    '<div><label style="font-size: 12px; color: #f43f5e; font-weight: bold;">' + m.awayPlayer + '</label><input type="number" id="sc-away" value="' + m.scoringAwayInput + '" oninput="activeMatch.scoringAwayInput=this.value" style="width: 100%; padding: 10px; border-radius: 6px; background-color: #0f172a; border: 1px solid #475569; color: #fff; font-size: 16px; font-weight: bold; text-align: center;"></div>' +
+                  '<div style="display: flex; display: -webkit-flex; margin-bottom: 12px;">' +
+                    '<div style="width: 48%; margin-right: 4%;"><label style="font-size: 12px; color: #60a5fa; font-weight: bold;">' + m.homePlayer + '</label><input type="number" id="sc-home" value="' + m.scoringHomeInput + '" oninput="activeMatch.scoringHomeInput=this.value" style="width: 100%; padding: 10px; border-radius: 6px; background-color: #0f172a; border: 1px solid #475569; color: #fff; font-size: 16px; font-weight: bold; text-align: center;"></div>' +
+                    '<div style="width: 48%;"><label style="font-size: 12px; color: #f43f5e; font-weight: bold;">' + m.awayPlayer + '</label><input type="number" id="sc-away" value="' + m.scoringAwayInput + '" oninput="activeMatch.scoringAwayInput=this.value" style="width: 100%; padding: 10px; border-radius: 6px; background-color: #0f172a; border: 1px solid #475569; color: #fff; font-size: 16px; font-weight: bold; text-align: center;"></div>' +
                   '</div>' +
                   '<button onclick="handleScoringSubmit()" style="width: 100%; background-color: #16a34a; color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer;">Spara Scoring & Tilldela Leg</button>' +
                 '</div>';
@@ -299,6 +310,7 @@
       activeMatch.legStarter = team;
       activeMatch.turn = team;
       renderJudgeUI();
+      triggerLiveUpdate();
     }
 
     function renderCellContent(entry) {
@@ -490,6 +502,11 @@
       m.legStarter = nextStarter;
       m.turn = nextStarter;
       m.inputVal = '';
+
+      if (m.homeLegs === 3 || m.awayLegs === 3) {
+        fullMatchData.subMatches[activeSubIndex].status = 'finished';
+      }
+
       renderJudgeUI();
       triggerLiveUpdate();
     }
@@ -586,9 +603,9 @@
           '<div style="font-size: 36px; margin-bottom: 8px;">🎯</div>' +
           '<h3 style="color: #fff; font-size: 22px; margin-bottom: 10px;">Gick spelaren ut?</h3>' +
           '<p style="color: #cbd5e1; font-size: 16px; margin-bottom: 20px;"><strong style="color: #34d399;">' + playerName + '</strong> har knappat in <strong>' + score + '</strong>.</p>' +
-          '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">' +
-            '<button id="btn-yes" style="background-color: #10b981; color: #fff; border: none; padding: 16px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer;">JA (Vann leg)</button>' +
-            '<button id="btn-no" style="background-color: #dc2626; color: #fff; border: none; padding: 16px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer;">NEJ (Fel)</button>' +
+          '<div style="display: flex; display: -webkit-flex;">' +
+            '<button id="btn-yes" style="width: 48%; margin-right: 4%; background-color: #10b981; color: #fff; border: none; padding: 16px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer;">JA (Vann leg)</button>' +
+            '<button id="btn-no" style="width: 48%; background-color: #dc2626; color: #fff; border: none; padding: 16px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer;">NEJ (Fel)</button>' +
           '</div>' +
         '</div>';
 
@@ -615,9 +632,9 @@
           '<h3 style="color: #fff; font-size: 20px; margin-bottom: 10px;">Sätt kvarvarande poäng?</h3>' +
           '<p style="color: #cbd5e1; font-size: 16px; margin-bottom: 15px;">Sätt <strong style="color: #60a5fa;">' + playerName + 's</strong> kvarvarande poäng till <strong style="color: #fcd34d; font-size: 20px;">' + targetRemaining + '</strong>?</p>' +
           '<p style="color: #94a3b8; font-size: 13px; margin-bottom: 20px; background-color: #1e293b; padding: 8px; border-radius: 6px;">(Registrerar <strong>' + calculatedScored + '</strong> poäng)</p>' +
-          '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">' +
-            '<button id="btn-rem-yes" style="background-color: #2563eb; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;">JA (Sätt)</button>' +
-            '<button id="btn-rem-no" style="background-color: #475569; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;">NEJ</button>' +
+          '<div style="display: flex; display: -webkit-flex;">' +
+            '<button id="btn-rem-yes" style="width: 48%; margin-right: 4%; background-color: #2563eb; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;">JA (Sätt)</button>' +
+            '<button id="btn-rem-no" style="width: 48%; background-color: #475569; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;">NEJ</button>' +
           '</div>' +
         '</div>';
 
@@ -651,8 +668,16 @@
       sm.currentHomePoints = activeMatch.homeScore;
       sm.currentAwayPoints = activeMatch.awayScore;
 
+      // Sätt status till ongoing om matchen ej är klar
+      if (sm.homeScore >= 3 || sm.awayScore >= 3) {
+        sm.status = 'finished';
+      } else {
+        sm.status = 'ongoing';
+      }
+
       if (activeMatch.performances && activeMatch.performances.length > 0) {
         fullMatchData.performances = (fullMatchData.performances || []).concat(activeMatch.performances);
+        activeMatch.performances = []; // Töm så att de inte dupliceras
       }
 
       document.getElementById('status-bar').innerText = 'Sparar...';
@@ -670,7 +695,6 @@
       showStartView();
     }
 
-    // Starta hämtning när sidan laddas
     loadMatchData();
   </script>
 </body>
