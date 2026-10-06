@@ -4,7 +4,7 @@ if (typeof window !== 'undefined') {
   });
 }
 import React, { useState, useRef, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
+import { supabase } from './supabaseClient';
 
 if (typeof window !== 'undefined') {
   window.onerror = function(msg, url, line) {
@@ -124,7 +124,11 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
           awayScore: 0,
           currentHomePoints: 501,
           currentAwayPoints: 501,
-          status: 'pending'
+          status: 'pending',
+          rounds: [],
+          historyStack: [],
+          turn: null,
+          legStarter: null
         });
       }
       return sm;
@@ -254,7 +258,6 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
         </button>
       </div>
 
-      {/* NOLLSTÄLLNINGSKNAPPAR */}
       <div style={{ backgroundColor: '#1e293b', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #334155', display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ color: '#e2e8f0', fontSize: '13px', fontWeight: 'bold' }}>🔄 MATCH-NOLLSTÄLLNING:</span>
         <div style={{ display: 'flex', gap: '10px' }}>
@@ -267,12 +270,10 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
         </div>
       </div>
 
-      {/* LAGNAMN OCH TRUPPER */}
       <div style={{ backgroundColor: '#1e293b', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #334155' }}>
         <h2 style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: 'bold', marginBottom: '12px' }}>LAG OCH SPELARTRUPPER (4-7 Spelare)</h2>
         
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-          {/* HEMMALAG */}
           <div>
             <label style={{ display: 'block', color: '#60a5fa', fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>HEMMALAG</label>
             <input name="homeTeam" value={matchData.homeTeam} onChange={handleTeamChange} style={{ width: '100%', backgroundColor: '#334155', color: '#fff', padding: '8px', borderRadius: '4px', border: '1px solid #475569', marginBottom: '10px', boxSizing: 'border-box', fontWeight: 'bold' }} />
@@ -298,7 +299,6 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
             )}
           </div>
 
-          {/* BORTALAG */}
           <div>
             <label style={{ display: 'block', color: '#f43f5e', fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>BORTALAG</label>
             <input name="awayTeam" value={matchData.awayTeam} onChange={handleTeamChange} style={{ width: '100%', backgroundColor: '#334155', color: '#fff', padding: '8px', borderRadius: '4px', border: '1px solid #475569', marginBottom: '10px', boxSizing: 'border-box', fontWeight: 'bold' }} />
@@ -326,7 +326,6 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
         </div>
       </div>
 
-      {/* MATCHUPPDELNING & UTTAGNING */}
       <div style={{ backgroundColor: '#1e293b', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
         <h2 style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: 'bold', marginBottom: '10px' }}>VÄLJ SPELARE TILL MATCHERNAS UTTAGNING</h2>
 
@@ -345,7 +344,6 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                 <span style={{ width: '32px', color: '#eab308', fontWeight: 'bold', textAlign: 'center', fontSize: '14px' }}>{sm.id}</span>
                 
-                {/* Hemmaspelare Dropdown(s) */}
                 <div style={{ flex: 1 }}>
                   {!isDouble ? (
                     <select
@@ -372,7 +370,6 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
 
                 <span style={{ color: '#64748b', fontSize: '12px', fontWeight: 'bold' }}>VS</span>
 
-                {/* Bortaspelare Dropdown(s) */}
                 <div style={{ flex: 1 }}>
                   {!isDouble ? (
                     <select
@@ -398,7 +395,6 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
                 </div>
               </div>
 
-              {/* Legs, Status och Enskild Nollställning */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
                 <button
                   type="button"
@@ -435,7 +431,6 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
         })}
       </div>
 
-      {/* MANUELLA PRESTATIONER */}
       <div style={{ backgroundColor: '#1e293b', padding: '15px', borderRadius: '8px' }}>
         <h2 style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: 'bold', marginBottom: '12px' }}>MANUELLA PRESTATIONER</h2>
 
@@ -533,14 +528,15 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
   const [inputVal, setInputVal] = useState('');
 
   const getInitialStarter = () => {
+    if (match.legStarter) return match.legStarter;
     if (match.id === 'AD') return null;
     return HOME_STARTS_MATCHES.indexOf(match.id) !== -1 ? 'home' : 'away';
   };
 
   const [legStarter, setLegStarter] = useState(getInitialStarter);
-  const [turn, setTurn] = useState(getInitialStarter);
-  const [historyStack, setHistoryStack] = useState([]);
-  const [rounds, setRounds] = useState([]);
+  const [turn, setTurn] = useState(() => match.turn || getInitialStarter());
+  const [historyStack, setHistoryStack] = useState(match.historyStack || []);
+  const [rounds, setRounds] = useState(match.rounds || []);
   const [performances, setPerformances] = useState([]);
   const [confirmCheckout, setConfirmCheckout] = useState(null);
 
@@ -573,10 +569,14 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
         awayScore: awayLegs,
         currentHomePoints: homeScore,
         currentAwayPoints: awayScore,
-        status: currentStatus
+        status: currentStatus,
+        rounds: rounds,
+        historyStack: historyStack,
+        legStarter: legStarter,
+        turn: turn
       }, performances);
     }
-  }, [homeLegs, awayLegs, homeScore, awayScore, performances, status]);
+  }, [homeLegs, awayLegs, homeScore, awayScore, performances, status, rounds, historyStack, legStarter, turn]);
 
   const homeName = match.homePlayer || homeTeam;
   const awayName = match.awayPlayer || awayTeam;
@@ -672,6 +672,7 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
     setScoringActive(false);
     setScoringConfirm(null);
     setConfirmRemaining(null);
+    setHistoryStack(prev => prev.slice(0, prev.length - 1));
   };
 
   const handleEnterScore = () => {
@@ -1025,7 +1026,7 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
           ← Tillbaka
         </button>
         <span style={{ color: '#eab308', fontWeight: 'bold', fontSize: '16px' }}>Match {match.id} ({match.type === 'single' ? 'Singel' : 'Dubbel'})</span>
-        <button onClick={() => onSave({ homeScore: homeLegs, awayScore: awayLegs, currentHomePoints: homeScore, currentAwayPoints: awayScore, status: isMatchFinished ? 'completed' : 'live' }, performances)} style={{ backgroundColor: '#16a34a', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontWeight: 'bold' }}>
+        <button onClick={() => onSave({ homeScore: homeLegs, awayScore: awayLegs, currentHomePoints: homeScore, currentAwayPoints: awayScore, status: isMatchFinished ? 'completed' : 'live', rounds, historyStack, legStarter, turn }, performances)} style={{ backgroundColor: '#16a34a', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontWeight: 'bold' }}>
           Spara & Stäng
         </button>
       </div>
