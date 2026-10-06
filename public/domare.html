@@ -1,3 +1,4 @@
+HTML
 <!DOCTYPE html>
 <html lang="sv">
 <head>
@@ -77,6 +78,9 @@
       xhr.setRequestHeader('apikey', SUPABASE_KEY);
       xhr.setRequestHeader('Authorization', 'Bearer ' + SUPABASE_KEY);
       xhr.setRequestHeader('Content-Type', 'application/json');
+      if (method === 'POST') {
+        xhr.setRequestHeader('Prefer', 'resolution=merge-duplicates');
+      }
 
       xhr.onreadystatechange = function () {
         if (xhr.readyState === 4) {
@@ -131,8 +135,8 @@
 
       for (var j = 0; j < subMatches.length; j++) {
         var sm = subMatches[j];
-        var isFinished = (sm.homeScore >= 3 || sm.awayScore >= 3);
-        var isOngoing = !isFinished && sm.status === 'ongoing';
+        var isFinished = (sm.homeScore >= 3 || sm.awayScore >= 3 || sm.status === 'completed' || sm.status === 'finished');
+        var isOngoing = !isFinished && (sm.status === 'ongoing' || sm.status === 'live');
 
         var btn = document.createElement('button');
         btn.className = 'match-item' + (isFinished ? ' finished' : (isOngoing ? ' ongoing' : ''));
@@ -198,7 +202,7 @@
       };
 
       if (sm.homeScore < 3 && sm.awayScore < 3) {
-        sm.status = 'ongoing';
+        sm.status = 'live';
       }
 
       document.getElementById('start-view').style.display = 'none';
@@ -514,7 +518,7 @@
       m.inputVal = '';
 
       if (m.homeLegs === 3 || m.awayLegs === 3) {
-        fullMatchData.subMatches[activeSubIndex].status = 'finished';
+        fullMatchData.subMatches[activeSubIndex].status = 'completed';
       }
 
       renderJudgeUI();
@@ -684,15 +688,14 @@
       sm.legStarter = activeMatch.legStarter;
       sm.scoringActive = activeMatch.scoringActive;
 
-      // Uppdatera huvudmatchens status till ongoing så fort domaren kör på iPad
       if (fullMatchData.matchStatus !== 'finished') {
         fullMatchData.matchStatus = 'ongoing';
       }
 
       if (sm.homeScore >= 3 || sm.awayScore >= 3) {
-        sm.status = 'finished';
+        sm.status = 'completed';
       } else {
-        sm.status = 'ongoing';
+        sm.status = 'live';
       }
 
       if (activeMatch.performances && activeMatch.performances.length > 0) {
@@ -701,7 +704,14 @@
       }
 
       document.getElementById('status-bar').innerText = 'Sparar...';
-      apiCall('PATCH', '/rest/v1/matches?id=eq.main_match', { data: fullMatchData }, function(err) {
+
+      var payload = {
+        id: 'main_match',
+        data: fullMatchData,
+        updated_at: new Date().toISOString()
+      };
+
+      apiCall('POST', '/rest/v1/matches', payload, function(err) {
         if (!err) {
           document.getElementById('status-bar').innerText = 'Uppdaterat i realtid!';
         } else {
