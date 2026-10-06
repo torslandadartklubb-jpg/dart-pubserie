@@ -1,18 +1,3 @@
-Här är den kompletta koden för index.js med en "Nollställ"-knapp inlagd för varje enskild match i Adminvyn.
-
-När du trycker på "Nollställ" för en specifik delmatch:
-
-Nollställs poängen (0 - 0) och status sätts till 'pending'.
-
-Live-ställningen återställs till 501 - 501.
-
-Prestationer (180s, utgångar, korta leg) kopplade till spelarna i just den matchen rensas automatiskt från performances.
-
-Ändringarna sparas direkt mot Supabase.
-
-Du kan kopiera hela koden nedan och ersätta ditt innehåll i index.js:
-
-JavaScript
 if (typeof window !== 'undefined') {
   window.addEventListener('error', function(e) {
     alert('Krasch: ' + e.message + ' i ' + e.filename + ':' + e.lineno);
