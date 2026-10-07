@@ -6,13 +6,13 @@
   <title>Dart Domarpanel</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    html, body { width: 100%; height: 100%; background-color: #020617; color: #ffffff; padding: 8px; }
+    html, body { width: 100%; height: 100%; background-color: #020617; color: #ffffff; padding: 6px; }
     
-    .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 14px; padding: 14px; text-align: center; margin-bottom: 12px; }
-    .teams-title { font-size: 20px; font-weight: bold; color: #94a3b8; }
-    .main-score { font-size: 48px; font-weight: 900; color: #f59e0b; margin: 2px 0; }
+    .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 14px; padding: 12px; text-align: center; margin-bottom: 8px; }
+    .teams-title { font-size: 18px; font-weight: bold; color: #94a3b8; }
+    .main-score { font-size: 40px; font-weight: 900; color: #f59e0b; margin: 2px 0; }
     
-    .section-title { font-size: 16px; font-weight: bold; color: #cbd5e1; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .section-title { font-size: 16px; font-weight: bold; color: #cbd5e1; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
     .match-list { display: block; width: 100%; }
     .match-item { background: #1e293b; border: 2px solid #334155; border-radius: 12px; padding: 14px; display: flex; display: -webkit-flex; justify-content: space-between; align-items: center; cursor: pointer; text-align: left; width: 100%; color: #fff; margin-bottom: 8px; }
     .match-item:active { background: #334155; }
@@ -24,13 +24,13 @@
     .match-status.done { background: #059669; }
     .match-status.ongoing { background: #0284c7; }
     
-    #judge-view { display: none; width: 100%; background-color: #020617; color: #fff; padding: 4px; border-radius: 16px; user-select: none; }
-    .status-text { text-align: center; font-size: 13px; color: #64748b; margin-top: 8px; word-break: break-all; }
+    #judge-view { display: none; width: 100%; background-color: #020617; color: #fff; padding: 2px; border-radius: 16px; user-select: none; }
+    .status-text { text-align: center; font-size: 12px; color: #64748b; margin-top: 6px; word-break: break-all; }
     
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.85); display: flex; display: -webkit-flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
     .modal-box { background-color: #0f172a; border-radius: 16px; padding: 24px; text-align: center; max-width: 480px; width: 100%; }
     
-    .numpad-grid { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; margin: -4px; }
+    .numpad-grid { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; margin: -3px; }
     .numpad-btn { width: 31.33%; margin: 1%; box-sizing: border-box; float: left; }
   </style>
 </head>
@@ -152,7 +152,6 @@
       var restoredLegStarter = sm.legStarter || initialStarter;
       var restoredTurn = sm.turn || restoredLegStarter;
       
-      // iPad-säker tilldelning (ingen ??)
       var hPts = (sm.currentHomePoints !== undefined && sm.currentHomePoints !== null) ? sm.currentHomePoints : 501;
       var aPts = (sm.currentAwayPoints !== undefined && sm.currentAwayPoints !== null) ? sm.currentAwayPoints : 501;
 
@@ -211,57 +210,63 @@
 
       var html = '';
       // Header med menyknappar
-      html += '<div style="display: flex; display: -webkit-flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">' +
-                '<button onclick="showStartView()" style="background-color: #1e293b; color: #cbd5e1; border: 1px solid #334155; padding: 10px 16px; border-radius: 10px; font-size: 15px; cursor: pointer; font-weight: bold;">← Meny</button>' +
+      html += '<div style="display: flex; display: -webkit-flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">' +
+                '<button onclick="showStartView()" style="background-color: #1e293b; color: #cbd5e1; border: 1px solid #334155; padding: 8px 14px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold;">← Meny</button>' +
                 '<span style="color: #eab308; font-weight: bold; font-size: 18px;">Match ' + m.id + '</span>' +
-                '<button onclick="saveAndCloseMatch()" style="background-color: #16a34a; color: #fff; border: none; padding: 10px 16px; border-radius: 10px; font-size: 15px; cursor: pointer; font-weight: bold;">Klar</button>' +
+                '<button onclick="saveAndCloseMatch()" style="background-color: #16a34a; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold;">Klar</button>' +
               '</div>';
       
-      // Snyggare, tydligare poängkort
+      // 1. GIGANTISK STÄLLNING (501 - 501) I FOKUS
       html += '<div style="display: flex; display: -webkit-flex; margin-bottom: 10px;">' +
-                '<div style="width: 49%; margin-right: 2%; background-color: ' + (m.turn === 'home' ? '#1e293b' : '#0f172a') + '; padding: 12px 6px; border-radius: 14px; border: ' + (m.turn === 'home' ? '3px solid #3b82f6' : '1px solid #1e293b') + '; text-align: center;">' +
-                  '<div style="font-size: 16px; font-weight: bold; color: #94a3b8; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.homePlayer + '</div>' +
-                  '<div style="font-size: 72px; font-weight: 900; color: ' + (m.turn === 'home' ? '#60a5fa' : '#64748b') + '; line-height: 0.9;">' + m.homeScore + '</div>' +
-                  '<div style="font-size: 16px; color: #fcd34d; font-weight: bold; margin-top: 6px;">Legs: ' + m.homeLegs + '</div>' +
+                '<div style="width: 49%; margin-right: 2%; background-color: ' + (m.turn === 'home' ? '#1e293b' : '#0f172a') + '; padding: 14px 4px; border-radius: 16px; border: ' + (m.turn === 'home' ? '4px solid #3b82f6' : '1px solid #1e293b') + '; text-align: center;">' +
+                  '<div style="font-size: 20px; font-weight: bold; color: #94a3b8; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.homePlayer + '</div>' +
+                  '<div style="font-size: 110px; font-weight: 900; color: ' + (m.turn === 'home' ? '#60a5fa' : '#475569') + '; line-height: 0.85; letter-spacing: -2px;">' + m.homeScore + '</div>' +
+                  '<div style="font-size: 20px; color: #fcd34d; font-weight: bold; margin-top: 8px;">Legs: ' + m.homeLegs + '</div>' +
                 '</div>' +
-                '<div style="width: 49%; background-color: ' + (m.turn === 'away' ? '#1e293b' : '#0f172a') + '; padding: 12px 6px; border-radius: 14px; border: ' + (m.turn === 'away' ? '3px solid #f43f5e' : '1px solid #1e293b') + '; text-align: center;">' +
-                  '<div style="font-size: 16px; font-weight: bold; color: #94a3b8; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.awayPlayer + '</div>' +
-                  '<div style="font-size: 72px; font-weight: 900; color: ' + (m.turn === 'away' ? '#f43f5e' : '#64748b') + '; line-height: 0.9;">' + m.awayScore + '</div>' +
-                  '<div style="font-size: 16px; color: #fcd34d; font-weight: bold; margin-top: 6px;">Legs: ' + m.awayLegs + '</div>' +
+                '<div style="width: 49%; background-color: ' + (m.turn === 'away' ? '#1e293b' : '#0f172a') + '; padding: 14px 4px; border-radius: 16px; border: ' + (m.turn === 'away' ? '4px solid #f43f5e' : '1px solid #1e293b') + '; text-align: center;">' +
+                  '<div style="font-size: 20px; font-weight: bold; color: #94a3b8; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.awayPlayer + '</div>' +
+                  '<div style="font-size: 110px; font-weight: 900; color: ' + (m.turn === 'away' ? '#f43f5e' : '#475569') + '; line-height: 0.85; letter-spacing: -2px;">' + m.awayScore + '</div>' +
+                  '<div style="font-size: 20px; color: #fcd34d; font-weight: bold; margin-top: 8px;">Legs: ' + m.awayLegs + '</div>' +
                 '</div>' +
               '</div>';
 
-      // Renare historik/logg
-      html += '<div id="log-container" style="height: 120px; overflow-y: auto; background-color: #090d16; border-radius: 10px; padding: 6px; margin-bottom: 10px; border: 1px solid #1e293b;">' +
-                '<table style="width: 100%; font-size: 15px; border-collapse: collapse; text-align: center;">' +
-                  '<thead><tr style="color: #64748b; border-bottom: 1px solid #1e293b;"><th style="padding-bottom: 4px;">' + m.homePlayer + '</th><th style="padding-bottom: 4px; width: 50px;">Pil</th><th style="padding-bottom: 4px;">' + m.awayPlayer + '</th></tr></thead>' +
+      // 2. DE 3 SENASTE KASTEN
+      var recentRounds = m.rounds.slice(-3);
+      html += '<div style="background-color: #090d16; border-radius: 10px; padding: 6px 10px; margin-bottom: 10px; border: 1px solid #1e293b;">' +
+                '<div style="font-size: 12px; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; text-align: center;">Senaste kasten</div>' +
+                '<table style="width: 100%; font-size: 16px; border-collapse: collapse; text-align: center;">' +
                   '<tbody>';
-      for (var i = 0; i < m.rounds.length; i++) {
-        var r = m.rounds[i];
-        html += '<tr style="border-bottom: 1px solid #0f172a;">' +
-                  '<td onclick="handleEditRound(' + i + ', \'home\')" style="padding: 4px; cursor: pointer;">' + renderCellContent(r.home) + '</td>' +
-                  '<td style="color: #475569; font-size: 12px;">' + r.round + '</td>' +
-                  '<td onclick="handleEditRound(' + i + ', \'away\')" style="padding: 4px; cursor: pointer;">' + renderCellContent(r.away) + '</td>' +
-                '</tr>';
+      if (recentRounds.length === 0) {
+        html += '<tr><td colspan="3" style="color: #475569; padding: 6px; font-size: 14px;">Inga kast ännu i detta leg</td></tr>';
+      } else {
+        for (var i = 0; i < recentRounds.length; i++) {
+          var r = recentRounds[i];
+          var originalIndex = m.rounds.indexOf(r);
+          html += '<tr style="border-bottom: 1px solid #0f172a;">' +
+                    '<td onclick="handleEditRound(' + originalIndex + ', \'home\')" style="padding: 4px; cursor: pointer; width: 42%; text-align: right;">' + renderCellContent(r.home) + '</td>' +
+                    '<td style="color: #475569; font-size: 12px; width: 16%;">P' + r.round + '</td>' +
+                    '<td onclick="handleEditRound(' + originalIndex + ', \'away\')" style="padding: 4px; cursor: pointer; width: 42%; text-align: left;">' + renderCellContent(r.away) + '</td>' +
+                  '</tr>';
+        }
       }
       html +=     '</tbody></table></div>';
 
-      // Numpad & Input-fält
+      // 3. NUMPAD & KNAPPAR
       if (!isFinished && !m.scoringActive) {
         html += '<div>' +
                   '<div style="display: flex; display: -webkit-flex; margin-bottom: 8px;">' +
-                    '<div style="width: 50%; background-color: #0f172a; padding: 10px; border-radius: 12px; text-align: center; font-size: 32px; font-weight: bold; color: #fff; border: 1px solid #334155; margin-right: 2%;">' + (m.inputVal || '0') + '</div>' +
+                    '<div style="width: 50%; background-color: #0f172a; padding: 8px; border-radius: 12px; text-align: center; font-size: 36px; font-weight: 900; color: #fff; border: 1px solid #334155; margin-right: 2%;">' + (m.inputVal || '0') + '</div>' +
                     '<button onclick="handleOpenRemainingModal()" style="width: 23%; background-color: #0284c7; color: #fff; border: none; border-radius: 12px; font-weight: bold; font-size: 15px; cursor: pointer; margin-right: 2%;">Sätt kvar</button>' +
                     '<button onclick="handleUndo()" style="width: 23%; background-color: #334155; color: #fff; border: none; border-radius: 12px; font-weight: bold; font-size: 15px; cursor: pointer;">Ångra</button>' +
                   '</div>' +
                   '<div class="numpad-grid">';
         var nums = [1, 2, 3, 4, 5, 6, 7, 8, 9];
         for (var k = 0; k < nums.length; k++) {
-          html += '<button onclick="handleNumClick(\'' + nums[k] + '\')" class="numpad-btn" style="background-color: #1e293b; color: #fff; border: 1px solid #334155; padding: 16px 0; border-radius: 12px; font-size: 26px; font-weight: bold; cursor: pointer; text-align: center;">' + nums[k] + '</button>';
+          html += '<button onclick="handleNumClick(\'' + nums[k] + '\')" class="numpad-btn" style="background-color: #1e293b; color: #fff; border: 1px solid #334155; padding: 18px 0; border-radius: 12px; font-size: 28px; font-weight: bold; cursor: pointer; text-align: center;">' + nums[k] + '</button>';
         }
-        html +=     '<button onclick="handleClear()" class="numpad-btn" style="background-color: #881337; color: #fecdd3; border: 1px solid #9f1239; padding: 16px 0; border-radius: 12px; font-size: 20px; font-weight: bold; cursor: pointer; text-align: center;">C</button>' +
-                    '<button onclick="handleNumClick(\'0\')" class="numpad-btn" style="background-color: #1e293b; color: #fff; border: 1px solid #334155; padding: 16px 0; border-radius: 12px; font-size: 26px; font-weight: bold; cursor: pointer; text-align: center;">0</button>' +
-                    '<button onclick="handleEnterScore()" class="numpad-btn" style="background-color: #16a34a; color: #fff; border: none; padding: 16px 0; border-radius: 12px; font-size: 20px; font-weight: bold; cursor: pointer; text-align: center;">OK</button>' +
+        html +=     '<button onclick="handleClear()" class="numpad-btn" style="background-color: #881337; color: #fecdd3; border: 1px solid #9f1239; padding: 18px 0; border-radius: 12px; font-size: 22px; font-weight: bold; cursor: pointer; text-align: center;">C</button>' +
+                    '<button onclick="handleNumClick(\'0\')" class="numpad-btn" style="background-color: #1e293b; color: #fff; border: 1px solid #334155; padding: 18px 0; border-radius: 12px; font-size: 28px; font-weight: bold; cursor: pointer; text-align: center;">0</button>' +
+                    '<button onclick="handleEnterScore()" class="numpad-btn" style="background-color: #16a34a; color: #fff; border: none; padding: 18px 0; border-radius: 12px; font-size: 22px; font-weight: bold; cursor: pointer; text-align: center;">OK</button>' +
                   '</div>' +
                   '<div style="clear: both;"></div>' +
                 '</div>';
@@ -277,8 +282,6 @@
                 '</div>';
       }
       container.innerHTML = html;
-      var logContainer = document.getElementById('log-container');
-      if (logContainer) logContainer.scrollTop = logContainer.scrollHeight;
     }
 
     function setADStarter(team) {
@@ -289,11 +292,11 @@
     }
 
     function renderCellContent(entry) {
-      if (!entry) return '';
+      if (!entry) return '-';
       if (entry.score === 'BUST') {
-        return '<span><span style="color: #f43f5e; font-weight: bold;">BUST</span><span style="font-size: 13px; color: #94a3b8; margin-left: 4px;">(' + entry.remaining + ')</span></span>';
+        return '<span style="color: #f43f5e; font-weight: bold;">BUST</span> <span style="font-size: 13px; color: #94a3b8;">(' + entry.remaining + ')</span>';
       }
-      return '<span><span style="color: #fcd34d; font-weight: bold;">' + entry.score + '</span><span style="font-size: 14px; color: #38bdf8; margin-left: 4px;">(' + entry.remaining + ')</span></span>';
+      return '<span style="color: #fcd34d; font-weight: bold;">' + entry.score + '</span> <span style="font-size: 14px; color: #38bdf8;">(' + entry.remaining + ')</span>';
     }
 
     function handleNumClick(num) {
