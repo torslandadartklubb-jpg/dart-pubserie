@@ -7,41 +7,52 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     
-    /* Tema-variabler (Mörkt som standard) */
+    /* Mörkt tema (Standard) */
     :root {
       --bg-main: #020617;
       --bg-card: #0f172a;
       --bg-item: #1e293b;
       --border-color: #334155;
-      --text-main: #ffffff;
+      --text-main: #f8fafc;
       --text-sub: #94a3b8;
       --text-muted: #64748b;
       --input-bg: #090d16;
+      --accent-home: #60a5fa;
+      --accent-away: #f43f5e;
+      --border-home: #3b82f6;
+      --border-away: #f43f5e;
+      --text-score: #f59e0b;
     }
 
+    /* Ljust tema med hög kontrast */
     body.light-theme {
-      --bg-main: #f1f5f9;
+      --bg-main: #e2e8f0;
       --bg-card: #ffffff;
-      --bg-item: #e2e8f0;
+      --bg-item: #f1f5f9;
       --border-color: #cbd5e1;
       --text-main: #0f172a;
-      --text-sub: #475569;
+      --text-sub: #334155;
       --text-muted: #64748b;
-      --input-bg: #f8fafc;
+      --input-bg: #ffffff;
+      --accent-home: #1d4ed8;
+      --accent-away: #be123c;
+      --border-home: #2563eb;
+      --border-away: #e11d48;
+      --text-score: #d97706;
     }
 
     html, body { width: 100%; height: 100%; background-color: var(--bg-main); color: var(--text-main); padding: 6px; }
     
     .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 12px; text-align: center; margin-bottom: 8px; }
     .teams-title { font-size: 18px; font-weight: bold; color: var(--text-sub); }
-    .main-score { font-size: 40px; font-weight: 900; color: #f59e0b; margin: 2px 0; }
+    .main-score { font-size: 40px; font-weight: 900; color: var(--text-score); margin: 2px 0; }
     
     .section-title { font-size: 16px; font-weight: bold; color: var(--text-sub); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
     .match-list { display: block; width: 100%; }
     .match-item { background: var(--bg-item); border: 2px solid var(--border-color); border-radius: 12px; padding: 14px; display: flex; display: -webkit-flex; justify-content: space-between; align-items: center; cursor: pointer; text-align: left; width: 100%; color: var(--text-main); margin-bottom: 8px; }
     .match-item:active { background: var(--border-color); }
     .match-item.finished { border-color: #059669; opacity: 0.7; }
-    .match-item.ongoing { border-color: #38bdf8; background-color: var(--bg-card); }
+    .match-item.ongoing { border-color: #0284c7; background-color: var(--bg-card); }
     .match-info-tag { font-size: 13px; font-weight: bold; color: #0284c7; }
     .match-players { font-size: 17px; font-weight: bold; margin-top: 2px; }
     .match-status { font-size: 15px; font-weight: bold; padding: 6px 14px; border-radius: 8px; background: #2563eb; color: #fff; }
@@ -51,8 +62,8 @@
     #judge-view { display: none; width: 100%; background-color: var(--bg-main); color: var(--text-main); padding: 2px; border-radius: 16px; user-select: none; }
     .status-text { text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 6px; word-break: break-all; }
     
-    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.85); display: flex; display: -webkit-flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
-    .modal-box { background-color: var(--bg-card); border-radius: 16px; padding: 24px; text-align: center; max-width: 480px; width: 100%; }
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.75); display: flex; display: -webkit-flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+    .modal-box { background-color: var(--bg-card); border-radius: 16px; padding: 24px; text-align: center; max-width: 480px; width: 100%; color: var(--text-main); }
     
     .numpad-grid { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; margin: -3px; }
     .numpad-btn { width: 31.33%; margin: 1%; box-sizing: border-box; float: left; }
@@ -62,7 +73,7 @@
     .recent-box { width: 49%; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 8px; text-align: center; }
     .recent-box.home { margin-right: 2%; }
     .recent-title { font-size: 12px; color: var(--text-muted); font-weight: bold; text-transform: uppercase; margin-bottom: 4px; }
-    .recent-row { font-size: 26px; font-weight: 800; border-bottom: 1px solid var(--border-color); padding: 4px 0; cursor: pointer; }
+    .recent-row { font-size: 26px; font-weight: 800; border-bottom: 1px solid var(--border-color); padding: 4px 0; cursor: pointer; color: var(--text-main); }
     .recent-row:last-child { border-bottom: none; }
     .recent-rem { font-size: 16px; color: #0284c7; font-weight: normal; margin-left: 4px; }
   </style>
@@ -93,7 +104,6 @@
     var activeMatch = null;
     var isLightTheme = false;
 
-    // Ladda tema från minnet
     if (window.localStorage && localStorage.getItem('dart_theme') === 'light') {
       isLightTheme = true;
       document.body.className = 'light-theme';
@@ -250,8 +260,8 @@
             '<h2 style="color: #eab308; font-size: 24px; margin-bottom: 10px;">AVGÖRANDE DUBBEL (AD)</h2>' +
             '<p style="color: var(--text-sub); font-size: 16px; margin-bottom: 20px;">Vem vann slantkastningen och börjar?</p>' +
             '<div style="display: flex; display: -webkit-flex;">' +
-              '<button onclick="setADStarter(\'home\')" style="width: 48%; margin-right: 4%; background-color: var(--bg-item); color: #60a5fa; border: 2px solid #3b82f6; padding: 20px; border-radius: 12px; font-weight: bold; font-size: 20px; cursor: pointer;">' + m.homePlayer + '</button>' +
-              '<button onclick="setADStarter(\'away\')" style="width: 48%; background-color: var(--bg-item); color: #f43f5e; border: 2px solid #f43f5e; padding: 20px; border-radius: 12px; font-weight: bold; font-size: 20px; cursor: pointer;">' + m.awayPlayer + '</button>' +
+              '<button onclick="setADStarter(\'home\')" style="width: 48%; margin-right: 4%; background-color: var(--bg-item); color: var(--accent-home); border: 2px solid var(--border-home); padding: 20px; border-radius: 12px; font-weight: bold; font-size: 20px; cursor: pointer;">' + m.homePlayer + '</button>' +
+              '<button onclick="setADStarter(\'away\')" style="width: 48%; background-color: var(--bg-item); color: var(--accent-away); border: 2px solid var(--border-away); padding: 20px; border-radius: 12px; font-weight: bold; font-size: 20px; cursor: pointer;">' + m.awayPlayer + '</button>' +
             '</div>' +
           '</div>';
         return;
@@ -264,25 +274,25 @@
                   '<button onclick="showStartView()" style="background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold;">← Meny</button>' +
                   '<button onclick="toggleTheme()" style="background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-size: 16px; cursor: pointer;">' + (isLightTheme ? '🌙' : '☀️') + '</button>' +
                 '</div>' +
-                '<span style="color: #eab308; font-weight: bold; font-size: 18px;">Match ' + m.id + '</span>' +
+                '<span style="color: #d97706; font-weight: bold; font-size: 18px;">Match ' + m.id + '</span>' +
                 '<button onclick="saveAndCloseMatch()" style="background-color: #16a34a; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold;">Klar</button>' +
               '</div>';
       
-      // 1. GIGANTISK STÄLLNING (501 - 501)
+      // 1. GIGANTISK STÄLLNING (Använder variabler för dynamisk temaanpassning)
       html += '<div style="display: flex; display: -webkit-flex; margin-bottom: 8px;">' +
-                '<div style="width: 49%; margin-right: 2%; background-color: ' + (m.turn === 'home' ? 'var(--bg-item)' : 'var(--bg-card)') + '; padding: 12px 4px; border-radius: 16px; border: ' + (m.turn === 'home' ? '4px solid #3b82f6' : '1px solid var(--border-color)') + '; text-align: center;">' +
+                '<div style="width: 49%; margin-right: 2%; background-color: ' + (m.turn === 'home' ? 'var(--bg-item)' : 'var(--bg-card)') + '; padding: 12px 4px; border-radius: 16px; border: ' + (m.turn === 'home' ? '4px solid var(--border-home)' : '1px solid var(--border-color)') + '; text-align: center;">' +
                   '<div style="font-size: 18px; font-weight: bold; color: var(--text-sub); margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.homePlayer + '</div>' +
-                  '<div style="font-size: 100px; font-weight: 900; color: ' + (m.turn === 'home' ? '#60a5fa' : 'var(--text-muted)') + '; line-height: 0.85; letter-spacing: -2px;">' + m.homeScore + '</div>' +
-                  '<div style="font-size: 18px; color: #f59e0b; font-weight: bold; margin-top: 6px;">Legs: ' + m.homeLegs + '</div>' +
+                  '<div style="font-size: 100px; font-weight: 900; color: ' + (m.turn === 'home' ? 'var(--accent-home)' : 'var(--text-muted)') + '; line-height: 0.85; letter-spacing: -2px;">' + m.homeScore + '</div>' +
+                  '<div style="font-size: 18px; color: var(--text-score); font-weight: bold; margin-top: 6px;">Legs: ' + m.homeLegs + '</div>' +
                 '</div>' +
-                '<div style="width: 49%; background-color: ' + (m.turn === 'away' ? 'var(--bg-item)' : 'var(--bg-card)') + '; padding: 12px 4px; border-radius: 16px; border: ' + (m.turn === 'away' ? '4px solid #f43f5e' : '1px solid var(--border-color)') + '; text-align: center;">' +
+                '<div style="width: 49%; background-color: ' + (m.turn === 'away' ? 'var(--bg-item)' : 'var(--bg-card)') + '; padding: 12px 4px; border-radius: 16px; border: ' + (m.turn === 'away' ? '4px solid var(--border-away)' : '1px solid var(--border-color)') + '; text-align: center;">' +
                   '<div style="font-size: 18px; font-weight: bold; color: var(--text-sub); margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.awayPlayer + '</div>' +
-                  '<div style="font-size: 100px; font-weight: 900; color: ' + (m.turn === 'away' ? '#f43f5e' : 'var(--text-muted)') + '; line-height: 0.85; letter-spacing: -2px;">' + m.awayScore + '</div>' +
-                  '<div style="font-size: 18px; color: #f59e0b; font-weight: bold; margin-top: 6px;">Legs: ' + m.awayLegs + '</div>' +
+                  '<div style="font-size: 100px; font-weight: 900; color: ' + (m.turn === 'away' ? 'var(--accent-away)' : 'var(--text-muted)') + '; line-height: 0.85; letter-spacing: -2px;">' + m.awayScore + '</div>' +
+                  '<div style="font-size: 18px; color: var(--text-score); font-weight: bold; margin-top: 6px;">Legs: ' + m.awayLegs + '</div>' +
                 '</div>' +
               '</div>';
 
-      // 2. SENASTE KASTEN - STORA I SIDLED (MINST NUMPAD-STORLEK)
+      // 2. SENASTE KASTEN
       var recentRounds = m.rounds.slice(-3);
       html += '<div class="recent-throws-container">' +
                 '<div class="recent-box home">' +
@@ -317,26 +327,26 @@
                   '<div style="display: flex; display: -webkit-flex; margin-bottom: 8px;">' +
                     '<div style="width: 50%; background-color: var(--input-bg); padding: 8px; border-radius: 12px; text-align: center; font-size: 36px; font-weight: 900; color: var(--text-main); border: 1px solid var(--border-color); margin-right: 2%;">' + (m.inputVal || '0') + '</div>' +
                     '<button onclick="handleOpenRemainingModal()" style="width: 23%; background-color: #0284c7; color: #fff; border: none; border-radius: 12px; font-weight: bold; font-size: 15px; cursor: pointer; margin-right: 2%;">Sätt kvar</button>' +
-                    '<button onclick="handleUndo()" style="width: 23%; background-color: var(--border-color); color: var(--text-main); border: none; border-radius: 12px; font-weight: bold; font-size: 15px; cursor: pointer;">Ångra</button>' +
+                    '<button onclick="handleUndo()" style="width: 23%; background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 12px; font-weight: bold; font-size: 15px; cursor: pointer;">Ångra</button>' +
                   '</div>' +
                   '<div class="numpad-grid">';
         var nums = [1, 2, 3, 4, 5, 6, 7, 8, 9];
         for (var k = 0; k < nums.length; k++) {
           html += '<button onclick="handleNumClick(\'' + nums[k] + '\')" class="numpad-btn" style="background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); padding: 16px 0; border-radius: 12px; font-size: 28px; font-weight: bold; cursor: pointer; text-align: center;">' + nums[k] + '</button>';
         }
-        html +=     '<button onclick="handleClear()" class="numpad-btn" style="background-color: #881337; color: #fecdd3; border: 1px solid #9f1239; padding: 16px 0; border-radius: 12px; font-size: 22px; font-weight: bold; cursor: pointer; text-align: center;">C</button>' +
+        html +=     '<button onclick="handleClear()" class="numpad-btn" style="background-color: #dc2626; color: #ffffff; border: none; padding: 16px 0; border-radius: 12px; font-size: 22px; font-weight: bold; cursor: pointer; text-align: center;">C</button>' +
                     '<button onclick="handleNumClick(\'0\')" class="numpad-btn" style="background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); padding: 16px 0; border-radius: 12px; font-size: 28px; font-weight: bold; cursor: pointer; text-align: center;">0</button>' +
                     '<button onclick="handleEnterScore()" class="numpad-btn" style="background-color: #16a34a; color: #fff; border: none; padding: 16px 0; border-radius: 12px; font-size: 22px; font-weight: bold; cursor: pointer; text-align: center;">OK</button>' +
                   '</div>' +
                   '<div style="clear: both;"></div>' +
                 '</div>';
       } else if (m.scoringActive) {
-        html += '<div style="background-color: var(--bg-item); padding: 16px; border-radius: 14px; border: 2px solid #eab308;">' +
-                  '<h3 style="color: #eab308; margin: 0 0 6px 0; font-size: 18px; text-align: center;">SCORING (39 pilar nådda)</h3>' +
+        html += '<div style="background-color: var(--bg-item); padding: 16px; border-radius: 14px; border: 2px solid #d97706;">' +
+                  '<h3 style="color: #d97706; margin: 0 0 6px 0; font-size: 18px; text-align: center;">SCORING (39 pilar nådda)</h3>' +
                   '<p style="color: var(--text-sub); font-size: 14px; text-align: center; margin-bottom: 12px;">Högst poäng i omgången vinner leget.</p>' +
                   '<div style="display: flex; display: -webkit-flex; margin-bottom: 12px;">' +
-                    '<div style="width: 48%; margin-right: 4%;"><label style="font-size: 14px; color: #60a5fa; font-weight: bold;">' + m.homePlayer + '</label><input type="number" id="sc-home" value="' + m.scoringHomeInput + '" oninput="activeMatch.scoringHomeInput=this.value" style="width: 100%; padding: 10px; border-radius: 8px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); font-size: 20px; font-weight: bold; text-align: center;"></div>' +
-                    '<div style="width: 48%;"><label style="font-size: 14px; color: #f43f5e; font-weight: bold;">' + m.awayPlayer + '</label><input type="number" id="sc-away" value="' + m.scoringAwayInput + '" oninput="activeMatch.scoringAwayInput=this.value" style="width: 100%; padding: 10px; border-radius: 8px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); font-size: 20px; font-weight: bold; text-align: center;"></div>' +
+                    '<div style="width: 48%; margin-right: 4%;"><label style="font-size: 14px; color: var(--accent-home); font-weight: bold;">' + m.homePlayer + '</label><input type="number" id="sc-home" value="' + m.scoringHomeInput + '" oninput="activeMatch.scoringHomeInput=this.value" style="width: 100%; padding: 10px; border-radius: 8px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); font-size: 20px; font-weight: bold; text-align: center;"></div>' +
+                    '<div style="width: 48%;"><label style="font-size: 14px; color: var(--accent-away); font-weight: bold;">' + m.awayPlayer + '</label><input type="number" id="sc-away" value="' + m.scoringAwayInput + '" oninput="activeMatch.scoringAwayInput=this.value" style="width: 100%; padding: 10px; border-radius: 8px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); font-size: 20px; font-weight: bold; text-align: center;"></div>' +
                   '</div>' +
                   '<button onclick="handleScoringSubmit()" style="width: 100%; background-color: #16a34a; color: #fff; border: none; padding: 14px; border-radius: 10px; font-weight: bold; font-size: 16px; cursor: pointer;">Spara & Tilldela Leg</button>' +
                 '</div>';
@@ -347,9 +357,9 @@
     function formatThrowLarge(entry) {
       if (!entry) return '<span style="color: var(--text-muted);">-</span>';
       if (entry.score === 'BUST') {
-        return '<span style="color: #f43f5e;">BUST</span><span class="recent-rem">(' + entry.remaining + ')</span>';
+        return '<span style="color: #dc2626;">BUST</span><span class="recent-rem">(' + entry.remaining + ')</span>';
       }
-      return '<span style="color: #f59e0b;">' + entry.score + '</span><span class="recent-rem">(' + entry.remaining + ')</span>';
+      return '<span style="color: var(--text-score);">' + entry.score + '</span><span class="recent-rem">(' + entry.remaining + ')</span>';
     }
 
     function setADStarter(team) {
@@ -607,8 +617,8 @@
       modal.innerHTML = 
         '<div class="modal-box" style="border: 3px solid #10b981;">' +
           '<div style="font-size: 40px; margin-bottom: 8px;">🎯</div>' +
-          '<h3 style="color: var(--text-main); font-size: 24px; margin-bottom: 8px;">Gick spelaren ut?</h3>' +
-          '<p style="color: var(--text-sub); font-size: 16px; margin-bottom: 20px;"><strong style="color: #34d399;">' + playerName + '</strong> har knappat in <strong>' + score + '</strong>.</p>' +
+          '<h3 style="font-size: 24px; margin-bottom: 8px;">Gick spelaren ut?</h3>' +
+          '<p style="color: var(--text-sub); font-size: 16px; margin-bottom: 20px;"><strong style="color: #059669;">' + playerName + '</strong> har knappat in <strong>' + score + '</strong>.</p>' +
           '<div style="display: flex; display: -webkit-flex;">' +
             '<button id="btn-yes" style="width: 48%; margin-right: 4%; background-color: #10b981; color: #fff; border: none; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer;">JA (Vann leg)</button>' +
             '<button id="btn-no" style="width: 48%; background-color: #dc2626; color: #fff; border: none; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer;">NEJ (Fel)</button>' +
@@ -631,12 +641,12 @@
       modal.className = 'modal-overlay';
       modal.innerHTML = 
         '<div class="modal-box" style="border: 3px solid #3b82f6;">' +
-          '<h3 style="color: var(--text-main); font-size: 22px; margin-bottom: 10px;">Sätt kvarvarande poäng</h3>' +
-          '<p style="color: var(--text-sub); font-size: 16px; margin-bottom: 14px;">Sätt <strong style="color: #60a5fa;">' + playerName + 's</strong> poäng till <strong style="color: #fcd34d; font-size: 22px;">' + targetRemaining + '</strong>?</p>' +
+          '<h3 style="font-size: 22px; margin-bottom: 10px;">Sätt kvarvarande poäng</h3>' +
+          '<p style="color: var(--text-sub); font-size: 16px; margin-bottom: 14px;">Sätt <strong style="color: var(--accent-home);">' + playerName + 's</strong> poäng till <strong style="color: var(--text-score); font-size: 22px;">' + targetRemaining + '</strong>?</p>' +
           '<p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px; background-color: var(--bg-item); padding: 8px; border-radius: 8px;">(Registrerar <strong>' + calculatedScored + '</strong> poäng)</p>' +
           '<div style="display: flex; display: -webkit-flex;">' +
-            '<button id="btn-rem-yes" style="width: 48%; margin-right: 4%; background-color: #2563eb; color: #fff; border: none; padding: 16px; border-radius: 16px; font-size: 16px; font-weight: bold; cursor: pointer;">JA (Sätt)</button>' +
-            '<button id="btn-rem-no" style="width: 48%; background-color: var(--border-color); color: var(--text-main); border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer;">NEJ</button>' +
+            '<button id="btn-rem-yes" style="width: 48%; margin-right: 4%; background-color: #2563eb; color: #fff; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer;">JA (Sätt)</button>' +
+            '<button id="btn-rem-no" style="width: 48%; background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer;">NEJ</button>' +
           '</div>' +
         '</div>';
       document.body.appendChild(modal);
