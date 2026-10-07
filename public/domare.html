@@ -8,40 +8,72 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     html, body { width: 100%; height: 100%; }
     body { background-color: #020617; color: #ffffff; padding: 8px; }
-
+    
     /* Huvudkort för lagställning */
-    .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 14px; padding: 16px; text-align: center; margin-bottom: 12px; }
-    .teams-title { font-size: 22px; font-weight: bold; color: #94a3b8; }
-    .main-score { font-size: 52px; font-weight: bold; color: #f59e0b; margin: 2px 0; }
-
+    .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 14px; padding: 12px; text-align: center; margin-bottom: 8px; }
+    .teams-title { font-size: 20px; font-weight: bold; color: #94a3b8; }
+    .main-score { font-size: 46px; font-weight: bold; color: #f59e0b; margin: 2px 0; }
+    
     /* STARTSIDA: Lista med matcher */
     .section-title { font-size: 18px; font-weight: bold; color: #cbd5e1; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
     .match-list { display: block; width: 100%; }
-    .match-item { background: #1e293b; border: 2px solid #334155; border-radius: 12px; padding: 16px; display: flex; display: -webkit-flex; justify-content: space-between; align-items: center; cursor: pointer; -webkit-appearance: none; text-align: left; width: 100%; color: #fff; margin-bottom: 10px; }
+    .match-item { background: #1e293b; border: 2px solid #334155; border-radius: 12px; padding: 14px; display: flex; display: -webkit-flex; justify-content: space-between; align-items: center; cursor: pointer; -webkit-appearance: none; text-align: left; width: 100%; color: #fff; margin-bottom: 8px; }
     .match-item:active { background: #334155; }
     .match-item.finished { border-color: #059669; opacity: 0.7; }
     .match-item.ongoing { border-color: #38bdf8; background-color: #0f172a; }
     .match-info-tag { font-size: 14px; font-weight: bold; color: #38bdf8; }
     .match-players { font-size: 18px; font-weight: bold; margin-top: 4px; }
-    .match-status { font-size: 16px; font-weight: bold; padding: 8px 16px; border-radius: 8px; background: #2563eb; color: #fff; }
+    .match-status { font-size: 16px; font-weight: bold; padding: 8px 14px; border-radius: 8px; background: #2563eb; color: #fff; }
     .match-status.done { background: #059669; }
     .match-status.ongoing { background: #0284c7; }
+    
+    /* DOMARVY */
+    #judge-view { display: none; width: 100%; background-color: #020617; color: #fff; padding: 2px; border-radius: 16px; user-select: none; }
+    .status-text { text-align: center; font-size: 12px; color: #64748b; margin-top: 6px; word-break: break-all; }
+    
+    /* Layout för Numpad + Sidoaktionsknappar */
+    .input-section { display: flex; display: -webkit-flex; gap: 8px; align-items: stretch; margin-top: 6px; }
+    .numpad-container { width: 72%; }
+    .side-actions { width: 28%; display: flex; display: -webkit-flex; flex-direction: column; -webkit-flex-direction: column; gap: 8px; }
+    
+    .numpad-grid { display: flex; display: -webkit-flex; flex-wrap: wrap; -webkit-flex-wrap: wrap; gap: 6px; }
+    .numpad-btn { 
+      width: calc(33.33% - 4px); 
+      height: 52px; 
+      background-color: #1e293b; 
+      color: #fff; 
+      border: none; 
+      border-radius: 10px; 
+      font-size: 26px; 
+      font-weight: bold; 
+      cursor: pointer; 
+      display: flex; display: -webkit-flex; 
+      align-items: center; justify-content: center;
+    }
+    .numpad-btn:active { background-color: #334155; }
+    .numpad-btn.clear-btn { background-color: #991b1b; font-size: 20px; }
+    .numpad-btn.ok-btn { background-color: #2563eb; font-size: 20px; }
 
-    /* DOMARVY (Breddas till 100%) */
-    #judge-view { display: none; width: 100%; background-color: #020617; color: #fff; padding: 4px; border-radius: 16px; user-select: none; }
-    .status-text { text-align: center; font-size: 13px; color: #64748b; margin-top: 8px; word-break: break-all; }
+    .action-btn {
+      width: 100%;
+      border: none;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex; display: -webkit-flex;
+      align-items: center; justify-content: center;
+      text-align: center;
+    }
+    .btn-set-remaining { background-color: #0284c7; color: #fff; font-size: 15px; flex: 1.5; padding: 4px; }
+    .btn-undo { background-color: #334155; color: #fff; font-size: 24px; flex: 1; }
+    .action-btn:active { opacity: 0.8; }
 
     /* Modal / Popups */
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.85); display: flex; display: -webkit-flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
-    .modal-box { background-color: #0f172a; border-radius: 16px; padding: 28px; text-align: center; max-width: 500px; width: 100%; }
-
-    /* Numpad-layout anpassad för hela skärmen */
-    .numpad-grid { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; margin: -4px; }
-    .numpad-btn { width: 31.33%; margin: 1%; box-sizing: border-box; float: left; }
+    .modal-box { background-color: #0f172a; border-radius: 16px; padding: 24px; text-align: center; max-width: 500px; width: 100%; }
   </style>
 </head>
 <body>
-
   <!-- Lag & Huvudställning -->
   <div class="card">
     <div class="teams-title" id="main-teams">Laddar lag...</div>
@@ -56,13 +88,11 @@
 
   <!-- DOMARVY -->
   <div id="judge-view"></div>
-
   <div class="status-text" id="status-bar">Status: Synkar...</div>
 
   <script>
     var SUPABASE_URL = 'https://luznainkmcogcqbuprzw.supabase.co';
     var SUPABASE_KEY = 'sb_publishable_6psZleJBdhdZFhUTutZqnw_Rr4Y2SI6';
-
     var IMPOSSIBLE_SCORES = [163, 166, 169, 172, 173, 175, 176, 178, 179];
     var IMPOSSIBLE_CHECKOUTS = [159, 162, 163, 165, 166, 168, 169];
     var HOME_STARTS_MATCHES = ['S1', 'S3', 'S5', 'S7', 'D1', 'D3', 'AD'];
@@ -80,7 +110,6 @@
       if (method === 'POST') {
         xhr.setRequestHeader('Prefer', 'resolution=merge-duplicates');
       }
-
       xhr.onreadystatechange = function () {
         if (xhr.readyState === 4) {
           if (xhr.status >= 200 && xhr.status < 300) {
@@ -116,13 +145,11 @@
 
     function renderStartUI() {
       if (!fullMatchData) return;
-
       document.getElementById('main-teams').innerText = (fullMatchData.homeTeam || 'Hemmalag') + ' vs ' + (fullMatchData.awayTeam || 'Bortalag');
       
       var homeWins = 0;
       var awayWins = 0;
       var subMatches = fullMatchData.subMatches || [];
-
       for (var i = 0; i < subMatches.length; i++) {
         if (subMatches[i].homeScore === 3) homeWins++;
         if (subMatches[i].awayScore === 3) awayWins++;
@@ -206,7 +233,6 @@
 
       document.getElementById('start-view').style.display = 'none';
       document.getElementById('judge-view').style.display = 'block';
-
       renderJudgeUI();
       triggerLiveUpdate();
     }
@@ -242,78 +268,82 @@
       var html = '';
 
       // Header
-      html += '<div style="display: flex; display: -webkit-flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">' +
-                '<button onclick="showStartView()" style="background-color: #1e293b; color: #94a3b8; border: none; padding: 10px 16px; border-radius: 10px; font-size: 16px; cursor: pointer; font-weight: bold;">← Tillbaka</button>' +
-                '<span style="color: #eab308; font-weight: bold; font-size: 20px;">Match ' + m.id + ' (' + (m.type === 'single' ? 'Singel' : 'Dubbel') + ')</span>' +
-                '<button onclick="saveAndCloseMatch()" style="background-color: #16a34a; color: #fff; border: none; padding: 10px 16px; border-radius: 10px; font-size: 16px; cursor: pointer; font-weight: bold;">Spara & Stäng</button>' +
+      html += '<div style="display: flex; display: -webkit-flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">' +
+                '<button onclick="showStartView()" style="background-color: #1e293b; color: #94a3b8; border: none; padding: 8px 14px; border-radius: 10px; font-size: 15px; cursor: pointer; font-weight: bold;">← Tillbaka</button>' +
+                '<span style="color: #eab308; font-weight: bold; font-size: 18px;">Match ' + m.id + ' (' + (m.type === 'single' ? 'Singel' : 'Dubbel') + ')</span>' +
+                '<button onclick="saveAndCloseMatch()" style="background-color: #16a34a; color: #fff; border: none; padding: 8px 14px; border-radius: 10px; font-size: 15px; cursor: pointer; font-weight: bold;">Spara & Stäng</button>' +
               '</div>';
 
-      // Spelarkort med extra stora poängsiffror (105px)
-      html += '<div style="display: flex; display: -webkit-flex; margin-bottom: 12px;">' +
-                '<div style="width: 49%; margin-right: 2%; background-color: ' + (m.turn === 'home' ? '#1e293b' : '#0f172a') + '; padding: 10px 8px; border-radius: 14px; border: ' + (m.turn === 'home' ? '3px solid #3b82f6' : '1px solid #1e293b') + '; text-align: center;">' +
-                  '<div style="font-size: 18px; color: #94a3b8; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.homePlayer + '</div>' +
-                  '<div style="font-size: 105px; font-weight: 900; color: ' + (m.turn === 'home' ? '#60a5fa' : '#cbd5e1') + '; line-height: 0.95;">' + m.homeScore + '</div>' +
+      // Spelarkort med mycket stora poängsiffror (110px)
+      html += '<div style="display: flex; display: -webkit-flex; margin-bottom: 8px;">' +
+                '<div style="width: 49%; margin-right: 2%; background-color: ' + (m.turn === 'home' ? '#1e293b' : '#0f172a') + '; padding: 8px 6px; border-radius: 14px; border: ' + (m.turn === 'home' ? '3px solid #3b82f6' : '1px solid #1e293b') + '; text-align: center;">' +
+                  '<div style="font-size: 17px; color: #94a3b8; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.homePlayer + '</div>' +
+                  '<div style="font-size: 110px; font-weight: 900; color: ' + (m.turn === 'home' ? '#60a5fa' : '#cbd5e1') + '; line-height: 0.9;">' + m.homeScore + '</div>' +
                   '<div style="font-size: 18px; color: #fcd34d; font-weight: bold; margin-top: 4px;">Legs: ' + m.homeLegs + '</div>' +
                 '</div>' +
-                '<div style="width: 49%; background-color: ' + (m.turn === 'away' ? '#1e293b' : '#0f172a') + '; padding: 10px 8px; border-radius: 14px; border: ' + (m.turn === 'away' ? '3px solid #f43f5e' : '1px solid #1e293b') + '; text-align: center;">' +
-                  '<div style="font-size: 18px; color: #94a3b8; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.awayPlayer + '</div>' +
-                  '<div style="font-size: 105px; font-weight: 900; color: ' + (m.turn === 'away' ? '#f43f5e' : '#cbd5e1') + '; line-height: 0.95;">' + m.awayScore + '</div>' +
+                '<div style="width: 49%; background-color: ' + (m.turn === 'away' ? '#1e293b' : '#0f172a') + '; padding: 8px 6px; border-radius: 14px; border: ' + (m.turn === 'away' ? '3px solid #f43f5e' : '1px solid #1e293b') + '; text-align: center;">' +
+                  '<div style="font-size: 17px; color: #94a3b8; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.awayPlayer + '</div>' +
+                  '<div style="font-size: 110px; font-weight: 900; color: ' + (m.turn === 'away' ? '#f43f5e' : '#cbd5e1') + '; line-height: 0.9;">' + m.awayScore + '</div>' +
                   '<div style="font-size: 18px; color: #fcd34d; font-weight: bold; margin-top: 4px;">Legs: ' + m.awayLegs + '</div>' +
                 '</div>' +
               '</div>';
 
-      // Logg
-      html += '<div id="log-container" style="height: 140px; overflow-y: auto; background-color: #090d16; border-radius: 10px; padding: 8px; margin-bottom: 12px; border: 1px solid #1e293b;">' +
-                '<table style="width: 100%; font-size: 16px; border-collapse: collapse; text-align: center;">' +
-                  '<thead><tr style="color: #64748b; border-bottom: 1px solid #1e293b;"><th style="padding-bottom: 4px;">Hemmaspelare</th><th style="padding-bottom: 4px; width: 60px;">Pil</th><th style="padding-bottom: 4px;">Bortaspelare</th></tr></thead>' +
+      // Kasthistorik: Max 3 rader visas i höjdled, betydligt större siffror för kastad poäng
+      html += '<div id="log-container" style="height: 118px; overflow-y: auto; background-color: #090d16; border-radius: 10px; padding: 4px 8px; margin-bottom: 8px; border: 1px solid #1e293b;">' +
+                '<table style="width: 100%; border-collapse: collapse; text-align: center;">' +
+                  '<thead><tr style="color: #64748b; font-size: 13px; border-bottom: 1px solid #1e293b;"><th style="padding-bottom: 2px;">Hemmaspelare</th><th style="padding-bottom: 2px; width: 45px;">Pil</th><th style="padding-bottom: 2px;">Bortaspelare</th></tr></thead>' +
                   '<tbody>';
 
       for (var i = 0; i < m.rounds.length; i++) {
         var r = m.rounds[i];
-        html += '<tr style="border-bottom: 1px solid #0f172a;">' +
-                  '<td onclick="handleEditRound(' + i + ', \'home\')" style="padding: 5px; cursor: pointer;">' + renderCellContent(r.home) + '</td>' +
-                  '<td style="color: #475569; font-size: 13px;">' + r.round + '</td>' +
-                  '<td onclick="handleEditRound(' + i + ', \'away\')" style="padding: 5px; cursor: pointer;">' + renderCellContent(r.away) + '</td>' +
+        html += '<tr style="border-bottom: 1px solid #0f172a; height: 32px;">' +
+                  '<td onclick="handleEditRound(' + i + ', \'home\')" style="padding: 2px; cursor: pointer;">' + renderCellContent(r.home) + '</td>' +
+                  '<td style="color: #475569; font-size: 12px; font-weight: bold;">' + r.round + '</td>' +
+                  '<td onclick="handleEditRound(' + i + ', \'away\')" style="padding: 2px; cursor: pointer;">' + renderCellContent(r.away) + '</td>' +
                 '</tr>';
       }
-
       html +=     '</tbody></table></div>';
 
-      // Knappsats
+      // Inmatningsfält & Numpad Layout
       if (!isFinished && !m.scoringActive) {
         html += '<div>' +
-                  '<div style="display: flex; display: -webkit-flex; margin-bottom: 10px;">' +
-                    '<div style="width: 50%; background-color: #0f172a; padding: 10px; border-radius: 12px; text-align: center; font-size: 38px; font-weight: bold; color: #fff; border: 1px solid #334155; margin-right: 2%;">' + (m.inputVal || '0') + '</div>' +
-                    '<button onclick="handleOpenRemainingModal()" style="width: 23%; background-color: #0284c7; color: #fff; border: none; padding: 0 4px; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer; margin-right: 2%;">Sätt kvar</button>' +
-                    '<button onclick="handleUndo()" style="width: 23%; background-color: #334155; color: #fff; border: none; padding: 0 4px; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer;">Ångra</button>' +
-                  '</div>' +
-                  '<div class="numpad-grid">';
-
+                  /* Inmatningsdisplay */
+                  '<div style="background-color: #0f172a; padding: 6px; border-radius: 10px; text-align: center; font-size: 34px; font-weight: bold; color: #fff; border: 1px solid #334155; height: 50px; line-height: 38px; margin-bottom: 6px;">' + (m.inputVal || '0') + '</div>' +
+                  
+                  /* Smalare Numpad + Sidoknappar */
+                  '<div class="input-section">' +
+                    '<div class="numpad-container">' +
+                      '<div class="numpad-grid">';
+        
         var nums = [1, 2, 3, 4, 5, 6, 7, 8, 9];
         for (var k = 0; k < nums.length; k++) {
-          html += '<button onclick="handleNumClick(\'' + nums[k] + '\')" class="numpad-btn" style="background-color: #1e293b; color: #fff; border: none; padding: 20px 0; border-radius: 12px; font-size: 28px; font-weight: bold; cursor: pointer; text-align: center;">' + nums[k] + '</button>';
+          html += '<button onclick="handleNumClick(\'' + nums[k] + '\')" class="numpad-btn">' + nums[k] + '</button>';
         }
-
-        html +=     '<button onclick="handleClear()" class="numpad-btn" style="background-color: #991b1b; color: #fff; border: none; padding: 20px 0; border-radius: 12px; font-size: 22px; font-weight: bold; cursor: pointer; text-align: center;">C</button>' +
-                    '<button onclick="handleNumClick(\'0\')" class="numpad-btn" style="background-color: #1e293b; color: #fff; border: none; padding: 20px 0; border-radius: 12px; font-size: 28px; font-weight: bold; cursor: pointer; text-align: center;">0</button>' +
-                    '<button onclick="handleEnterScore()" class="numpad-btn" style="background-color: #2563eb; color: #fff; border: none; padding: 20px 0; border-radius: 12px; font-size: 22px; font-weight: bold; cursor: pointer; text-align: center;">OK</button>' +
+        html +=         '<button onclick="handleClear()" class="numpad-btn clear-btn">C</button>' +
+                        '<button onclick="handleNumClick(\'0\')" class="numpad-btn">0</button>' +
+                        '<button onclick="handleEnterScore()" class="numpad-btn ok-btn">OK</button>' +
+                      '</div>' +
+                    '</div>' +
+                    
+                    '<div class="side-actions">' +
+                      '<button onclick="handleOpenRemainingModal()" class="action-btn btn-set-remaining">Ange<br>kvar</button>' +
+                      '<button onclick="handleUndo()" class="action-btn btn-undo" title="Ångra">↩</button>' +
+                    '</div>' +
                   '</div>' +
-                  '<div style="clear: both;"></div>' +
                 '</div>';
       } else if (m.scoringActive) {
-        html += '<div style="background-color: #1e293b; padding: 20px; border-radius: 14px; border: 2px solid #eab308;">' +
-                  '<h3 style="color: #eab308; margin: 0 0 8px 0; font-size: 20px; text-align: center;">SCORING (39 pilar nådda)</h3>' +
-                  '<p style="color: #94a3b8; font-size: 15px; text-align: center; margin-bottom: 16px;">Fyll i poäng för scoringomgången. Högst poäng vinner leget.</p>' +
-                  '<div style="display: flex; display: -webkit-flex; margin-bottom: 16px;">' +
-                    '<div style="width: 48%; margin-right: 4%;"><label style="font-size: 15px; color: #60a5fa; font-weight: bold;">' + m.homePlayer + '</label><input type="number" id="sc-home" value="' + m.scoringHomeInput + '" oninput="activeMatch.scoringHomeInput=this.value" style="width: 100%; padding: 14px; border-radius: 8px; background-color: #0f172a; border: 1px solid #475569; color: #fff; font-size: 22px; font-weight: bold; text-align: center;"></div>' +
-                    '<div style="width: 48%;"><label style="font-size: 15px; color: #f43f5e; font-weight: bold;">' + m.awayPlayer + '</label><input type="number" id="sc-away" value="' + m.scoringAwayInput + '" oninput="activeMatch.scoringAwayInput=this.value" style="width: 100%; padding: 14px; border-radius: 8px; background-color: #0f172a; border: 1px solid #475569; color: #fff; font-size: 22px; font-weight: bold; text-align: center;"></div>' +
+        html += '<div style="background-color: #1e293b; padding: 16px; border-radius: 14px; border: 2px solid #eab308;">' +
+                  '<h3 style="color: #eab308; margin: 0 0 6px 0; font-size: 18px; text-align: center;">SCORING (39 pilar nådda)</h3>' +
+                  '<p style="color: #94a3b8; font-size: 14px; text-align: center; margin-bottom: 12px;">Fyll i poäng för scoringomgången. Högst poäng vinner leget.</p>' +
+                  '<div style="display: flex; display: -webkit-flex; margin-bottom: 12px;">' +
+                    '<div style="width: 48%; margin-right: 4%;"><label style="font-size: 14px; color: #60a5fa; font-weight: bold;">' + m.homePlayer + '</label><input type="number" id="sc-home" value="' + m.scoringHomeInput + '" oninput="activeMatch.scoringHomeInput=this.value" style="width: 100%; padding: 10px; border-radius: 8px; background-color: #0f172a; border: 1px solid #475569; color: #fff; font-size: 20px; font-weight: bold; text-align: center;"></div>' +
+                    '<div style="width: 48%;"><label style="font-size: 14px; color: #f43f5e; font-weight: bold;">' + m.awayPlayer + '</label><input type="number" id="sc-away" value="' + m.scoringAwayInput + '" oninput="activeMatch.scoringAwayInput=this.value" style="width: 100%; padding: 10px; border-radius: 8px; background-color: #0f172a; border: 1px solid #475569; color: #fff; font-size: 20px; font-weight: bold; text-align: center;"></div>' +
                   '</div>' +
-                  '<button onclick="handleScoringSubmit()" style="width: 100%; background-color: #16a34a; color: #fff; border: none; padding: 16px; border-radius: 10px; font-weight: bold; font-size: 18px; cursor: pointer;">Spara Scoring & Tilldela Leg</button>' +
+                  '<button onclick="handleScoringSubmit()" style="width: 100%; background-color: #16a34a; color: #fff; border: none; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 16px; cursor: pointer;">Spara Scoring & Tilldela Leg</button>' +
                 '</div>';
       }
 
       container.innerHTML = html;
-
       var logContainer = document.getElementById('log-container');
       if (logContainer) logContainer.scrollTop = logContainer.scrollHeight;
     }
@@ -325,12 +355,13 @@
       triggerLiveUpdate();
     }
 
+    // Framhäver hur mycket man kastade (font-size: 22px & bold) och visar återstående poäng i lugnare färg
     function renderCellContent(entry) {
       if (!entry) return '';
       if (entry.score === 'BUST') {
-        return '<span><span style="color: #f43f5e;">BUST</span><span style="font-size: 15px; color: #94a3b8; margin-left: 6px;">(' + entry.remaining + ')</span></span>';
+        return '<span><span style="color: #f43f5e; font-size: 20px; font-weight: 900;">BUST</span><span style="font-size: 14px; color: #94a3b8; margin-left: 6px;">(' + entry.remaining + ')</span></span>';
       }
-      return '<span><span style="color: #fcd34d;">' + entry.score + '</span><span style="font-size: 16px; color: #38bdf8; margin-left: 6px;">(' + entry.remaining + ')</span></span>';
+      return '<span><span style="color: #fcd34d; font-size: 22px; font-weight: 900;">' + entry.score + '</span><span style="font-size: 14px; color: #38bdf8; margin-left: 6px;">(' + entry.remaining + ')</span></span>';
     }
 
     function handleNumClick(num) {
@@ -380,8 +411,8 @@
     function handleEnterScore() {
       var m = activeMatch;
       if (!m || !m.turn) return;
-
       var score = parseInt(m.inputVal || '0', 10);
+
       if (isNaN(score) || score > 180) {
         alert('Ange en giltig poäng mellan 0 och 180.');
         return;
@@ -412,7 +443,6 @@
     function handleOpenRemainingModal() {
       var m = activeMatch;
       if (!m || !m.inputVal) return;
-
       var targetRemaining = parseInt(m.inputVal, 10);
       var currentScore = m.turn === 'home' ? m.homeScore : m.awayScore;
 
@@ -435,6 +465,7 @@
       var m = activeMatch;
       var activePlayerName = m.turn === 'home' ? m.homePlayer : m.awayPlayer;
       var currentScore = m.turn === 'home' ? m.homeScore : m.awayScore;
+
       var newScore = currentScore - score;
       var isBust = false;
 
@@ -451,7 +482,7 @@
 
       if (m.turn === 'home') {
         m.rounds.push({ round: (m.rounds.length + 1) * 3, home: entryData, away: null });
-
+        
         if (confirmedCheckout) {
           checkAndAddCheckoutPerformances('home', activePlayerName, score, m.rounds.length);
           m.homeLegs++;
@@ -508,6 +539,7 @@
     function startNextLeg() {
       var m = activeMatch;
       var nextStarter = m.legStarter === 'home' ? 'away' : 'home';
+
       m.homeScore = 501;
       m.awayScore = 501;
       m.rounds = [];
@@ -555,6 +587,7 @@
       var m = activeMatch;
       var targetRound = m.rounds[index];
       var currentEntry = team === 'home' ? targetRound.home : targetRound.away;
+
       if (!currentEntry) return;
 
       var newValStr = prompt('Ändra kastad poäng för omgång ' + (index + 1) + ':', currentEntry.rawScore);
@@ -628,6 +661,7 @@
         document.body.removeChild(modal);
         processScore(score, true);
       };
+
       document.getElementById('btn-no').onclick = function() {
         document.body.removeChild(modal);
       };
@@ -642,11 +676,11 @@
       modal.innerHTML = 
         '<div class="modal-box" style="border: 3px solid #3b82f6;">' +
           '<div style="font-size: 48px; margin-bottom: 12px;">✏</div>' +
-          '<h3 style="color: #fff; font-size: 24px; margin-bottom: 12px;">Sätt kvarvarande poäng?</h3>' +
+          '<h3 style="color: #fff; font-size: 24px; margin-bottom: 12px;">Ange kvarvarande poäng?</h3>' +
           '<p style="color: #cbd5e1; font-size: 18px; margin-bottom: 18px;">Sätt <strong style="color: #60a5fa;">' + playerName + 's</strong> kvarvarande poäng till <strong style="color: #fcd34d; font-size: 24px;">' + targetRemaining + '</strong>?</p>' +
           '<p style="color: #94a3b8; font-size: 15px; margin-bottom: 24px; background-color: #1e293b; padding: 10px; border-radius: 8px;">(Registrerar <strong>' + calculatedScored + '</strong> poäng)</p>' +
           '<div style="display: flex; display: -webkit-flex;">' +
-            '<button id="btn-rem-yes" style="width: 48%; margin-right: 4%; background-color: #2563eb; color: #fff; border: none; padding: 18px; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer;">JA (Sätt)</button>' +
+            '<button id="btn-rem-yes" style="width: 48%; margin-right: 4%; background-color: #2563eb; color: #fff; border: none; padding: 18px; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer;">JA (Ange)</button>' +
             '<button id="btn-rem-no" style="width: 48%; background-color: #475569; color: #fff; border: none; padding: 18px; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer;">NEJ</button>' +
           '</div>' +
         '</div>';
@@ -657,6 +691,7 @@
         document.body.removeChild(modal);
         var currentScore = m.turn === 'home' ? m.homeScore : m.awayScore;
         var rem = currentScore - calculatedScored;
+
         if (rem === 0) {
           if (IMPOSSIBLE_CHECKOUTS.indexOf(calculatedScored) !== -1 || calculatedScored > 170) {
             processScore(calculatedScored, false);
@@ -665,8 +700,10 @@
           showCheckoutModal(calculatedScored);
           return;
         }
+
         processScore(calculatedScored, false);
       };
+
       document.getElementById('btn-rem-no').onclick = function() {
         document.body.removeChild(modal);
       };
@@ -680,7 +717,6 @@
       sm.awayScore = activeMatch.awayLegs;
       sm.currentHomePoints = activeMatch.homeScore;
       sm.currentAwayPoints = activeMatch.awayScore;
-
       sm.rounds = activeMatch.rounds;
       sm.historyStack = activeMatch.historyStack;
       sm.turn = activeMatch.turn;
