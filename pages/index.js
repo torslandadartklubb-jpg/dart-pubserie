@@ -1,4 +1,4 @@
-Här är den uppdaterade koden där logiken för avstånd mellan blocken (isBlockGap) har lagts till i PublicView:   JavaScriptif (typeof window !== 'undefined') {
+JavaScriptif (typeof window !== 'undefined') {
   window.addEventListener('error', function(e) {
     alert('Krasch: ' + e.message + ' i ' + e.filename + ':' + e.lineno);
   });
