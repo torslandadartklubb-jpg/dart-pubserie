@@ -6,32 +6,65 @@
   <title>Dart Domarpanel</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    html, body { width: 100%; height: 100%; background-color: #020617; color: #ffffff; padding: 6px; }
     
-    .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 14px; padding: 12px; text-align: center; margin-bottom: 8px; }
-    .teams-title { font-size: 18px; font-weight: bold; color: #94a3b8; }
+    /* Tema-variabler (Mörkt som standard) */
+    :root {
+      --bg-main: #020617;
+      --bg-card: #0f172a;
+      --bg-item: #1e293b;
+      --border-color: #334155;
+      --text-main: #ffffff;
+      --text-sub: #94a3b8;
+      --text-muted: #64748b;
+      --input-bg: #090d16;
+    }
+
+    body.light-theme {
+      --bg-main: #f1f5f9;
+      --bg-card: #ffffff;
+      --bg-item: #e2e8f0;
+      --border-color: #cbd5e1;
+      --text-main: #0f172a;
+      --text-sub: #475569;
+      --text-muted: #64748b;
+      --input-bg: #f8fafc;
+    }
+
+    html, body { width: 100%; height: 100%; background-color: var(--bg-main); color: var(--text-main); padding: 6px; }
+    
+    .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 12px; text-align: center; margin-bottom: 8px; }
+    .teams-title { font-size: 18px; font-weight: bold; color: var(--text-sub); }
     .main-score { font-size: 40px; font-weight: 900; color: #f59e0b; margin: 2px 0; }
     
-    .section-title { font-size: 16px; font-weight: bold; color: #cbd5e1; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .section-title { font-size: 16px; font-weight: bold; color: var(--text-sub); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
     .match-list { display: block; width: 100%; }
-    .match-item { background: #1e293b; border: 2px solid #334155; border-radius: 12px; padding: 14px; display: flex; display: -webkit-flex; justify-content: space-between; align-items: center; cursor: pointer; text-align: left; width: 100%; color: #fff; margin-bottom: 8px; }
-    .match-item:active { background: #334155; }
+    .match-item { background: var(--bg-item); border: 2px solid var(--border-color); border-radius: 12px; padding: 14px; display: flex; display: -webkit-flex; justify-content: space-between; align-items: center; cursor: pointer; text-align: left; width: 100%; color: var(--text-main); margin-bottom: 8px; }
+    .match-item:active { background: var(--border-color); }
     .match-item.finished { border-color: #059669; opacity: 0.7; }
-    .match-item.ongoing { border-color: #38bdf8; background-color: #0f172a; }
-    .match-info-tag { font-size: 13px; font-weight: bold; color: #38bdf8; }
+    .match-item.ongoing { border-color: #38bdf8; background-color: var(--bg-card); }
+    .match-info-tag { font-size: 13px; font-weight: bold; color: #0284c7; }
     .match-players { font-size: 17px; font-weight: bold; margin-top: 2px; }
     .match-status { font-size: 15px; font-weight: bold; padding: 6px 14px; border-radius: 8px; background: #2563eb; color: #fff; }
     .match-status.done { background: #059669; }
     .match-status.ongoing { background: #0284c7; }
     
-    #judge-view { display: none; width: 100%; background-color: #020617; color: #fff; padding: 2px; border-radius: 16px; user-select: none; }
-    .status-text { text-align: center; font-size: 12px; color: #64748b; margin-top: 6px; word-break: break-all; }
+    #judge-view { display: none; width: 100%; background-color: var(--bg-main); color: var(--text-main); padding: 2px; border-radius: 16px; user-select: none; }
+    .status-text { text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 6px; word-break: break-all; }
     
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.85); display: flex; display: -webkit-flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
-    .modal-box { background-color: #0f172a; border-radius: 16px; padding: 24px; text-align: center; max-width: 480px; width: 100%; }
+    .modal-box { background-color: var(--bg-card); border-radius: 16px; padding: 24px; text-align: center; max-width: 480px; width: 100%; }
     
     .numpad-grid { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; margin: -3px; }
     .numpad-btn { width: 31.33%; margin: 1%; box-sizing: border-box; float: left; }
+
+    /* Stora kastrutor i sidled */
+    .recent-throws-container { display: flex; display: -webkit-flex; margin-bottom: 10px; }
+    .recent-box { width: 49%; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 8px; text-align: center; }
+    .recent-box.home { margin-right: 2%; }
+    .recent-title { font-size: 12px; color: var(--text-muted); font-weight: bold; text-transform: uppercase; margin-bottom: 4px; }
+    .recent-row { font-size: 26px; font-weight: 800; border-bottom: 1px solid var(--border-color); padding: 4px 0; cursor: pointer; }
+    .recent-row:last-child { border-bottom: none; }
+    .recent-rem { font-size: 16px; color: #0284c7; font-weight: normal; margin-left: 4px; }
   </style>
 </head>
 <body>
@@ -58,6 +91,22 @@
     var fullMatchData = null;
     var activeSubIndex = null;
     var activeMatch = null;
+    var isLightTheme = false;
+
+    // Ladda tema från minnet
+    if (window.localStorage && localStorage.getItem('dart_theme') === 'light') {
+      isLightTheme = true;
+      document.body.className = 'light-theme';
+    }
+
+    function toggleTheme() {
+      isLightTheme = !isLightTheme;
+      document.body.className = isLightTheme ? 'light-theme' : '';
+      if (window.localStorage) {
+        localStorage.setItem('dart_theme', isLightTheme ? 'light' : 'dark');
+      }
+      renderJudgeUI();
+    }
 
     function apiCall(method, endpoint, body, callback) {
       var xhr = new XMLHttpRequest();
@@ -197,86 +246,97 @@
       
       if (!m.turn && m.id === 'AD') {
         container.innerHTML = 
-          '<div style="text-align: center; padding: 24px; border: 2px solid #eab308; border-radius: 16px; background-color: #0f172a;">' +
+          '<div style="text-align: center; padding: 24px; border: 2px solid #eab308; border-radius: 16px; background-color: var(--bg-card);">' +
             '<h2 style="color: #eab308; font-size: 24px; margin-bottom: 10px;">AVGÖRANDE DUBBEL (AD)</h2>' +
-            '<p style="color: #94a3b8; font-size: 16px; margin-bottom: 20px;">Vem vann slantkastningen och börjar?</p>' +
+            '<p style="color: var(--text-sub); font-size: 16px; margin-bottom: 20px;">Vem vann slantkastningen och börjar?</p>' +
             '<div style="display: flex; display: -webkit-flex;">' +
-              '<button onclick="setADStarter(\'home\')" style="width: 48%; margin-right: 4%; background-color: #1e293b; color: #60a5fa; border: 2px solid #3b82f6; padding: 20px; border-radius: 12px; font-weight: bold; font-size: 20px; cursor: pointer;">' + m.homePlayer + '</button>' +
-              '<button onclick="setADStarter(\'away\')" style="width: 48%; background-color: #1e293b; color: #f43f5e; border: 2px solid #f43f5e; padding: 20px; border-radius: 12px; font-weight: bold; font-size: 20px; cursor: pointer;">' + m.awayPlayer + '</button>' +
+              '<button onclick="setADStarter(\'home\')" style="width: 48%; margin-right: 4%; background-color: var(--bg-item); color: #60a5fa; border: 2px solid #3b82f6; padding: 20px; border-radius: 12px; font-weight: bold; font-size: 20px; cursor: pointer;">' + m.homePlayer + '</button>' +
+              '<button onclick="setADStarter(\'away\')" style="width: 48%; background-color: var(--bg-item); color: #f43f5e; border: 2px solid #f43f5e; padding: 20px; border-radius: 12px; font-weight: bold; font-size: 20px; cursor: pointer;">' + m.awayPlayer + '</button>' +
             '</div>' +
           '</div>';
         return;
       }
 
       var html = '';
-      // Header med menyknappar
+      // Header med Meny, Tema-toggle och Klar
       html += '<div style="display: flex; display: -webkit-flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">' +
-                '<button onclick="showStartView()" style="background-color: #1e293b; color: #cbd5e1; border: 1px solid #334155; padding: 8px 14px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold;">← Meny</button>' +
+                '<div style="display: flex; display: -webkit-flex; gap: 6px;">' +
+                  '<button onclick="showStartView()" style="background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold;">← Meny</button>' +
+                  '<button onclick="toggleTheme()" style="background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-size: 16px; cursor: pointer;">' + (isLightTheme ? '🌙' : '☀️') + '</button>' +
+                '</div>' +
                 '<span style="color: #eab308; font-weight: bold; font-size: 18px;">Match ' + m.id + '</span>' +
                 '<button onclick="saveAndCloseMatch()" style="background-color: #16a34a; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold;">Klar</button>' +
               '</div>';
       
-      // 1. GIGANTISK STÄLLNING (501 - 501) I FOKUS
-      html += '<div style="display: flex; display: -webkit-flex; margin-bottom: 10px;">' +
-                '<div style="width: 49%; margin-right: 2%; background-color: ' + (m.turn === 'home' ? '#1e293b' : '#0f172a') + '; padding: 14px 4px; border-radius: 16px; border: ' + (m.turn === 'home' ? '4px solid #3b82f6' : '1px solid #1e293b') + '; text-align: center;">' +
-                  '<div style="font-size: 20px; font-weight: bold; color: #94a3b8; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.homePlayer + '</div>' +
-                  '<div style="font-size: 110px; font-weight: 900; color: ' + (m.turn === 'home' ? '#60a5fa' : '#475569') + '; line-height: 0.85; letter-spacing: -2px;">' + m.homeScore + '</div>' +
-                  '<div style="font-size: 20px; color: #fcd34d; font-weight: bold; margin-top: 8px;">Legs: ' + m.homeLegs + '</div>' +
+      // 1. GIGANTISK STÄLLNING (501 - 501)
+      html += '<div style="display: flex; display: -webkit-flex; margin-bottom: 8px;">' +
+                '<div style="width: 49%; margin-right: 2%; background-color: ' + (m.turn === 'home' ? 'var(--bg-item)' : 'var(--bg-card)') + '; padding: 12px 4px; border-radius: 16px; border: ' + (m.turn === 'home' ? '4px solid #3b82f6' : '1px solid var(--border-color)') + '; text-align: center;">' +
+                  '<div style="font-size: 18px; font-weight: bold; color: var(--text-sub); margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.homePlayer + '</div>' +
+                  '<div style="font-size: 100px; font-weight: 900; color: ' + (m.turn === 'home' ? '#60a5fa' : 'var(--text-muted)') + '; line-height: 0.85; letter-spacing: -2px;">' + m.homeScore + '</div>' +
+                  '<div style="font-size: 18px; color: #f59e0b; font-weight: bold; margin-top: 6px;">Legs: ' + m.homeLegs + '</div>' +
                 '</div>' +
-                '<div style="width: 49%; background-color: ' + (m.turn === 'away' ? '#1e293b' : '#0f172a') + '; padding: 14px 4px; border-radius: 16px; border: ' + (m.turn === 'away' ? '4px solid #f43f5e' : '1px solid #1e293b') + '; text-align: center;">' +
-                  '<div style="font-size: 20px; font-weight: bold; color: #94a3b8; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.awayPlayer + '</div>' +
-                  '<div style="font-size: 110px; font-weight: 900; color: ' + (m.turn === 'away' ? '#f43f5e' : '#475569') + '; line-height: 0.85; letter-spacing: -2px;">' + m.awayScore + '</div>' +
-                  '<div style="font-size: 20px; color: #fcd34d; font-weight: bold; margin-top: 8px;">Legs: ' + m.awayLegs + '</div>' +
+                '<div style="width: 49%; background-color: ' + (m.turn === 'away' ? 'var(--bg-item)' : 'var(--bg-card)') + '; padding: 12px 4px; border-radius: 16px; border: ' + (m.turn === 'away' ? '4px solid #f43f5e' : '1px solid var(--border-color)') + '; text-align: center;">' +
+                  '<div style="font-size: 18px; font-weight: bold; color: var(--text-sub); margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.awayPlayer + '</div>' +
+                  '<div style="font-size: 100px; font-weight: 900; color: ' + (m.turn === 'away' ? '#f43f5e' : 'var(--text-muted)') + '; line-height: 0.85; letter-spacing: -2px;">' + m.awayScore + '</div>' +
+                  '<div style="font-size: 18px; color: #f59e0b; font-weight: bold; margin-top: 6px;">Legs: ' + m.awayLegs + '</div>' +
                 '</div>' +
               '</div>';
 
-      // 2. DE 3 SENASTE KASTEN
+      // 2. SENASTE KASTEN - STORA I SIDLED (MINST NUMPAD-STORLEK)
       var recentRounds = m.rounds.slice(-3);
-      html += '<div style="background-color: #090d16; border-radius: 10px; padding: 6px 10px; margin-bottom: 10px; border: 1px solid #1e293b;">' +
-                '<div style="font-size: 12px; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; text-align: center;">Senaste kasten</div>' +
-                '<table style="width: 100%; font-size: 16px; border-collapse: collapse; text-align: center;">' +
-                  '<tbody>';
+      html += '<div class="recent-throws-container">' +
+                '<div class="recent-box home">' +
+                  '<div class="recent-title">Senaste kast (' + m.homePlayer + ')</div>';
       if (recentRounds.length === 0) {
-        html += '<tr><td colspan="3" style="color: #475569; padding: 6px; font-size: 14px;">Inga kast ännu i detta leg</td></tr>';
+        html += '<div style="color: var(--text-muted); font-size: 16px; padding: 12px;">Inga kast</div>';
       } else {
         for (var i = 0; i < recentRounds.length; i++) {
-          var r = recentRounds[i];
-          var originalIndex = m.rounds.indexOf(r);
-          html += '<tr style="border-bottom: 1px solid #0f172a;">' +
-                    '<td onclick="handleEditRound(' + originalIndex + ', \'home\')" style="padding: 4px; cursor: pointer; width: 42%; text-align: right;">' + renderCellContent(r.home) + '</td>' +
-                    '<td style="color: #475569; font-size: 12px; width: 16%;">P' + r.round + '</td>' +
-                    '<td onclick="handleEditRound(' + originalIndex + ', \'away\')" style="padding: 4px; cursor: pointer; width: 42%; text-align: left;">' + renderCellContent(r.away) + '</td>' +
-                  '</tr>';
+          var r1 = recentRounds[i];
+          var origIdx1 = m.rounds.indexOf(r1);
+          html += '<div class="recent-row" onclick="handleEditRound(' + origIdx1 + ', \'home\')">' + formatThrowLarge(r1.home) + '</div>';
         }
       }
-      html +=     '</tbody></table></div>';
+      html +=   '</div>' +
+                '<div class="recent-box">' +
+                  '<div class="recent-title">Senaste kast (' + m.awayPlayer + ')</div>';
+      if (recentRounds.length === 0) {
+        html += '<div style="color: var(--text-muted); font-size: 16px; padding: 12px;">Inga kast</div>';
+      } else {
+        for (var j = 0; j < recentRounds.length; j++) {
+          var r2 = recentRounds[j];
+          var origIdx2 = m.rounds.indexOf(r2);
+          html += '<div class="recent-row" onclick="handleEditRound(' + origIdx2 + ', \'away\')">' + formatThrowLarge(r2.away) + '</div>';
+        }
+      }
+      html +=   '</div>' +
+              '</div>';
 
       // 3. NUMPAD & KNAPPAR
       if (!isFinished && !m.scoringActive) {
         html += '<div>' +
                   '<div style="display: flex; display: -webkit-flex; margin-bottom: 8px;">' +
-                    '<div style="width: 50%; background-color: #0f172a; padding: 8px; border-radius: 12px; text-align: center; font-size: 36px; font-weight: 900; color: #fff; border: 1px solid #334155; margin-right: 2%;">' + (m.inputVal || '0') + '</div>' +
+                    '<div style="width: 50%; background-color: var(--input-bg); padding: 8px; border-radius: 12px; text-align: center; font-size: 36px; font-weight: 900; color: var(--text-main); border: 1px solid var(--border-color); margin-right: 2%;">' + (m.inputVal || '0') + '</div>' +
                     '<button onclick="handleOpenRemainingModal()" style="width: 23%; background-color: #0284c7; color: #fff; border: none; border-radius: 12px; font-weight: bold; font-size: 15px; cursor: pointer; margin-right: 2%;">Sätt kvar</button>' +
-                    '<button onclick="handleUndo()" style="width: 23%; background-color: #334155; color: #fff; border: none; border-radius: 12px; font-weight: bold; font-size: 15px; cursor: pointer;">Ångra</button>' +
+                    '<button onclick="handleUndo()" style="width: 23%; background-color: var(--border-color); color: var(--text-main); border: none; border-radius: 12px; font-weight: bold; font-size: 15px; cursor: pointer;">Ångra</button>' +
                   '</div>' +
                   '<div class="numpad-grid">';
         var nums = [1, 2, 3, 4, 5, 6, 7, 8, 9];
         for (var k = 0; k < nums.length; k++) {
-          html += '<button onclick="handleNumClick(\'' + nums[k] + '\')" class="numpad-btn" style="background-color: #1e293b; color: #fff; border: 1px solid #334155; padding: 18px 0; border-radius: 12px; font-size: 28px; font-weight: bold; cursor: pointer; text-align: center;">' + nums[k] + '</button>';
+          html += '<button onclick="handleNumClick(\'' + nums[k] + '\')" class="numpad-btn" style="background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); padding: 16px 0; border-radius: 12px; font-size: 28px; font-weight: bold; cursor: pointer; text-align: center;">' + nums[k] + '</button>';
         }
-        html +=     '<button onclick="handleClear()" class="numpad-btn" style="background-color: #881337; color: #fecdd3; border: 1px solid #9f1239; padding: 18px 0; border-radius: 12px; font-size: 22px; font-weight: bold; cursor: pointer; text-align: center;">C</button>' +
-                    '<button onclick="handleNumClick(\'0\')" class="numpad-btn" style="background-color: #1e293b; color: #fff; border: 1px solid #334155; padding: 18px 0; border-radius: 12px; font-size: 28px; font-weight: bold; cursor: pointer; text-align: center;">0</button>' +
-                    '<button onclick="handleEnterScore()" class="numpad-btn" style="background-color: #16a34a; color: #fff; border: none; padding: 18px 0; border-radius: 12px; font-size: 22px; font-weight: bold; cursor: pointer; text-align: center;">OK</button>' +
+        html +=     '<button onclick="handleClear()" class="numpad-btn" style="background-color: #881337; color: #fecdd3; border: 1px solid #9f1239; padding: 16px 0; border-radius: 12px; font-size: 22px; font-weight: bold; cursor: pointer; text-align: center;">C</button>' +
+                    '<button onclick="handleNumClick(\'0\')" class="numpad-btn" style="background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); padding: 16px 0; border-radius: 12px; font-size: 28px; font-weight: bold; cursor: pointer; text-align: center;">0</button>' +
+                    '<button onclick="handleEnterScore()" class="numpad-btn" style="background-color: #16a34a; color: #fff; border: none; padding: 16px 0; border-radius: 12px; font-size: 22px; font-weight: bold; cursor: pointer; text-align: center;">OK</button>' +
                   '</div>' +
                   '<div style="clear: both;"></div>' +
                 '</div>';
       } else if (m.scoringActive) {
-        html += '<div style="background-color: #1e293b; padding: 16px; border-radius: 14px; border: 2px solid #eab308;">' +
+        html += '<div style="background-color: var(--bg-item); padding: 16px; border-radius: 14px; border: 2px solid #eab308;">' +
                   '<h3 style="color: #eab308; margin: 0 0 6px 0; font-size: 18px; text-align: center;">SCORING (39 pilar nådda)</h3>' +
-                  '<p style="color: #94a3b8; font-size: 14px; text-align: center; margin-bottom: 12px;">Högst poäng i omgången vinner leget.</p>' +
+                  '<p style="color: var(--text-sub); font-size: 14px; text-align: center; margin-bottom: 12px;">Högst poäng i omgången vinner leget.</p>' +
                   '<div style="display: flex; display: -webkit-flex; margin-bottom: 12px;">' +
-                    '<div style="width: 48%; margin-right: 4%;"><label style="font-size: 14px; color: #60a5fa; font-weight: bold;">' + m.homePlayer + '</label><input type="number" id="sc-home" value="' + m.scoringHomeInput + '" oninput="activeMatch.scoringHomeInput=this.value" style="width: 100%; padding: 10px; border-radius: 8px; background-color: #0f172a; border: 1px solid #475569; color: #fff; font-size: 20px; font-weight: bold; text-align: center;"></div>' +
-                    '<div style="width: 48%;"><label style="font-size: 14px; color: #f43f5e; font-weight: bold;">' + m.awayPlayer + '</label><input type="number" id="sc-away" value="' + m.scoringAwayInput + '" oninput="activeMatch.scoringAwayInput=this.value" style="width: 100%; padding: 10px; border-radius: 8px; background-color: #0f172a; border: 1px solid #475569; color: #fff; font-size: 20px; font-weight: bold; text-align: center;"></div>' +
+                    '<div style="width: 48%; margin-right: 4%;"><label style="font-size: 14px; color: #60a5fa; font-weight: bold;">' + m.homePlayer + '</label><input type="number" id="sc-home" value="' + m.scoringHomeInput + '" oninput="activeMatch.scoringHomeInput=this.value" style="width: 100%; padding: 10px; border-radius: 8px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); font-size: 20px; font-weight: bold; text-align: center;"></div>' +
+                    '<div style="width: 48%;"><label style="font-size: 14px; color: #f43f5e; font-weight: bold;">' + m.awayPlayer + '</label><input type="number" id="sc-away" value="' + m.scoringAwayInput + '" oninput="activeMatch.scoringAwayInput=this.value" style="width: 100%; padding: 10px; border-radius: 8px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); font-size: 20px; font-weight: bold; text-align: center;"></div>' +
                   '</div>' +
                   '<button onclick="handleScoringSubmit()" style="width: 100%; background-color: #16a34a; color: #fff; border: none; padding: 14px; border-radius: 10px; font-weight: bold; font-size: 16px; cursor: pointer;">Spara & Tilldela Leg</button>' +
                 '</div>';
@@ -284,19 +344,19 @@
       container.innerHTML = html;
     }
 
+    function formatThrowLarge(entry) {
+      if (!entry) return '<span style="color: var(--text-muted);">-</span>';
+      if (entry.score === 'BUST') {
+        return '<span style="color: #f43f5e;">BUST</span><span class="recent-rem">(' + entry.remaining + ')</span>';
+      }
+      return '<span style="color: #f59e0b;">' + entry.score + '</span><span class="recent-rem">(' + entry.remaining + ')</span>';
+    }
+
     function setADStarter(team) {
       activeMatch.legStarter = team;
       activeMatch.turn = team;
       renderJudgeUI();
       triggerLiveUpdate();
-    }
-
-    function renderCellContent(entry) {
-      if (!entry) return '-';
-      if (entry.score === 'BUST') {
-        return '<span style="color: #f43f5e; font-weight: bold;">BUST</span> <span style="font-size: 13px; color: #94a3b8;">(' + entry.remaining + ')</span>';
-      }
-      return '<span style="color: #fcd34d; font-weight: bold;">' + entry.score + '</span> <span style="font-size: 14px; color: #38bdf8;">(' + entry.remaining + ')</span>';
     }
 
     function handleNumClick(num) {
@@ -547,8 +607,8 @@
       modal.innerHTML = 
         '<div class="modal-box" style="border: 3px solid #10b981;">' +
           '<div style="font-size: 40px; margin-bottom: 8px;">🎯</div>' +
-          '<h3 style="color: #fff; font-size: 24px; margin-bottom: 8px;">Gick spelaren ut?</h3>' +
-          '<p style="color: #cbd5e1; font-size: 16px; margin-bottom: 20px;"><strong style="color: #34d399;">' + playerName + '</strong> har knappat in <strong>' + score + '</strong>.</p>' +
+          '<h3 style="color: var(--text-main); font-size: 24px; margin-bottom: 8px;">Gick spelaren ut?</h3>' +
+          '<p style="color: var(--text-sub); font-size: 16px; margin-bottom: 20px;"><strong style="color: #34d399;">' + playerName + '</strong> har knappat in <strong>' + score + '</strong>.</p>' +
           '<div style="display: flex; display: -webkit-flex;">' +
             '<button id="btn-yes" style="width: 48%; margin-right: 4%; background-color: #10b981; color: #fff; border: none; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer;">JA (Vann leg)</button>' +
             '<button id="btn-no" style="width: 48%; background-color: #dc2626; color: #fff; border: none; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer;">NEJ (Fel)</button>' +
@@ -571,12 +631,12 @@
       modal.className = 'modal-overlay';
       modal.innerHTML = 
         '<div class="modal-box" style="border: 3px solid #3b82f6;">' +
-          '<h3 style="color: #fff; font-size: 22px; margin-bottom: 10px;">Sätt kvarvarande poäng</h3>' +
-          '<p style="color: #cbd5e1; font-size: 16px; margin-bottom: 14px;">Sätt <strong style="color: #60a5fa;">' + playerName + 's</strong> poäng till <strong style="color: #fcd34d; font-size: 22px;">' + targetRemaining + '</strong>?</p>' +
-          '<p style="color: #94a3b8; font-size: 14px; margin-bottom: 20px; background-color: #1e293b; padding: 8px; border-radius: 8px;">(Registrerar <strong>' + calculatedScored + '</strong> poäng)</p>' +
+          '<h3 style="color: var(--text-main); font-size: 22px; margin-bottom: 10px;">Sätt kvarvarande poäng</h3>' +
+          '<p style="color: var(--text-sub); font-size: 16px; margin-bottom: 14px;">Sätt <strong style="color: #60a5fa;">' + playerName + 's</strong> poäng till <strong style="color: #fcd34d; font-size: 22px;">' + targetRemaining + '</strong>?</p>' +
+          '<p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px; background-color: var(--bg-item); padding: 8px; border-radius: 8px;">(Registrerar <strong>' + calculatedScored + '</strong> poäng)</p>' +
           '<div style="display: flex; display: -webkit-flex;">' +
-            '<button id="btn-rem-yes" style="width: 48%; margin-right: 4%; background-color: #2563eb; color: #fff; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer;">JA (Sätt)</button>' +
-            '<button id="btn-rem-no" style="width: 48%; background-color: #475569; color: #fff; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer;">NEJ</button>' +
+            '<button id="btn-rem-yes" style="width: 48%; margin-right: 4%; background-color: #2563eb; color: #fff; border: none; padding: 16px; border-radius: 16px; font-size: 16px; font-weight: bold; cursor: pointer;">JA (Sätt)</button>' +
+            '<button id="btn-rem-no" style="width: 48%; background-color: var(--border-color); color: var(--text-main); border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer;">NEJ</button>' +
           '</div>' +
         '</div>';
       document.body.appendChild(modal);
