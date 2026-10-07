@@ -1,4 +1,4 @@
-JavaScriptif (typeof window !== 'undefined') {
+if (typeof window !== 'undefined') {
   window.addEventListener('error', function(e) {
     alert('Krasch: ' + e.message + ' i ' + e.filename + ':' + e.lineno);
   });
