@@ -86,12 +86,14 @@
 
     /* Scrollbar och layout för Senaste kast */
     .recent-throws-container { display: flex; display: -webkit-flex; margin-bottom: 10px; }
-    .recent-box { width: 49%; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 8px; text-align: center; max-height: 180px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .recent-box { width: 49%; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 8px; text-align: center; max-height: 195px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
     .recent-box.home { margin-right: 2%; }
-    .recent-title { font-size: 12px; color: var(--text-muted); font-weight: bold; text-transform: uppercase; margin-bottom: 4px; position: sticky; top: 0; background-color: inherit; padding: 2px 0; }
-    .recent-row { font-size: 22px; font-weight: 800; border-bottom: 1px solid var(--border-color); padding: 6px 0; cursor: pointer; color: var(--text-main); }
+    .recent-title { font-size: 12px; color: var(--text-muted); font-weight: bold; text-transform: uppercase; margin-bottom: 4px; position: sticky; top: 0; background-color: inherit; padding: 2px 0; z-index: 1; }
+    
+    /* Ökad fontstorlek för kasten */
+    .recent-row { font-size: 32px; font-weight: 900; border-bottom: 1px solid var(--border-color); padding: 8px 0; cursor: pointer; color: var(--text-main); line-height: 1.1; }
     .recent-row:last-child { border-bottom: none; }
-    .recent-rem { font-size: 15px; color: #0284c7; font-weight: normal; margin-left: 6px; }
+    .recent-rem { font-size: 18px; color: #0284c7; font-weight: bold; margin-left: 6px; }
     
     .dart-count { font-size: 14px; font-weight: bold; color: var(--text-sub); margin-top: 4px; }
   </style>
@@ -300,14 +302,14 @@
       var awayDarts = getDartsThrown('away');
 
       var html = '';
-      // Header
+      // Header med centrerat matchnamn
       html += '<div style="display: flex; display: -webkit-flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">' +
-                '<div style="display: flex; display: -webkit-flex; gap: 6px;">' +
+                '<div style="display: flex; display: -webkit-flex; gap: 6px; flex: 1;">' +
                   '<button onclick="showStartView()" style="background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold;">← Meny</button>' +
                   '<button onclick="toggleTheme()" style="background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-size: 16px; cursor: pointer;">' + (isLightTheme ? '🌙' : '☀️') + '</button>' +
                 '</div>' +
-                '<span style="color: #d97706; font-weight: bold; font-size: 18px;">Match ' + m.id + '</span>' +
-                '<button onclick="saveAndCloseMatch()" style="background-color: #16a34a; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold;">Klar</button>' +
+                '<div style="flex: 1; text-align: center;"><span style="color: #d97706; font-weight: bold; font-size: 20px; text-transform: uppercase;">Match ' + m.id + '</span></div>' +
+                '<div style="flex: 1; text-align: right;"><button onclick="saveAndCloseMatch()" style="background-color: #16a34a; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold;">Klar</button></div>' +
               '</div>';
       
       // 1. SPELARKORT MED ANTAL PILAR
@@ -326,8 +328,8 @@
                 '</div>' +
               '</div>';
 
-      // 2. SENASTE KAST (Fullständigt scrollbar lista över alla omgångar)
-      var roundsList = m.rounds.slice().reverse(); // Senaste längst upp
+      // 2. SENASTE KAST (Större siffror, anpassat för ca 3 synliga kast)
+      var roundsList = m.rounds.slice().reverse();
       html += '<div class="recent-throws-container">' +
                 '<div class="recent-box home">' +
                   '<div class="recent-title">Kast (' + m.homePlayer + ')</div>';
@@ -359,7 +361,7 @@
       html +=   '</div>' +
               '</div>';
 
-      // 3. NUMPAD & KNAPPAR
+      // 3. NUMPAD & KNAPPAR (Bytt plats på OK och C)
       if (!isFinished && !m.scoringActive) {
         html += '<div>' +
                   '<div style="display: flex; display: -webkit-flex; margin-bottom: 8px;">' +
@@ -372,9 +374,10 @@
         for (var k = 0; k < nums.length; k++) {
           html += '<button onclick="handleNumClick(\'' + nums[k] + '\')" class="numpad-btn" style="background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); padding: 16px 0; border-radius: 12px; font-size: 28px; font-weight: bold; cursor: pointer; text-align: center;">' + nums[k] + '</button>';
         }
-        html +=     '<button onclick="handleClear()" class="numpad-btn" style="background-color: #dc2626; color: #ffffff; border: none; padding: 16px 0; border-radius: 12px; font-size: 22px; font-weight: bold; cursor: pointer; text-align: center;">C</button>' +
+        // OK till vänster, C till höger
+        html +=     '<button onclick="handleEnterScore()" class="numpad-btn" style="background-color: #16a34a; color: #fff; border: none; padding: 16px 0; border-radius: 12px; font-size: 22px; font-weight: bold; cursor: pointer; text-align: center;">OK</button>' +
                     '<button onclick="handleNumClick(\'0\')" class="numpad-btn" style="background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); padding: 16px 0; border-radius: 12px; font-size: 28px; font-weight: bold; cursor: pointer; text-align: center;">0</button>' +
-                    '<button onclick="handleEnterScore()" class="numpad-btn" style="background-color: #16a34a; color: #fff; border: none; padding: 16px 0; border-radius: 12px; font-size: 22px; font-weight: bold; cursor: pointer; text-align: center;">OK</button>' +
+                    '<button onclick="handleClear()" class="numpad-btn" style="background-color: #dc2626; color: #ffffff; border: none; padding: 16px 0; border-radius: 12px; font-size: 22px; font-weight: bold; cursor: pointer; text-align: center;">C</button>' +
                   '</div>' +
                   '<div style="clear: both;"></div>' +
                 '</div>';
