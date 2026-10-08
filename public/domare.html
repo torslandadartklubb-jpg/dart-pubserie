@@ -84,13 +84,12 @@
     .numpad-grid { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; margin: -3px; }
     .numpad-btn { width: 31.33%; margin: 1%; box-sizing: border-box; float: left; }
 
-    /* Scrollbar och layout för Senaste kast */
+    /* Fast höjd på rutan för att förhindra hopp/ryckighet */
     .recent-throws-container { display: flex; display: -webkit-flex; margin-bottom: 10px; }
-    .recent-box { width: 49%; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 8px; text-align: center; max-height: 195px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .recent-box { width: 49%; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 8px; text-align: center; height: 195px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
     .recent-box.home { margin-right: 2%; }
     .recent-title { font-size: 12px; color: var(--text-muted); font-weight: bold; text-transform: uppercase; margin-bottom: 4px; position: sticky; top: 0; background-color: inherit; padding: 2px 0; z-index: 1; }
     
-    /* Ökad fontstorlek för kasten */
     .recent-row { font-size: 32px; font-weight: 900; border-bottom: 1px solid var(--border-color); padding: 8px 0; cursor: pointer; color: var(--text-main); line-height: 1.1; }
     .recent-row:last-child { border-bottom: none; }
     .recent-rem { font-size: 18px; color: #0284c7; font-weight: bold; margin-left: 6px; }
@@ -302,7 +301,6 @@
       var awayDarts = getDartsThrown('away');
 
       var html = '';
-      // Header med centrerat matchnamn
       html += '<div style="display: flex; display: -webkit-flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">' +
                 '<div style="display: flex; display: -webkit-flex; gap: 6px; flex: 1;">' +
                   '<button onclick="showStartView()" style="background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold;">← Meny</button>' +
@@ -312,7 +310,6 @@
                 '<div style="flex: 1; text-align: right;"><button onclick="saveAndCloseMatch()" style="background-color: #16a34a; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold;">Klar</button></div>' +
               '</div>';
       
-      // 1. SPELARKORT MED ANTAL PILAR
       html += '<div style="display: flex; display: -webkit-flex; margin-bottom: 8px;">' +
                 '<div class="card" style="width: 49%; margin-right: 2%; padding: 10px 4px; border-radius: 16px; border: ' + (m.turn === 'home' ? '4px solid var(--border-home)' : '1px solid var(--border-color)') + ';">' +
                   '<div style="font-size: 18px; font-weight: bold; color: var(--text-sub); margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.homePlayer + '</div>' +
@@ -328,13 +325,20 @@
                 '</div>' +
               '</div>';
 
-      // 2. SENASTE KAST (Större siffror, anpassat för ca 3 synliga kast)
+      // SENASTE KAST (Nu med fast höjd direkt)
       var roundsList = m.rounds.slice().reverse();
+      var hasHomeThrows = false;
+      var hasAwayThrows = false;
+      for (var h = 0; h < roundsList.length; h++) {
+        if (roundsList[h].home) hasHomeThrows = true;
+        if (roundsList[h].away) hasAwayThrows = true;
+      }
+
       html += '<div class="recent-throws-container">' +
                 '<div class="recent-box home">' +
                   '<div class="recent-title">Kast (' + m.homePlayer + ')</div>';
-      if (m.rounds.length === 0) {
-        html += '<div style="color: var(--text-muted); font-size: 14px; padding: 10px;">Inga kast än</div>';
+      if (!hasHomeThrows) {
+        html += '<div style="color: var(--text-muted); font-size: 14px; padding-top: 50px;">Inga kast än</div>';
       } else {
         for (var i = 0; i < roundsList.length; i++) {
           var r1 = roundsList[i];
@@ -347,8 +351,8 @@
       html +=   '</div>' +
                 '<div class="recent-box">' +
                   '<div class="recent-title">Kast (' + m.awayPlayer + ')</div>';
-      if (m.rounds.length === 0) {
-        html += '<div style="color: var(--text-muted); font-size: 14px; padding: 10px;">Inga kast än</div>';
+      if (!hasAwayThrows) {
+        html += '<div style="color: var(--text-muted); font-size: 14px; padding-top: 50px;">Inga kast än</div>';
       } else {
         for (var j = 0; j < roundsList.length; j++) {
           var r2 = roundsList[j];
@@ -361,7 +365,6 @@
       html +=   '</div>' +
               '</div>';
 
-      // 3. NUMPAD & KNAPPAR (Bytt plats på OK och C)
       if (!isFinished && !m.scoringActive) {
         html += '<div>' +
                   '<div style="display: flex; display: -webkit-flex; margin-bottom: 8px;">' +
@@ -374,7 +377,6 @@
         for (var k = 0; k < nums.length; k++) {
           html += '<button onclick="handleNumClick(\'' + nums[k] + '\')" class="numpad-btn" style="background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); padding: 16px 0; border-radius: 12px; font-size: 28px; font-weight: bold; cursor: pointer; text-align: center;">' + nums[k] + '</button>';
         }
-        // OK till vänster, C till höger
         html +=     '<button onclick="handleEnterScore()" class="numpad-btn" style="background-color: #16a34a; color: #fff; border: none; padding: 16px 0; border-radius: 12px; font-size: 22px; font-weight: bold; cursor: pointer; text-align: center;">OK</button>' +
                     '<button onclick="handleNumClick(\'0\')" class="numpad-btn" style="background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); padding: 16px 0; border-radius: 12px; font-size: 28px; font-weight: bold; cursor: pointer; text-align: center;">0</button>' +
                     '<button onclick="handleClear()" class="numpad-btn" style="background-color: #dc2626; color: #ffffff; border: none; padding: 16px 0; border-radius: 12px; font-size: 22px; font-weight: bold; cursor: pointer; text-align: center;">C</button>' +
