@@ -1114,7 +1114,7 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
     </div>
   );
 }
-// --- 3. PUBLIK VY (NY TV-ANPASSD DESIGN MED STARTPILAR & TACKLING AV KLARA MATCHER) ---
+// --- 3. PUBLIK VY (NY TV-ANPASSD DESIGN MED EXAKT TILLDELNING AV STARTPILAR) ---
 function PublicView({ matchData, onSelectMatch }) {
   const subMatches = matchData.subMatches || [];
   const homeTotalMatches = subMatches.filter(m => m.homeScore === 3).length;
@@ -1122,11 +1122,14 @@ function PublicView({ matchData, onSelectMatch }) {
   const homeTotalLegs = subMatches.reduce((sum, m) => sum + (m.homeScore || 0), 0);
   const awayTotalLegs = subMatches.reduce((sum, m) => sum + (m.awayScore || 0), 0);
 
+  // Exakt lista på matcher där hemmalaget börjar
+  const HOME_STARTS = ['S1', 'D1', 'S4', 'S6', 'S7'];
+
   // Hjälpfunktion för att avgöra vem som startar matchen
   const getMatchStarter = (sm) => {
-    if (sm.legStarter) return sm.legStarter; // Om satt i live-dömningen
-    if (sm.id === 'AD') return null; // Slantkastning för AD
-    return HOME_STARTS_MATCHES.indexOf(sm.id) !== -1 ? 'home' : 'away';
+    if (sm.legStarter) return sm.legStarter; // Om legStarter finns sparat i kasten
+    if (sm.id === 'AD') return null; // AD avgörs av slantkastning
+    return HOME_STARTS.includes(sm.id) ? 'home' : 'away';
   };
 
   const renderPlayerName = (name, isWinner, isLoser, isHome, startsMatch) => {
@@ -1248,7 +1251,7 @@ function PublicView({ matchData, onSelectMatch }) {
         </div>
       </div>
 
-      {/* DELMATCHEN I TV-GRID (2 KOLUMNER FÖR optimal 16:9 VY) */}
+      {/* DELMATCHEN I TV-GRID */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(620px, 1fr))',
@@ -1278,7 +1281,6 @@ function PublicView({ matchData, onSelectMatch }) {
                   display: 'block',
                   width: '100%',
                   textAlign: 'left',
-                  // Tydlig visuell skillnad: Pågår = mörkblå+grön ram, Klar = mörkt tonad + grönaktig ram, Ej startad = standard gråblå
                   backgroundColor: isLive ? '#0a1329' : isCompleted ? '#09101d' : '#1e293b',
                   borderRadius: '16px',
                   padding: isLive ? '18px 20px' : '14px 18px',
@@ -1384,7 +1386,6 @@ function PublicView({ matchData, onSelectMatch }) {
                 </div>
               </button>
 
-              {/* Extra tomrum/avstånd efter S3, D2 och S8 för att dela upp blocken */}
               {isBlockGap && (
                 <div style={{ gridColumn: '1 / -1', height: '20px' }} />
               )}
@@ -1393,7 +1394,7 @@ function PublicView({ matchData, onSelectMatch }) {
         })}
       </div>
 
-      {/* PRESTATIONER TICKER / SHOWCASE (TV STYLE) */}
+      {/* PRESTATIONER */}
       <div style={{
         backgroundColor: '#090d16',
         padding: '20px',
