@@ -1114,8 +1114,7 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
     </div>
   );
 }
-
-// --- 3. PUBLIK VY (NY TV-ANPASSD DESIGN) ---
+// --- 3. PUBLIK VY (NY TV-ANPASSD DESIGN MED STARTPILAR & TACKLING AV KLARA MATCHER) ---
 function PublicView({ matchData, onSelectMatch }) {
   const subMatches = matchData.subMatches || [];
   const homeTotalMatches = subMatches.filter(m => m.homeScore === 3).length;
@@ -1123,27 +1122,61 @@ function PublicView({ matchData, onSelectMatch }) {
   const homeTotalLegs = subMatches.reduce((sum, m) => sum + (m.homeScore || 0), 0);
   const awayTotalLegs = subMatches.reduce((sum, m) => sum + (m.awayScore || 0), 0);
 
-  const renderPlayerName = (name, isWinner, isLoser, isHome) => {
+  // Hjälpfunktion för att avgöra vem som startar matchen
+  const getMatchStarter = (sm) => {
+    if (sm.legStarter) return sm.legStarter; // Om satt i live-dömningen
+    if (sm.id === 'AD') return null; // Slantkastning för AD
+    return HOME_STARTS_MATCHES.indexOf(sm.id) !== -1 ? 'home' : 'away';
+  };
+
+  const renderPlayerName = (name, isWinner, isLoser, isHome, startsMatch) => {
     const displayName = name || (isHome ? matchData.homeTeam : matchData.awayTeam) || 'Spelare';
+    
+    // Pil-symbolen som visar vem som servar/börjar
+    const ArrowIndicator = startsMatch ? (
+      <span 
+        title="Börjar kasta i matchen"
+        style={{ 
+          fontSize: '11px', 
+          color: '#38bdf8', 
+          backgroundColor: '#0f172a',
+          border: '1px solid #0284c7',
+          padding: '1px 5px', 
+          borderRadius: '4px',
+          fontWeight: '900',
+          display: 'inline-block',
+          boxShadow: '0 0 6px rgba(56, 189, 248, 0.4)'
+        }}
+      >
+        {isHome ? '▶' : '◀'}
+      </span>
+    ) : null;
+
     if (isWinner) {
       return (
-        <span style={{ fontSize: '17px', fontWeight: '900', color: '#22c55e', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <span style={{ fontSize: '17px', fontWeight: '900', color: '#22c55e', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          {isHome && ArrowIndicator}
           {isHome && <span>🏆</span>}
           <span>{displayName}</span>
           {!isHome && <span>🏆</span>}
+          {!isHome && ArrowIndicator}
         </span>
       );
     }
     if (isLoser) {
       return (
-        <span style={{ fontSize: '15px', fontWeight: 'normal', color: '#64748b', opacity: 0.8 }}>
-          {displayName}
+        <span style={{ fontSize: '15px', fontWeight: 'normal', color: '#64748b', opacity: 0.8, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          {isHome && ArrowIndicator}
+          <span>{displayName}</span>
+          {!isHome && ArrowIndicator}
         </span>
       );
     }
     return (
-      <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#f8fafc' }}>
-        {displayName}
+      <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#f8fafc', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+        {isHome && ArrowIndicator}
+        <span>{displayName}</span>
+        {!isHome && ArrowIndicator}
       </span>
     );
   };
@@ -1212,7 +1245,6 @@ function PublicView({ matchData, onSelectMatch }) {
               Legs: <strong style={{ color: '#fb7185', fontSize: '16px' }}>{awayTotalLegs}</strong>
             </div>
           </div>
-
         </div>
       </div>
 
@@ -1231,8 +1263,11 @@ function PublicView({ matchData, onSelectMatch }) {
           const isAwayWinner = sm.awayScore === 3;
           const isHomeLoser = isCompleted && sm.awayScore === 3;
           const isAwayLoser = isCompleted && sm.homeScore === 3;
-
           const isBlockGap = sm.id === 'S3' || sm.id === 'D2' || sm.id === 'S8';
+
+          const starter = getMatchStarter(sm);
+          const homeStarts = starter === 'home';
+          const awayStarts = starter === 'away';
 
           return (
             <React.Fragment key={sm.id}>
@@ -1243,11 +1278,13 @@ function PublicView({ matchData, onSelectMatch }) {
                   display: 'block',
                   width: '100%',
                   textAlign: 'left',
-                  backgroundColor: isLive ? '#0a1329' : isCompleted ? '#0f172a' : '#1e293b',
+                  // Tydlig visuell skillnad: Pågår = mörkblå+grön ram, Klar = mörkt tonad + grönaktig ram, Ej startad = standard gråblå
+                  backgroundColor: isLive ? '#0a1329' : isCompleted ? '#09101d' : '#1e293b',
                   borderRadius: '16px',
                   padding: isLive ? '18px 20px' : '14px 18px',
-                  border: isLive ? '2px solid #22c55e' : isCompleted ? '1px solid #334155' : '1px solid #1e293b',
+                  border: isLive ? '2px solid #22c55e' : isCompleted ? '2px solid #059669' : '1px solid #1e293b',
                   boxShadow: isLive ? '0 0 20px rgba(34, 197, 94, 0.25)' : 'none',
+                  opacity: isCompleted ? 0.88 : 1,
                   cursor: 'pointer',
                   color: 'inherit',
                   outline: 'none',
@@ -1285,18 +1322,18 @@ function PublicView({ matchData, onSelectMatch }) {
                     <span style={{
                       fontSize: '12px',
                       fontWeight: 'bold',
-                      color: '#eab308',
+                      color: isCompleted ? '#10b981' : '#eab308',
                       backgroundColor: '#020617',
                       padding: '4px 8px',
                       borderRadius: '6px',
-                      border: '1px solid #334155',
+                      border: isCompleted ? '1px solid #047857' : '1px solid #334155',
                       minWidth: '28px',
                       textAlign: 'center'
                     }}>
                       {sm.id}
                     </span>
                     <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {renderPlayerName(sm.homePlayer, isHomeWinner, isHomeLoser, true)}
+                      {renderPlayerName(sm.homePlayer, isHomeWinner, isHomeLoser, true, homeStarts)}
                     </div>
                   </div>
 
@@ -1319,13 +1356,21 @@ function PublicView({ matchData, onSelectMatch }) {
                     </div>
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ backgroundColor: '#020617', padding: '6px 16px', borderRadius: '8px', border: '1px solid #334155', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '18px', fontWeight: 'bold', color: isCompleted ? '#fcd34d' : '#64748b' }}>{sm.homeScore}</span>
+                      <div style={{ 
+                        backgroundColor: isCompleted ? '#022c22' : '#020617', 
+                        padding: '6px 16px', 
+                        borderRadius: '8px', 
+                        border: isCompleted ? '1px solid #059669' : '1px solid #334155', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '10px' 
+                      }}>
+                        <span style={{ fontSize: '18px', fontWeight: 'bold', color: isCompleted ? '#34d399' : '#64748b' }}>{sm.homeScore}</span>
                         <span style={{ color: '#475569', fontSize: '12px' }}>-</span>
-                        <span style={{ fontSize: '18px', fontWeight: 'bold', color: isCompleted ? '#fcd34d' : '#64748b' }}>{sm.awayScore}</span>
+                        <span style={{ fontSize: '18px', fontWeight: 'bold', color: isCompleted ? '#34d399' : '#64748b' }}>{sm.awayScore}</span>
                       </div>
                       {isCompleted && (
-                        <span style={{ fontSize: '10px', backgroundColor: '#334155', color: '#38bdf8', padding: '4px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                        <span style={{ fontSize: '10px', backgroundColor: '#065f46', color: '#a7f3d0', padding: '4px 6px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #059669' }}>
                           KLAR
                         </span>
                       )}
@@ -1334,12 +1379,12 @@ function PublicView({ matchData, onSelectMatch }) {
 
                   {/* BORTASPELARE */}
                   <div style={{ flex: 1, textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {renderPlayerName(sm.awayPlayer, isAwayWinner, isAwayLoser, false)}
+                    {renderPlayerName(sm.awayPlayer, isAwayWinner, isAwayLoser, false, awayStarts)}
                   </div>
                 </div>
               </button>
 
-              {/* TILLAGT: Extra tomrum/avstånd efter S3, D2 och S8 för att dela upp blocken */}
+              {/* Extra tomrum/avstånd efter S3, D2 och S8 för att dela upp blocken */}
               {isBlockGap && (
                 <div style={{ gridColumn: '1 / -1', height: '20px' }} />
               )}
@@ -1364,7 +1409,6 @@ function PublicView({ matchData, onSelectMatch }) {
             ● AUTO-UPPDATERAS
           </span>
         </div>
-
         {(matchData.performances || []).length === 0 ? (
           <div style={{ color: '#64748b', fontSize: '14px', fontStyle: 'italic', textAlign: 'center', padding: '10px 0' }}>
             Inga registrerade höga utgångar eller 180s i matchen ännu.
@@ -1393,11 +1437,9 @@ function PublicView({ matchData, onSelectMatch }) {
           </div>
         )}
       </div>
-
     </div>
   );
 }
-
 // --- 4. HUVUDKOMPONENT (App) ---
 export default function App() {
   const [activeTab, setActiveTab] = useState('public');
