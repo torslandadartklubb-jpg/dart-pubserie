@@ -84,17 +84,20 @@
     .numpad-grid { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; margin: -3px; }
     .numpad-btn { width: 31.33%; margin: 1%; box-sizing: border-box; float: left; }
 
-    /* Fast höjd på rutan för att förhindra hopp/ryckighet */
-    .recent-throws-container { display: flex; display: -webkit-flex; margin-bottom: 10px; }
-    .recent-box { width: 49%; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 8px; text-align: center; height: 195px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-    .recent-box.home { margin-right: 2%; }
+    /* Tre kolumner för Senaste kast (Hemma - Pilar - Borta) */
+    .recent-throws-container { display: flex; display: -webkit-flex; margin-bottom: 10px; align-items: stretch; }
+    .recent-box { width: 42.5%; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 6px 4px; text-align: center; height: 210px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    
+    .dart-col-box { width: 15%; display: flex; display: -webkit-flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: 28px; height: 210px; overflow: hidden; }
+    .dart-col-title { font-size: 11px; color: var(--text-muted); font-weight: bold; text-transform: uppercase; margin-bottom: 4px; position: sticky; top: 0; background-color: inherit; padding: 2px 0; z-index: 1; }
+    .dart-col-row { font-size: 16px; font-weight: 800; color: #0284c7; padding: 10px 0; border-bottom: 1px solid transparent; line-height: 1.1; }
+
     .recent-title { font-size: 12px; color: var(--text-muted); font-weight: bold; text-transform: uppercase; margin-bottom: 4px; position: sticky; top: 0; background-color: inherit; padding: 2px 0; z-index: 1; }
     
-    .recent-row { font-size: 32px; font-weight: 900; border-bottom: 1px solid var(--border-color); padding: 8px 0; cursor: pointer; color: var(--text-main); line-height: 1.1; }
+    /* Mycket större text för kasten */
+    .recent-row { font-size: 38px; font-weight: 900; border-bottom: 1px solid var(--border-color); padding: 4px 0; cursor: pointer; color: var(--text-main); line-height: 1.1; }
     .recent-row:last-child { border-bottom: none; }
     .recent-rem { font-size: 18px; color: #0284c7; font-weight: bold; margin-left: 6px; }
-    
-    .dart-count { font-size: 14px; font-weight: bold; color: var(--text-sub); margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -267,17 +270,6 @@
       loadMatchData();
     }
 
-    function getDartsThrown(team) {
-      if (!activeMatch || !activeMatch.rounds) return 0;
-      var count = 0;
-      for (var i = 0; i < activeMatch.rounds.length; i++) {
-        var r = activeMatch.rounds[i];
-        if (team === 'home' && r.home) count += 3;
-        if (team === 'away' && r.away) count += 3;
-      }
-      return count;
-    }
-
     function renderJudgeUI() {
       var container = document.getElementById('judge-view');
       if (!activeMatch) { container.innerHTML = ''; return; }
@@ -297,35 +289,33 @@
         return;
       }
 
-      var homeDarts = getDartsThrown('home');
-      var awayDarts = getDartsThrown('away');
-
       var html = '';
-      html += '<div style="display: flex; display: -webkit-flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">' +
+      // Header med Matchnamn samt Legs
+      html += '<div style="display: flex; display: -webkit-flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">' +
                 '<div style="display: flex; display: -webkit-flex; gap: 6px; flex: 1;">' +
                   '<button onclick="showStartView()" style="background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold;">← Meny</button>' +
                   '<button onclick="toggleTheme()" style="background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-size: 16px; cursor: pointer;">' + (isLightTheme ? '🌙' : '☀️') + '</button>' +
                 '</div>' +
-                '<div style="flex: 1; text-align: center;"><span style="color: #d97706; font-weight: bold; font-size: 20px; text-transform: uppercase;">Match ' + m.id + '</span></div>' +
+                '<div style="flex: 1.5; text-align: center;">' +
+                  '<span style="color: #d97706; font-weight: 900; font-size: 20px; text-transform: uppercase;">Match ' + m.id + '</span>' +
+                  '<span style="color: var(--text-score); font-weight: 800; font-size: 18px; margin-left: 10px;">Legs: ' + m.homeLegs + ' - ' + m.awayLegs + '</span>' +
+                '</div>' +
                 '<div style="flex: 1; text-align: right;"><button onclick="saveAndCloseMatch()" style="background-color: #16a34a; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold;">Klar</button></div>' +
               '</div>';
       
+      // 1. SPELARKORT MED MAXIMERAD RESULTAT-TEXT (501 ETC.)
       html += '<div style="display: flex; display: -webkit-flex; margin-bottom: 8px;">' +
-                '<div class="card" style="width: 49%; margin-right: 2%; padding: 10px 4px; border-radius: 16px; border: ' + (m.turn === 'home' ? '4px solid var(--border-home)' : '1px solid var(--border-color)') + ';">' +
-                  '<div style="font-size: 18px; font-weight: bold; color: var(--text-sub); margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.homePlayer + '</div>' +
-                  '<div style="font-size: 90px; font-weight: 900; color: ' + (m.turn === 'home' ? 'var(--accent-home)' : 'var(--text-muted)') + '; line-height: 0.85; letter-spacing: -2px;">' + m.homeScore + '</div>' +
-                  '<div style="font-size: 16px; color: var(--text-score); font-weight: bold; margin-top: 4px;">Legs: ' + m.homeLegs + '</div>' +
-                  '<div class="dart-count">Pilar: ' + homeDarts + '</div>' +
+                '<div class="card" style="width: 49%; margin-right: 2%; padding: 12px 2px; border-radius: 16px; border: ' + (m.turn === 'home' ? '4px solid var(--border-home)' : '1px solid var(--border-color)') + ';">' +
+                  '<div style="font-size: 18px; font-weight: bold; color: var(--text-sub); margin-bottom: 0px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.homePlayer + '</div>' +
+                  '<div style="font-size: 120px; font-size: min(120px, 13vw); font-weight: 900; color: ' + (m.turn === 'home' ? 'var(--accent-home)' : 'var(--text-muted)') + '; line-height: 0.82; letter-spacing: -3px; margin: 4px 0;">' + m.homeScore + '</div>' +
                 '</div>' +
-                '<div class="card" style="width: 49%; padding: 10px 4px; border-radius: 16px; border: ' + (m.turn === 'away' ? '4px solid var(--border-away)' : '1px solid var(--border-color)') + ';">' +
-                  '<div style="font-size: 18px; font-weight: bold; color: var(--text-sub); margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.awayPlayer + '</div>' +
-                  '<div style="font-size: 90px; font-weight: 900; color: ' + (m.turn === 'away' ? 'var(--accent-away)' : 'var(--text-muted)') + '; line-height: 0.85; letter-spacing: -2px;">' + m.awayScore + '</div>' +
-                  '<div style="font-size: 16px; color: var(--text-score); font-weight: bold; margin-top: 4px;">Legs: ' + m.awayLegs + '</div>' +
-                  '<div class="dart-count">Pilar: ' + awayDarts + '</div>' +
+                '<div class="card" style="width: 49%; padding: 12px 2px; border-radius: 16px; border: ' + (m.turn === 'away' ? '4px solid var(--border-away)' : '1px solid var(--border-color)') + ';">' +
+                  '<div style="font-size: 18px; font-weight: bold; color: var(--text-sub); margin-bottom: 0px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.awayPlayer + '</div>' +
+                  '<div style="font-size: 120px; font-size: min(120px, 13vw); font-weight: 900; color: ' + (m.turn === 'away' ? 'var(--accent-away)' : 'var(--text-muted)') + '; line-height: 0.82; letter-spacing: -3px; margin: 4px 0;">' + m.awayScore + '</div>' +
                 '</div>' +
               '</div>';
 
-      // SENASTE KAST (Nu med fast höjd direkt)
+      // 2. SENASTE KAST MED CENTRERAD PIL-KOLUMN
       var roundsList = m.rounds.slice().reverse();
       var hasHomeThrows = false;
       var hasAwayThrows = false;
@@ -335,7 +325,8 @@
       }
 
       html += '<div class="recent-throws-container">' +
-                '<div class="recent-box home">' +
+                /* HEMMASPELARE KAST */
+                '<div class="recent-box home" id="recent-box-home">' +
                   '<div class="recent-title">Kast (' + m.homePlayer + ')</div>';
       if (!hasHomeThrows) {
         html += '<div style="color: var(--text-muted); font-size: 14px; padding-top: 50px;">Inga kast än</div>';
@@ -348,8 +339,23 @@
           }
         }
       }
-      html +=   '</div>' +
-                '<div class="recent-box">' +
+      html +=   '</div>';
+
+      /* CENTRERAD PIL-KOLUMN */
+      html +=   '<div class="dart-col-box">' +
+                  '<div class="dart-col-title">Pil</div>';
+      var totalRounds = m.rounds.length;
+      if (totalRounds === 0) {
+        html += '<div class="dart-col-row" style="color: var(--text-muted); padding-top: 50px;">-</div>';
+      } else {
+        for (var d = totalRounds; d >= 1; d--) {
+          html += '<div class="dart-col-row">' + (d * 3) + '</div>';
+        }
+      }
+      html +=   '</div>';
+
+      /* BORTASPELARE KAST */
+      html +=   '<div class="recent-box" id="recent-box-away">' +
                   '<div class="recent-title">Kast (' + m.awayPlayer + ')</div>';
       if (!hasAwayThrows) {
         html += '<div style="color: var(--text-muted); font-size: 14px; padding-top: 50px;">Inga kast än</div>';
@@ -365,6 +371,7 @@
       html +=   '</div>' +
               '</div>';
 
+      // 3. NUMPAD & KNAPPAR
       if (!isFinished && !m.scoringActive) {
         html += '<div>' +
                   '<div style="display: flex; display: -webkit-flex; margin-bottom: 8px;">' +
@@ -395,6 +402,17 @@
                 '</div>';
       }
       container.innerHTML = html;
+
+      // Koppla ihop scrollning mellan de tre kolumnerna i Senaste kast
+      syncScrolls();
+    }
+
+    function syncScrolls() {
+      var boxH = document.getElementById('recent-box-home');
+      var boxA = document.getElementById('recent-box-away');
+      if (!boxH || !boxA) return;
+      boxH.onscroll = function() { boxA.scrollTop = boxH.scrollTop; };
+      boxA.onscroll = function() { boxH.scrollTop = boxA.scrollTop; };
     }
 
     function formatThrowLarge(entry) {
