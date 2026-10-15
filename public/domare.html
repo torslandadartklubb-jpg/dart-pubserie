@@ -75,7 +75,7 @@
     .match-status.done { background: #059669; color: #a7f3d0; }
     .match-status.ongoing { background: #0284c7; }
     
-    #judge-view { display: none; width: 100%; background-color: var(--bg-main); color: var(--text-main); padding: 2px; border-radius: 16px; user-select: none; }
+    #judge-view { display: none; width: 100%; background-color: var(--bg-main); color: var(--text-main); padding: 2px; border-radius: 16px; -webkit-user-select: none; user-select: none; }
     .status-text { text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 4px; word-break: break-all; }
     
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.75); display: flex; display: -webkit-flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
@@ -109,15 +109,22 @@
     .corner-tag.legs { color: var(--text-score); }
     .corner-tag.darts { color: #38bdf8; }
 
-    /* PERFEKT SYMMETRISK GRID-LAYOUT FÖR NUMPAD */
-    .numpad-container {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      grid-template-rows: repeat(4, 60px);
-      gap: 6px;
+    /* GAMMAL IPAD SÄKER TABELL LAYOUT FÖR NUMPAD */
+    .numpad-table {
       width: 100%;
+      border-collapse: separate;
+      border-spacing: 6px;
+      margin-top: -6px;
     }
-    .numpad-btn {
+    .numpad-table td {
+      width: 25%;
+      height: 58px;
+      padding: 0;
+      vertical-align: middle;
+    }
+    .numpad-btn-legacy {
+      width: 100%;
+      height: 100%;
       background-color: var(--bg-item);
       color: var(--text-main);
       border: 1px solid var(--border-color);
@@ -125,12 +132,12 @@
       font-size: 30px;
       font-weight: bold;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      user-select: none;
+      display: block;
+      text-align: center;
+      line-height: 58px;
+      -webkit-appearance: none;
     }
-    .numpad-btn:active { background-color: var(--border-color); }
+    .numpad-btn-legacy:active { background-color: var(--border-color); }
   </style>
 </head>
 <body>
@@ -312,7 +319,6 @@
       loadMatchData();
     }
 
-    // Räkna ut hur många pilar en spelare har kastat
     function countPlayerDarts(rounds, team) {
       var count = 0;
       for (var i = 0; i < rounds.length; i++) {
@@ -358,7 +364,7 @@
                 '<div style="flex: 1; text-align: right;"><button onclick="saveAndCloseMatch()" style="background-color: #16a34a; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold;">Klar</button></div>' +
               '</div>';
       
-      // 1. SPELARKORT MED BÅDE LEGS OCH PILAR I HÖRNEN
+      // 1. SPELARKORT MED LEGS OCH PILAR I HÖRNEN
       html += '<div style="display: flex; display: -webkit-flex; margin-bottom: 6px;">' +
                 '<div class="card" style="width: 49%; margin-right: 2%; padding: 6px 2px 28px 2px; border-radius: 16px; border: ' + (m.turn === 'home' ? '4px solid var(--border-home)' : '1px solid var(--border-color)') + ';">' +
                   '<div style="font-size: 18px; font-weight: bold; color: var(--text-sub); margin-bottom: 0px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.homePlayer + '</div>' +
@@ -380,7 +386,6 @@
       var hasAwayThrows = m.rounds.some(function(r) { return r.away; });
 
       html += '<div class="recent-throws-container">' +
-                /* HEMMASPELARE KAST */
                 '<div class="recent-box home">' +
                   '<div class="recent-title">Kast (' + m.homePlayer + ')</div>';
       if (!hasHomeThrows) {
@@ -398,7 +403,6 @@
       }
       html +=   '</div>';
 
-      /* CENTRERAD PIL-KOLUMN */
       html +=   '<div class="dart-col-box">' +
                   '<div class="dart-col-title">Pil</div>';
       if (m.rounds.length === 0) {
@@ -411,7 +415,6 @@
       }
       html +=   '</div>';
 
-      /* BORTASPELARE KAST */
       html +=   '<div class="recent-box">' +
                   '<div class="recent-title">Kast (' + m.awayPlayer + ')</div>';
       if (!hasAwayThrows) {
@@ -430,36 +433,36 @@
       html +=   '</div>' +
               '</div>';
 
-      // 3. SNYGG, SYMMETRISK NUMPAD GRID (4x4)
+      // 3. SKALBAR, SÄKER HTML-TABELL FÖR GAMLA IPADS (4x4)
       if (!isFinished && !m.scoringActive) {
-        html += '<div class="numpad-container">' +
-                  /* RAD 1 */
-                  '<button onclick="handleNumClick(\'1\')" class="numpad-btn">1</button>' +
-                  '<button onclick="handleNumClick(\'2\')" class="numpad-btn">2</button>' +
-                  '<button onclick="handleNumClick(\'3\')" class="numpad-btn">3</button>' +
-                  /* STOR DISPLAY FOR INMATAD POANG (Täcker 2 rader i höjd i högra kolumnen) */
-                  '<div style="grid-row: span 2; background-color: var(--input-bg); border: 2px solid #0284c7; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">' +
-                    '<span style="font-size: 11px; color: var(--text-muted); font-weight: bold; letter-spacing: 1px;">INMATAT</span>' +
-                    '<span style="font-size: 42px; font-weight: 900; color: #f59e0b; line-height: 1; margin-top: 2px;">' + currentInskriven + '</span>' +
-                  '</div>' +
-
-                  /* RAD 2 */
-                  '<button onclick="handleNumClick(\'4\')" class="numpad-btn">4</button>' +
-                  '<button onclick="handleNumClick(\'5\')" class="numpad-btn">5</button>' +
-                  '<button onclick="handleNumClick(\'6\')" class="numpad-btn">6</button>' +
-
-                  /* RAD 3 */
-                  '<button onclick="handleNumClick(\'7\')" class="numpad-btn">7</button>' +
-                  '<button onclick="handleNumClick(\'8\')" class="numpad-btn">8</button>' +
-                  '<button onclick="handleNumClick(\'9\')" class="numpad-btn">9</button>' +
-                  '<button onclick="handleOpenRemainingModal()" class="numpad-btn" style="background-color: #0284c7; color: #fff; border: none; font-size: 16px;">Sätt kvar</button>' +
-
-                  /* RAD 4 */
-                  '<button onclick="handleNumClick(\'0\')" class="numpad-btn">0</button>' +
-                  '<button onclick="handleClear()" class="numpad-btn" style="background-color: #dc2626; color: #ffffff; border: none; font-size: 22px;">C</button>' +
-                  '<button onclick="handleEnterScore()" class="numpad-btn" style="background-color: #16a34a; color: #fff; border: none; font-size: 22px;">OK</button>' +
-                  '<button onclick="handleUndo()" class="numpad-btn" style="font-size: 16px;">Ångra</button>' +
-                '</div>';
+        html += '<table class="numpad-table">' +
+                  '<tr>' +
+                    '<td><button onclick="handleNumClick(\'1\')" class="numpad-btn-legacy">1</button></td>' +
+                    '<td><button onclick="handleNumClick(\'2\')" class="numpad-btn-legacy">2</button></td>' +
+                    '<td><button onclick="handleNumClick(\'3\')" class="numpad-btn-legacy">3</button></td>' +
+                    '<td rowspan="2" style="background-color: var(--input-bg); border: 2px solid #0284c7; border-radius: 12px; text-align: center; vertical-align: middle;">' +
+                      '<div style="font-size: 11px; color: var(--text-muted); font-weight: bold; letter-spacing: 1px;">INMATAT</div>' +
+                      '<div style="font-size: 42px; font-weight: 900; color: #f59e0b; line-height: 1; margin-top: 2px;">' + currentInskriven + '</div>' +
+                    '</td>' +
+                  '</tr>' +
+                  '<tr>' +
+                    '<td><button onclick="handleNumClick(\'4\')" class="numpad-btn-legacy">4</button></td>' +
+                    '<td><button onclick="handleNumClick(\'5\')" class="numpad-btn-legacy">5</button></td>' +
+                    '<td><button onclick="handleNumClick(\'6\')" class="numpad-btn-legacy">6</button></td>' +
+                  '</tr>' +
+                  '<tr>' +
+                    '<td><button onclick="handleNumClick(\'7\')" class="numpad-btn-legacy">7</button></td>' +
+                    '<td><button onclick="handleNumClick(\'8\')" class="numpad-btn-legacy">8</button></td>' +
+                    '<td><button onclick="handleNumClick(\'9\')" class="numpad-btn-legacy">9</button></td>' +
+                    '<td><button onclick="handleOpenRemainingModal()" class="numpad-btn-legacy" style="background-color: #0284c7; color: #fff; border: none; font-size: 16px;">Sätt kvar</button></td>' +
+                  '</tr>' +
+                  '<tr>' +
+                    '<td><button onclick="handleNumClick(\'0\')" class="numpad-btn-legacy">0</button></td>' +
+                    '<td><button onclick="handleClear()" class="numpad-btn-legacy" style="background-color: #dc2626; color: #ffffff; border: none; font-size: 22px;">C</button></td>' +
+                    '<td><button onclick="handleEnterScore()" class="numpad-btn-legacy" style="background-color: #16a34a; color: #fff; border: none; font-size: 22px;">OK</button></td>' +
+                    '<td><button onclick="handleUndo()" class="numpad-btn-legacy" style="font-size: 16px;">Ångra</button></td>' +
+                  '</tr>' +
+                '</table>';
       } else if (m.scoringActive) {
         html += '<div style="background-color: var(--bg-item); padding: 16px; border-radius: 14px; border: 2px solid #d97706;">' +
                   '<h3 style="color: #d97706; margin: 0 0 6px 0; font-size: 18px; text-align: center;">SCORING (39 pilar nådda)</h3>' +
