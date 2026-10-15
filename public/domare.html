@@ -81,7 +81,7 @@
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.75); display: flex; display: -webkit-flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
     .modal-box { background-color: var(--bg-card); border-radius: 16px; padding: 24px; text-align: center; max-width: 480px; width: 100%; color: var(--text-main); }
     
-    /* 3 SENASTE KAST (Utan rubriker, större siffror) */
+    /* 3 SENASTE KAST */
     .recent-throws-container { display: flex; display: -webkit-flex; margin-bottom: 8px; align-items: stretch; }
     .recent-box { width: 42.5%; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 2px; text-align: center; height: 160px; overflow: hidden; display: flex; flex-direction: column; justify-content: space-around; }
     
@@ -92,7 +92,7 @@
     .recent-row:last-child { border-bottom: none; }
     .recent-rem { font-size: 20px; color: #0284c7; font-weight: bold; margin-left: 6px; }
 
-    /* STÖRRE KVADRATISKA HÖRN-BOXAR FÖR LEGS OCH PILAR */
+    /* HÖRN-BOXAR FÖR LEGS OCH PILAR */
     .corner-square {
       position: absolute;
       bottom: 6px;
@@ -111,7 +111,7 @@
     .corner-square.legs { color: var(--text-score); border-color: #d97706; }
     .corner-square.darts { color: #38bdf8; border-color: #0284c7; }
 
-    /* GAMMAL IPAD SÄKER TABELL LAYOUT FÖR NUMPAD (UPPSKALAD HÖJD) */
+    /* TABELL LAYOUT FÖR NUMPAD */
     .numpad-table {
       width: 100%;
       border-collapse: separate;
@@ -287,9 +287,11 @@
       var hPts = (sm.currentHomePoints !== undefined && sm.currentHomePoints !== null) ? sm.currentHomePoints : 501;
       var aPts = (sm.currentAwayPoints !== undefined && sm.currentAwayPoints !== null) ? sm.currentAwayPoints : 501;
 
+      var isDouble = index >= 8;
+
       activeMatch = {
         id: matchId,
-        type: index < 8 ? 'single' : 'double',
+        type: isDouble ? 'double' : 'single',
         homePlayer: sm.homePlayer || fullMatchData.homeTeam,
         awayPlayer: sm.awayPlayer || fullMatchData.awayTeam,
         homeScore: hPts,
@@ -303,12 +305,16 @@
         rounds: restoredRounds,
         performances: [],
         scoringActive: sm.scoringActive || false,
-        scoringHomeInput: '',
-        scoringAwayInput: ''
+        scoringState: null
       };
       if (sm.homeScore < 3 && sm.awayScore < 3) sm.status = 'live';
       document.getElementById('start-view').style.display = 'none';
       document.getElementById('judge-view').style.display = 'block';
+      
+      if (activeMatch.scoringActive) {
+        initScoringState();
+      }
+
       renderJudgeUI();
       triggerLiveUpdate();
     }
@@ -330,6 +336,68 @@
       return count;
     }
 
+    // Hjälpfunktion för att bygga lagnamn - spelarnamn (t.ex. Torslanda A - Oskar)
+    function getDisplayPlayerName(teamKey, playerRaw) {
+      var teamName = teamKey === 'home' ? (fullMatchData ? fullMatchData.homeTeam : 'Hemmalag') : (fullMatchData ? fullMatchData.awayTeam : 'Bortalag');
+      if (playerRaw && playerRaw !== teamName) {
+        return teamName + ' - ' + playerRaw;
+      }
+      return teamName;
+    }
+
+    function initScoringState() {
+      var m = activeMatch;
+      var starter = m.legStarter || 'home';
+      var second = starter === 'home' ? 'away' : 'home';
+      
+      if (m.type === 'single') {
+        var p1Name = getDisplayPlayerName(starter, starter === 'home' ? m.homePlayer : m.awayPlayer);
+        var p2Name = getDisplayPlayerName(second, second === 'home' ? m.homePlayer : m.awayPlayer);
+        
+        m.scoringState = {
+          step: 0,
+          queue: [
+            { team: starter, label: p1Name, score: null },
+            { team: second, label: p2Name, score: null }
+          ]
+        };
+      } else {
+        // DUBBELMATCH (4 Spelare i turordning: Starter P1, Second P1, Starter P2, Second P2)
+        var homeTeamName = fullMatchData ? fullMatchData.homeTeam : 'Hemmalag';
+        var awayTeamName = fullMatchData ? fullMatchData.awayTeam : 'Bortalag';
+        
+        var hPlayers = (m.homePlayer || '').split('&').map(function(s){ return s.trim(); });
+        var aPlayers = (m.awayPlayer || '').split('&').map(function(s){ return s.trim(); });
+        
+        var hP1 = homeTeamName + (hPlayers[0] ? ' - ' + hPlayers[0] : '');
+        var hP2 = homeTeamName + (hPlayers[1] ? ' - ' + hPlayers[1] : (hPlayers[0] ? ' - ' + hPlayers[0] : ''));
+        var aP1 = awayTeamName + (aPlayers[0] ? ' - ' + aPlayers[0] : '');
+        var aP2 = awayTeamName + (aPlayers[1] ? ' - ' + aPlayers[1] : (aPlayers[0] ? ' - ' + aPlayers[0] : ''));
+
+        if (starter === 'home') {
+          m.scoringState = {
+            step: 0,
+            queue: [
+              { team: 'home', label: hP1, score: null },
+              { team: 'away', label: aP1, score: null },
+              { team: 'home', label: hP2, score: null },
+              { team: 'away', label: aP2, score: null }
+            ]
+          };
+        } else {
+          m.scoringState = {
+            step: 0,
+            queue: [
+              { team: 'away', label: aP1, score: null },
+              { team: 'home', label: hP1, score: null },
+              { team: 'away', label: aP2, score: null },
+              { team: 'home', label: hP2, score: null }
+            ]
+          };
+        }
+      }
+    }
+
     function renderJudgeUI() {
       var container = document.getElementById('judge-view');
       if (!activeMatch) { container.innerHTML = ''; return; }
@@ -337,13 +405,15 @@
       var isFinished = m.homeLegs === 3 || m.awayLegs === 3;
       
       if (!m.turn && m.id === 'AD') {
+        var hDisplayName = getDisplayPlayerName('home', m.homePlayer);
+        var aDisplayName = getDisplayPlayerName('away', m.awayPlayer);
         container.innerHTML = 
           '<div class="card" style="padding: 24px; border: 2px solid #eab308;">' +
             '<h2 style="color: #eab308; font-size: 24px; margin-bottom: 10px;">AVGÖRANDE DUBBEL (AD)</h2>' +
             '<p style="color: var(--text-sub); font-size: 16px; margin-bottom: 20px;">Vem vann slantkastningen och börjar?</p>' +
             '<div style="display: flex; display: -webkit-flex;">' +
-              '<button onclick="setADStarter(\'home\')" style="width: 48%; margin-right: 4%; background-color: var(--bg-item); color: var(--accent-home); border: 2px solid var(--border-home); padding: 20px; border-radius: 12px; font-weight: bold; font-size: 20px; cursor: pointer;">' + m.homePlayer + '</button>' +
-              '<button onclick="setADStarter(\'away\')" style="width: 48%; background-color: var(--bg-item); color: var(--accent-away); border: 2px solid var(--border-away); padding: 20px; border-radius: 12px; font-weight: bold; font-size: 20px; cursor: pointer;">' + m.awayPlayer + '</button>' +
+              '<button onclick="setADStarter(\'home\')" style="width: 48%; margin-right: 4%; background-color: var(--bg-item); color: var(--accent-home); border: 2px solid var(--border-home); padding: 20px; border-radius: 12px; font-weight: bold; font-size: 20px; cursor: pointer;">' + hDisplayName + '</button>' +
+              '<button onclick="setADStarter(\'away\')" style="width: 48%; background-color: var(--bg-item); color: var(--accent-away); border: 2px solid var(--border-away); padding: 20px; border-radius: 12px; font-weight: bold; font-size: 20px; cursor: pointer;">' + aDisplayName + '</button>' +
             '</div>' +
           '</div>';
         return;
@@ -352,6 +422,9 @@
       var currentInskriven = m.inputVal || '0';
       var homeDarts = countPlayerDarts(m.rounds, 'home');
       var awayDarts = countPlayerDarts(m.rounds, 'away');
+
+      var homeDisplayName = getDisplayPlayerName('home', m.homePlayer);
+      var awayDisplayName = getDisplayPlayerName('away', m.awayPlayer);
 
       var html = '';
       // Header
@@ -366,23 +439,23 @@
                 '<div style="flex: 1; text-align: right;"><button onclick="saveAndCloseMatch()" style="background-color: #16a34a; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold;">Klar</button></div>' +
               '</div>';
       
-      // 1. SPELARKORT MED RENODLADE KVADRATER FÖR LEGS OCH PILAR
+      // 1. SPELARKORT MED BÅDE LAG- OCH SPELARNAMN
       html += '<div style="display: flex; display: -webkit-flex; margin-bottom: 6px;">' +
                 '<div class="card" style="width: 49%; margin-right: 2%; padding: 6px 2px 34px 2px; border-radius: 16px; border: ' + (m.turn === 'home' ? '4px solid var(--border-home)' : '1px solid var(--border-color)') + ';">' +
-                  '<div style="font-size: 18px; font-weight: bold; color: var(--text-sub); margin-bottom: 0px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.homePlayer + '</div>' +
+                  '<div style="font-size: 18px; font-weight: bold; color: var(--text-sub); margin-bottom: 0px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + homeDisplayName + '</div>' +
                   '<div style="font-size: 150px; font-size: min(150px, 16vw); font-weight: 900; color: ' + (m.turn === 'home' ? 'var(--accent-home)' : 'var(--text-muted)') + '; line-height: 0.8; letter-spacing: -4px; margin: 2px 0;">' + m.homeScore + '</div>' +
                   '<div class="corner-square darts" style="left: 6px;">' + homeDarts + '</div>' +
                   '<div class="corner-square legs" style="right: 6px;">' + m.homeLegs + '</div>' +
                 '</div>' +
                 '<div class="card" style="width: 49%; padding: 6px 2px 34px 2px; border-radius: 16px; border: ' + (m.turn === 'away' ? '4px solid var(--border-away)' : '1px solid var(--border-color)') + ';">' +
-                  '<div style="font-size: 18px; font-weight: bold; color: var(--text-sub); margin-bottom: 0px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.awayPlayer + '</div>' +
+                  '<div style="font-size: 18px; font-weight: bold; color: var(--text-sub); margin-bottom: 0px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + awayDisplayName + '</div>' +
                   '<div style="font-size: 150px; font-size: min(150px, 16vw); font-weight: 900; color: ' + (m.turn === 'away' ? 'var(--accent-away)' : 'var(--text-muted)') + '; line-height: 0.8; letter-spacing: -4px; margin: 2px 0;">' + m.awayScore + '</div>' +
                   '<div class="corner-square legs" style="left: 6px;">' + m.awayLegs + '</div>' +
                   '<div class="corner-square darts" style="right: 6px;">' + awayDarts + '</div>' +
                 '</div>' +
               '</div>';
 
-      // 2. EXAKT 3 SENASTE KAST (Utan rubriker "Kast (Lagnamn)")
+      // 2. EXAKT 3 SENASTE KAST
       var roundsList = m.rounds.slice().reverse().slice(0, 3);
       var hasHomeThrows = m.rounds.some(function(r) { return r.home; });
       var hasAwayThrows = m.rounds.some(function(r) { return r.away; });
@@ -432,8 +505,48 @@
       html +=   '</div>' +
               '</div>';
 
-      // 3. FÖRSTORAD NUMPAD TABELL (Fyller ut hela ytan utan död yta)
-      if (!isFinished && !m.scoringActive) {
+      // 3. SCORING-MOMENT ELLER VANLIG NUMPAD
+      if (m.scoringActive) {
+        var currentStepObj = m.scoringState.queue[m.scoringState.step];
+        var isLastStep = m.scoringState.step === m.scoringState.queue.length - 1;
+        
+        html += '<div style="background-color: var(--bg-item); border: 2px solid #d97706; border-radius: 14px; padding: 10px; margin-bottom: 6px;">' +
+                  '<div style="color: #d97706; font-weight: 900; font-size: 16px; text-align: center; text-transform: uppercase;">🔥 SCORING (39 pilar nådda)</div>' +
+                  '<div style="color: var(--text-main); font-size: 18px; text-align: center; font-weight: bold; margin-top: 4px;">' +
+                    'Mata in poäng för: <span style="color: ' + (currentStepObj.team === 'home' ? 'var(--accent-home)' : 'var(--accent-away)') + ';">' + currentStepObj.label + '</span>' +
+                  '</div>' +
+                '</div>';
+
+        html += '<table class="numpad-table">' +
+                  '<tr>' +
+                    '<td><button onclick="handleNumClick(\'1\')" class="numpad-btn-legacy">1</button></td>' +
+                    '<td><button onclick="handleNumClick(\'2\')" class="numpad-btn-legacy">2</button></td>' +
+                    '<td><button onclick="handleNumClick(\'3\')" class="numpad-btn-legacy">3</button></td>' +
+                    '<td rowspan="2" style="background-color: var(--input-bg); border: 2px solid #d97706; border-radius: 14px; text-align: center; vertical-align: middle;">' +
+                      '<div style="font-size: 12px; color: var(--text-muted); font-weight: bold; letter-spacing: 1px;">SCORING POÄNG</div>' +
+                      '<div style="font-size: 52px; font-weight: 900; color: #f59e0b; line-height: 1; margin-top: 2px;">' + currentInskriven + '</div>' +
+                    '</td>' +
+                  '</tr>' +
+                  '<tr>' +
+                    '<td><button onclick="handleNumClick(\'4\')" class="numpad-btn-legacy">4</button></td>' +
+                    '<td><button onclick="handleNumClick(\'5\')" class="numpad-btn-legacy">5</button></td>' +
+                    '<td><button onclick="handleNumClick(\'6\')" class="numpad-btn-legacy">6</button></td>' +
+                  '</tr>' +
+                  '<tr>' +
+                    '<td><button onclick="handleNumClick(\'7\')" class="numpad-btn-legacy">7</button></td>' +
+                    '<td><button onclick="handleNumClick(\'8\')" class="numpad-btn-legacy">8</button></td>' +
+                    '<td><button onclick="handleNumClick(\'9\')" class="numpad-btn-legacy">9</button></td>' +
+                    '<td><button onclick="handleScoringStepSubmit()" class="numpad-btn-legacy" style="background-color: #16a34a; color: #fff; border: none; font-size: 24px;">' + (isLastStep ? 'KLAR' : 'NÄSTA →') + '</button></td>' +
+                  '</tr>' +
+                  '<tr>' +
+                    '<td><button onclick="handleNumClick(\'0\')" class="numpad-btn-legacy">0</button></td>' +
+                    '<td><button onclick="handleClear()" class="numpad-btn-legacy" style="background-color: #dc2626; color: #ffffff; border: none; font-size: 28px;">C</button></td>' +
+                    '<td><button onclick="handleScoringStepSubmit()" class="numpad-btn-legacy" style="background-color: #16a34a; color: #fff; border: none; font-size: 24px;">OK</button></td>' +
+                    '<td><button onclick="handleUndoScoringStep()" class="numpad-btn-legacy" style="font-size: 18px;">Ångra</button></td>' +
+                  '</tr>' +
+                '</table>';
+
+      } else if (!isFinished) {
         html += '<table class="numpad-table">' +
                   '<tr>' +
                     '<td><button onclick="handleNumClick(\'1\')" class="numpad-btn-legacy">1</button></td>' +
@@ -462,16 +575,6 @@
                     '<td><button onclick="handleUndo()" class="numpad-btn-legacy" style="font-size: 20px;">Ångra</button></td>' +
                   '</tr>' +
                 '</table>';
-      } else if (m.scoringActive) {
-        html += '<div style="background-color: var(--bg-item); padding: 16px; border-radius: 14px; border: 2px solid #d97706;">' +
-                  '<h3 style="color: #d97706; margin: 0 0 6px 0; font-size: 18px; text-align: center;">SCORING (39 pilar nådda)</h3>' +
-                  '<p style="color: var(--text-sub); font-size: 14px; text-align: center; margin-bottom: 12px;">Högst poäng i omgången vinner leget.</p>' +
-                  '<div style="display: flex; display: -webkit-flex; margin-bottom: 12px;">' +
-                    '<div style="width: 48%; margin-right: 4%;"><label style="font-size: 14px; color: var(--accent-home); font-weight: bold;">' + m.homePlayer + '</label><input type="number" id="sc-home" value="' + m.scoringHomeInput + '" oninput="activeMatch.scoringHomeInput=this.value" style="width: 100%; padding: 10px; border-radius: 8px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); font-size: 20px; font-weight: bold; text-align: center;"></div>' +
-                    '<div style="width: 48%;"><label style="font-size: 14px; color: var(--accent-away); font-weight: bold;">' + m.awayPlayer + '</label><input type="number" id="sc-away" value="' + m.scoringAwayInput + '" oninput="activeMatch.scoringAwayInput=this.value" style="width: 100%; padding: 10px; border-radius: 8px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); font-size: 20px; font-weight: bold; text-align: center;"></div>' +
-                  '</div>' +
-                  '<button onclick="handleScoringSubmit()" style="width: 100%; background-color: #16a34a; color: #fff; border: none; padding: 14px; border-radius: 10px; font-weight: bold; font-size: 16px; cursor: pointer;">Spara & Tilldela Leg</button>' +
-                '</div>';
       }
       container.innerHTML = html;
     }
@@ -621,6 +724,7 @@
         m.awayScore = newScore;
         if (m.rounds.length === 13) {
           m.scoringActive = true;
+          initScoringState();
           m.inputVal = '';
           renderJudgeUI();
           triggerLiveUpdate();
@@ -631,6 +735,95 @@
       m.inputVal = '';
       renderJudgeUI();
       triggerLiveUpdate();
+    }
+
+    /* SCORING-MOMENT LOGIK MED NUMPAD */
+    function handleScoringStepSubmit() {
+      var m = activeMatch;
+      if (!m || !m.scoringState) return;
+      var val = parseInt(m.inputVal || '0', 10);
+      if (isNaN(val) || val < 0 || val > 180 || IMPOSSIBLE_SCORES.indexOf(val) !== -1) {
+        alert('Ange en giltig poäng mellan 0 och 180.');
+        return;
+      }
+
+      var state = m.scoringState;
+      state.queue[state.step].score = val;
+
+      if (state.step < state.queue.length - 1) {
+        state.step++;
+        m.inputVal = '';
+        renderJudgeUI();
+      } else {
+        // Alla spelare har kastat färdigt i scoringen! Summera poäng.
+        var totalHome = 0;
+        var totalAway = 0;
+        for (var i = 0; i < state.queue.length; i++) {
+          if (state.queue[i].team === 'home') totalHome += state.queue[i].score;
+          else totalAway += state.queue[i].score;
+        }
+
+        if (totalHome === totalAway) {
+          alert('Det blev oavgjort i scoringen (' + totalHome + ' - ' + totalAway + ')! Kör om omgången.');
+          state.step = 0;
+          for (var k = 0; k < state.queue.length; k++) state.queue[k].score = null;
+          m.inputVal = '';
+          renderJudgeUI();
+          return;
+        }
+
+        var winnerTeam = totalHome > totalAway ? 'home' : 'away';
+        var homeTeamName = fullMatchData ? fullMatchData.homeTeam : 'Hemmalag';
+        var awayTeamName = fullMatchData ? fullMatchData.awayTeam : 'Bortalag';
+        var winnerName = winnerTeam === 'home' ? homeTeamName : awayTeamName;
+
+        showScoringWinnerModal(winnerTeam, winnerName, totalHome, totalAway);
+      }
+    }
+
+    function handleUndoScoringStep() {
+      var m = activeMatch;
+      if (!m || !m.scoringState) return;
+      if (m.scoringState.step > 0) {
+        m.scoringState.step--;
+        m.inputVal = m.scoringState.queue[m.scoringState.step].score !== null ? '' + m.scoringState.queue[m.scoringState.step].score : '';
+        renderJudgeUI();
+      }
+    }
+
+    function showScoringWinnerModal(winnerTeam, winnerName, totalHome, totalAway) {
+      var m = activeMatch;
+      var modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.innerHTML = 
+        '<div class="modal-box" style="border: 3px solid #d97706;">' +
+          '<div style="font-size: 40px; margin-bottom: 8px;">🔥</div>' +
+          '<h3 style="font-size: 24px; margin-bottom: 8px;">Bekräfta Scoring-vinnare</h3>' +
+          '<p style="color: var(--text-sub); font-size: 16px; margin-bottom: 12px;">' +
+            'Hemmalag: <strong>' + totalHome + ' p</strong> | Bortalag: <strong>' + totalAway + ' p</strong>' +
+          '</p>' +
+          '<p style="color: var(--text-main); font-size: 18px; margin-bottom: 20px;">' +
+            'Stämmer det att <strong style="color: #f59e0b;">' + winnerName + '</strong> vann leget?' +
+          '</p>' +
+          '<div style="display: flex; display: -webkit-flex;">' +
+            '<button id="btn-sc-yes" style="width: 48%; margin-right: 4%; background-color: #10b981; color: #fff; border: none; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer;">JA (Tilldela leg)</button>' +
+            '<button id="btn-sc-no" style="width: 48%; background-color: #dc2626; color: #fff; border: none; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer;">NEJ (Ändra)</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(modal);
+      
+      document.getElementById('btn-sc-yes').onclick = function() {
+        document.body.removeChild(modal);
+        if (winnerTeam === 'home') m.homeLegs++;
+        else m.awayLegs++;
+        m.scoringActive = false;
+        m.scoringState = null;
+        startNextLeg();
+      };
+      
+      document.getElementById('btn-sc-no').onclick = function() {
+        document.body.removeChild(modal);
+      };
     }
 
     function checkAndAddCheckoutPerformances(team, player, checkoutScore, roundsCount) {
@@ -653,35 +846,14 @@
       m.legStarter = nextStarter;
       m.turn = nextStarter;
       m.inputVal = '';
+      m.scoringActive = false;
+      m.scoringState = null;
+
       if (m.homeLegs === 3 || m.awayLegs === 3) {
         fullMatchData.subMatches[activeSubIndex].status = 'completed';
       }
       renderJudgeUI();
       triggerLiveUpdate();
-    }
-
-    function handleScoringSubmit() {
-      var m = activeMatch;
-      var hVal = parseInt(m.scoringHomeInput, 10);
-      var aVal = parseInt(m.scoringAwayInput, 10);
-      if (isNaN(hVal) || hVal < 0 || hVal > 180 || IMPOSSIBLE_SCORES.indexOf(hVal) !== -1) {
-        alert('Ogiltig poäng för hemmalaget.');
-        return;
-      }
-      if (isNaN(aVal) || aVal < 0 || aVal > 180 || IMPOSSIBLE_SCORES.indexOf(aVal) !== -1) {
-        alert('Ogiltig poäng för bortalaget.');
-        return;
-      }
-      if (hVal === aVal) {
-        alert('Det blev oavgjort! Scoring måste ge en vinnare.');
-        return;
-      }
-      if (hVal > aVal) m.homeLegs++;
-      else m.awayLegs++;
-      m.scoringActive = false;
-      m.scoringHomeInput = '';
-      m.scoringAwayInput = '';
-      startNextLeg();
     }
 
     function handleEditRound(index, team) {
@@ -733,7 +905,7 @@
 
     function showCheckoutModal(score) {
       var m = activeMatch;
-      var playerName = m.turn === 'home' ? m.homePlayer : m.awayPlayer;
+      var playerName = getDisplayPlayerName(m.turn, m.turn === 'home' ? m.homePlayer : m.awayPlayer);
       var modal = document.createElement('div');
       modal.className = 'modal-overlay';
       modal.innerHTML = 
@@ -758,7 +930,7 @@
 
     function showRemainingModal(targetRemaining, calculatedScored) {
       var m = activeMatch;
-      var playerName = m.turn === 'home' ? m.homePlayer : m.awayPlayer;
+      var playerName = getDisplayPlayerName(m.turn, m.turn === 'home' ? m.homePlayer : m.awayPlayer);
       var modal = document.createElement('div');
       modal.className = 'modal-overlay';
       modal.innerHTML = 
