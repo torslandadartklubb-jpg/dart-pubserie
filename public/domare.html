@@ -81,44 +81,46 @@
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.75); display: flex; display: -webkit-flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
     .modal-box { background-color: var(--bg-card); border-radius: 16px; padding: 24px; text-align: center; max-width: 480px; width: 100%; color: var(--text-main); }
     
-    /* 3 SENASTE KAST */
+    /* 3 SENASTE KAST (Utan rubriker, större siffror) */
     .recent-throws-container { display: flex; display: -webkit-flex; margin-bottom: 8px; align-items: stretch; }
-    .recent-box { width: 42.5%; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 4px; text-align: center; height: 180px; overflow: hidden; }
+    .recent-box { width: 42.5%; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 2px; text-align: center; height: 160px; overflow: hidden; display: flex; flex-direction: column; justify-content: space-around; }
     
-    .dart-col-box { width: 15%; display: flex; display: -webkit-flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: 26px; height: 180px; overflow: hidden; }
-    .dart-col-title { font-size: 11px; color: var(--text-muted); font-weight: bold; text-transform: uppercase; margin-bottom: 2px; padding: 2px 0; }
-    .dart-col-row { font-size: 18px; font-weight: 800; color: #0284c7; padding: 10px 0; height: 48px; display: flex; align-items: center; justify-content: center; }
+    .dart-col-box { width: 15%; display: flex; display: -webkit-flex; flex-direction: column; justify-content: space-around; align-items: center; height: 160px; overflow: hidden; }
+    .dart-col-row { font-size: 20px; font-weight: 800; color: #0284c7; height: 50px; display: flex; align-items: center; justify-content: center; }
 
-    .recent-title { font-size: 11px; color: var(--text-muted); font-weight: bold; text-transform: uppercase; margin-bottom: 2px; padding: 2px 0; }
-    
-    .recent-row { font-size: 42px; font-weight: 900; border-bottom: 1px solid var(--border-color); height: 48px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-main); line-height: 1; }
+    .recent-row { font-size: 46px; font-weight: 900; border-bottom: 1px solid var(--border-color); height: 50px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-main); line-height: 1; }
     .recent-row:last-child { border-bottom: none; }
-    .recent-rem { font-size: 18px; color: #0284c7; font-weight: bold; margin-left: 6px; }
+    .recent-rem { font-size: 20px; color: #0284c7; font-weight: bold; margin-left: 6px; }
 
-    /* LEGS OCH PILAR CORNER BOXAR */
-    .corner-tag {
+    /* STÖRRE KVADRATISKA HÖRN-BOXAR FÖR LEGS OCH PILAR */
+    .corner-square {
       position: absolute;
-      bottom: 8px;
+      bottom: 6px;
+      width: 44px;
+      height: 38px;
       background: var(--bg-item);
       border: 1px solid var(--border-color);
-      padding: 3px 8px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: bold;
+      border-radius: 8px;
+      font-size: 20px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
     }
-    .corner-tag.legs { color: var(--text-score); }
-    .corner-tag.darts { color: #38bdf8; }
+    .corner-square.legs { color: var(--text-score); border-color: #d97706; }
+    .corner-square.darts { color: #38bdf8; border-color: #0284c7; }
 
-    /* GAMMAL IPAD SÄKER TABELL LAYOUT FÖR NUMPAD */
+    /* GAMMAL IPAD SÄKER TABELL LAYOUT FÖR NUMPAD (UPPSKALAD HÖJD) */
     .numpad-table {
       width: 100%;
       border-collapse: separate;
       border-spacing: 6px;
-      margin-top: -6px;
+      margin-top: -4px;
     }
     .numpad-table td {
       width: 25%;
-      height: 58px;
+      height: 82px;
       padding: 0;
       vertical-align: middle;
     }
@@ -128,13 +130,13 @@
       background-color: var(--bg-item);
       color: var(--text-main);
       border: 1px solid var(--border-color);
-      border-radius: 12px;
-      font-size: 30px;
+      border-radius: 14px;
+      font-size: 38px;
       font-weight: bold;
       cursor: pointer;
       display: block;
       text-align: center;
-      line-height: 58px;
+      line-height: 82px;
       -webkit-appearance: none;
     }
     .numpad-btn-legacy:active { background-color: var(--border-color); }
@@ -364,32 +366,31 @@
                 '<div style="flex: 1; text-align: right;"><button onclick="saveAndCloseMatch()" style="background-color: #16a34a; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold;">Klar</button></div>' +
               '</div>';
       
-      // 1. SPELARKORT MED LEGS OCH PILAR I HÖRNEN
+      // 1. SPELARKORT MED RENODLADE KVADRATER FÖR LEGS OCH PILAR
       html += '<div style="display: flex; display: -webkit-flex; margin-bottom: 6px;">' +
-                '<div class="card" style="width: 49%; margin-right: 2%; padding: 6px 2px 28px 2px; border-radius: 16px; border: ' + (m.turn === 'home' ? '4px solid var(--border-home)' : '1px solid var(--border-color)') + ';">' +
+                '<div class="card" style="width: 49%; margin-right: 2%; padding: 6px 2px 34px 2px; border-radius: 16px; border: ' + (m.turn === 'home' ? '4px solid var(--border-home)' : '1px solid var(--border-color)') + ';">' +
                   '<div style="font-size: 18px; font-weight: bold; color: var(--text-sub); margin-bottom: 0px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.homePlayer + '</div>' +
                   '<div style="font-size: 150px; font-size: min(150px, 16vw); font-weight: 900; color: ' + (m.turn === 'home' ? 'var(--accent-home)' : 'var(--text-muted)') + '; line-height: 0.8; letter-spacing: -4px; margin: 2px 0;">' + m.homeScore + '</div>' +
-                  '<div class="corner-tag darts" style="left: 8px;">Pilar: ' + homeDarts + '</div>' +
-                  '<div class="corner-tag legs" style="right: 8px;">Legs: ' + m.homeLegs + '</div>' +
+                  '<div class="corner-square darts" style="left: 6px;">' + homeDarts + '</div>' +
+                  '<div class="corner-square legs" style="right: 6px;">' + m.homeLegs + '</div>' +
                 '</div>' +
-                '<div class="card" style="width: 49%; padding: 6px 2px 28px 2px; border-radius: 16px; border: ' + (m.turn === 'away' ? '4px solid var(--border-away)' : '1px solid var(--border-color)') + ';">' +
+                '<div class="card" style="width: 49%; padding: 6px 2px 34px 2px; border-radius: 16px; border: ' + (m.turn === 'away' ? '4px solid var(--border-away)' : '1px solid var(--border-color)') + ';">' +
                   '<div style="font-size: 18px; font-weight: bold; color: var(--text-sub); margin-bottom: 0px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + m.awayPlayer + '</div>' +
                   '<div style="font-size: 150px; font-size: min(150px, 16vw); font-weight: 900; color: ' + (m.turn === 'away' ? 'var(--accent-away)' : 'var(--text-muted)') + '; line-height: 0.8; letter-spacing: -4px; margin: 2px 0;">' + m.awayScore + '</div>' +
-                  '<div class="corner-tag legs" style="left: 8px;">Legs: ' + m.awayLegs + '</div>' +
-                  '<div class="corner-tag darts" style="right: 8px;">Pilar: ' + awayDarts + '</div>' +
+                  '<div class="corner-square legs" style="left: 6px;">' + m.awayLegs + '</div>' +
+                  '<div class="corner-square darts" style="right: 6px;">' + awayDarts + '</div>' +
                 '</div>' +
               '</div>';
 
-      // 2. EXAKT 3 SENASTE KAST
+      // 2. EXAKT 3 SENASTE KAST (Utan rubriker "Kast (Lagnamn)")
       var roundsList = m.rounds.slice().reverse().slice(0, 3);
       var hasHomeThrows = m.rounds.some(function(r) { return r.home; });
       var hasAwayThrows = m.rounds.some(function(r) { return r.away; });
 
       html += '<div class="recent-throws-container">' +
-                '<div class="recent-box home">' +
-                  '<div class="recent-title">Kast (' + m.homePlayer + ')</div>';
+                '<div class="recent-box home">';
       if (!hasHomeThrows) {
-        html += '<div style="color: var(--text-muted); font-size: 14px; padding-top: 45px;">Inga kast än</div>';
+        html += '<div style="color: var(--text-muted); font-size: 16px; display: flex; align-items: center; justify-content: center; height: 100%;">Inga kast än</div>';
       } else {
         for (var i = 0; i < roundsList.length; i++) {
           var r1 = roundsList[i];
@@ -403,10 +404,9 @@
       }
       html +=   '</div>';
 
-      html +=   '<div class="dart-col-box">' +
-                  '<div class="dart-col-title">Pil</div>';
+      html +=   '<div class="dart-col-box">';
       if (m.rounds.length === 0) {
-        html += '<div class="dart-col-row" style="color: var(--text-muted); padding-top: 45px;">-</div>';
+        html += '<div class="dart-col-row" style="color: var(--text-muted);">-</div>';
       } else {
         for (var d = 0; d < roundsList.length; d++) {
           var roundNum = m.rounds.length - d;
@@ -415,10 +415,9 @@
       }
       html +=   '</div>';
 
-      html +=   '<div class="recent-box">' +
-                  '<div class="recent-title">Kast (' + m.awayPlayer + ')</div>';
+      html +=   '<div class="recent-box">';
       if (!hasAwayThrows) {
-        html += '<div style="color: var(--text-muted); font-size: 14px; padding-top: 45px;">Inga kast än</div>';
+        html += '<div style="color: var(--text-muted); font-size: 16px; display: flex; align-items: center; justify-content: center; height: 100%;">Inga kast än</div>';
       } else {
         for (var j = 0; j < roundsList.length; j++) {
           var r2 = roundsList[j];
@@ -433,16 +432,16 @@
       html +=   '</div>' +
               '</div>';
 
-      // 3. SKALBAR, SÄKER HTML-TABELL FÖR GAMLA IPADS (4x4)
+      // 3. FÖRSTORAD NUMPAD TABELL (Fyller ut hela ytan utan död yta)
       if (!isFinished && !m.scoringActive) {
         html += '<table class="numpad-table">' +
                   '<tr>' +
                     '<td><button onclick="handleNumClick(\'1\')" class="numpad-btn-legacy">1</button></td>' +
                     '<td><button onclick="handleNumClick(\'2\')" class="numpad-btn-legacy">2</button></td>' +
                     '<td><button onclick="handleNumClick(\'3\')" class="numpad-btn-legacy">3</button></td>' +
-                    '<td rowspan="2" style="background-color: var(--input-bg); border: 2px solid #0284c7; border-radius: 12px; text-align: center; vertical-align: middle;">' +
-                      '<div style="font-size: 11px; color: var(--text-muted); font-weight: bold; letter-spacing: 1px;">INMATAT</div>' +
-                      '<div style="font-size: 42px; font-weight: 900; color: #f59e0b; line-height: 1; margin-top: 2px;">' + currentInskriven + '</div>' +
+                    '<td rowspan="2" style="background-color: var(--input-bg); border: 2px solid #0284c7; border-radius: 14px; text-align: center; vertical-align: middle;">' +
+                      '<div style="font-size: 12px; color: var(--text-muted); font-weight: bold; letter-spacing: 1px;">INMATAT</div>' +
+                      '<div style="font-size: 52px; font-weight: 900; color: #f59e0b; line-height: 1; margin-top: 2px;">' + currentInskriven + '</div>' +
                     '</td>' +
                   '</tr>' +
                   '<tr>' +
@@ -454,13 +453,13 @@
                     '<td><button onclick="handleNumClick(\'7\')" class="numpad-btn-legacy">7</button></td>' +
                     '<td><button onclick="handleNumClick(\'8\')" class="numpad-btn-legacy">8</button></td>' +
                     '<td><button onclick="handleNumClick(\'9\')" class="numpad-btn-legacy">9</button></td>' +
-                    '<td><button onclick="handleOpenRemainingModal()" class="numpad-btn-legacy" style="background-color: #0284c7; color: #fff; border: none; font-size: 16px;">Sätt kvar</button></td>' +
+                    '<td><button onclick="handleOpenRemainingModal()" class="numpad-btn-legacy" style="background-color: #0284c7; color: #fff; border: none; font-size: 20px;">Sätt kvar</button></td>' +
                   '</tr>' +
                   '<tr>' +
                     '<td><button onclick="handleNumClick(\'0\')" class="numpad-btn-legacy">0</button></td>' +
-                    '<td><button onclick="handleClear()" class="numpad-btn-legacy" style="background-color: #dc2626; color: #ffffff; border: none; font-size: 22px;">C</button></td>' +
-                    '<td><button onclick="handleEnterScore()" class="numpad-btn-legacy" style="background-color: #16a34a; color: #fff; border: none; font-size: 22px;">OK</button></td>' +
-                    '<td><button onclick="handleUndo()" class="numpad-btn-legacy" style="font-size: 16px;">Ångra</button></td>' +
+                    '<td><button onclick="handleClear()" class="numpad-btn-legacy" style="background-color: #dc2626; color: #ffffff; border: none; font-size: 28px;">C</button></td>' +
+                    '<td><button onclick="handleEnterScore()" class="numpad-btn-legacy" style="background-color: #16a34a; color: #fff; border: none; font-size: 28px;">OK</button></td>' +
+                    '<td><button onclick="handleUndo()" class="numpad-btn-legacy" style="font-size: 20px;">Ångra</button></td>' +
                   '</tr>' +
                 '</table>';
       } else if (m.scoringActive) {
