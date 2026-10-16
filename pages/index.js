@@ -474,6 +474,7 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
     </div>
   );
 }
+
 // --- 2. DOMAR VY ---
 function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) {
   const initialHome = match.currentHomePoints !== undefined ? match.currentHomePoints : 501;
@@ -1032,9 +1033,7 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
     </div>
   );
 }
-Här kommer Del 3 igen!
 
-JavaScript
 // --- 3. PUBLIK VY (NY TV-ANPASSD DESIGN MED EXAKT TILLDELNING AV STARTPILAR) ---
 function PublicView({ matchData, onSelectMatch }) {
   const subMatches = matchData.subMatches || [];
