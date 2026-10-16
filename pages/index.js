@@ -610,11 +610,11 @@ function PublicView({ matchData }) {
         </div>
       </div>
 
-      {/* DELMATCHEN I TV-GRID */}
+      {/* DELMATCHEN I TV-GRID (2 KOLUMNER) */}
       <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(620px, 1fr))',
+        gap: '16px',
         marginBottom: '25px'
       }}>
         {subMatches.map((sm) => {
@@ -771,7 +771,7 @@ function PublicView({ matchData }) {
 
               {/* MELLANRUM MELLAN BLOCKEN */}
               {isBlockGap && (
-                <div style={{ height: '16px' }} />
+                <div style={{ gridColumn: '1 / -1', height: '20px' }} />
               )}
             </React.Fragment>
           );
