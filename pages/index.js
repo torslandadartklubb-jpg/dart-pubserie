@@ -1034,7 +1034,7 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
   );
 }
 
-// --- 3. PUBLIK VY (MED TYDLIG RAMMARKERING AV VEM SOM KASTAR) ---
+// --- 3. PUBLIK VY (DISKRET OCH TYDLIG MARKERING PÅ POÄNGRUTAN) ---
 function PublicView({ matchData, onSelectMatch }) {
   const subMatches = matchData.subMatches || [];
   const homeTotalMatches = subMatches.filter(m => m.homeScore === 3).length;
@@ -1050,7 +1050,7 @@ function PublicView({ matchData, onSelectMatch }) {
     return HOME_STARTS.includes(sm.id) ? 'home' : 'away';
   };
 
-  const renderPlayerName = (name, isWinner, isLoser, isHome, startsMatch, isCurrentTurn) => {
+  const renderPlayerName = (name, isWinner, isLoser, isHome, startsMatch) => {
     const displayName = name || (isHome ? matchData.homeTeam : matchData.awayTeam) || 'Spelare';
     
     const ArrowIndicator = startsMatch ? (
@@ -1093,14 +1093,7 @@ function PublicView({ matchData, onSelectMatch }) {
       );
     }
     return (
-      <span style={{ 
-        fontSize: '16px', 
-        fontWeight: isCurrentTurn ? '900' : 'bold', 
-        color: isCurrentTurn ? '#ffffff' : '#f8fafc', 
-        display: 'inline-flex', 
-        alignItems: 'center', 
-        gap: '6px' 
-      }}>
+      <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#f8fafc', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
         {isHome && ArrowIndicator}
         <span>{displayName}</span>
         {!isHome && ArrowIndicator}
@@ -1247,19 +1240,7 @@ function PublicView({ matchData, onSelectMatch }) {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
                   
                   {/* ID & HEMMASPELARE */}
-                  <div style={{ 
-                    flex: 1, 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '12px', 
-                    overflow: 'hidden',
-                    padding: '6px 10px',
-                    borderRadius: '10px',
-                    border: isHomeTurn ? '3px solid #38bdf8' : '3px solid transparent',
-                    backgroundColor: isHomeTurn ? 'rgba(2, 132, 199, 0.25)' : 'transparent',
-                    boxShadow: isHomeTurn ? '0 0 12px rgba(56, 189, 248, 0.4)' : 'none',
-                    transition: 'all 0.3s ease'
-                  }}>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px', overflow: 'hidden' }}>
                     <span style={{
                       fontSize: '12px',
                       fontWeight: 'bold',
@@ -1274,45 +1255,49 @@ function PublicView({ matchData, onSelectMatch }) {
                       {sm.id}
                     </span>
                     <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {renderPlayerName(sm.homePlayer, isHomeWinner, isHomeLoser, true, homeStarts, isHomeTurn)}
+                      {renderPlayerName(sm.homePlayer, isHomeWinner, isHomeLoser, true, homeStarts)}
                     </div>
                   </div>
 
                   {/* MITTEN - POÄNG/RESULTAT */}
                   {isLive ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 8px' }}>
                       <div style={{ backgroundColor: '#1e293b', color: '#fff', fontSize: '18px', fontWeight: 'bold', padding: '6px 12px', borderRadius: '8px', border: '1px solid #475569' }}>
                         {sm.homeScore}
                       </div>
+                      
+                      {/* HEMMAPOÄNG - Tjockare linje vid tur */}
                       <div style={{ 
                         backgroundColor: '#020617', 
-                        color: isHomeTurn ? '#38bdf8' : '#ffee00', 
+                        color: '#ffee00', 
                         fontSize: '28px', 
                         fontWeight: '900', 
                         padding: '6px 14px', 
                         borderRadius: '8px', 
-                        border: isHomeTurn ? '2px solid #38bdf8' : '2px solid #334155', 
+                        border: isHomeTurn ? '3.5px solid #ffee00' : '1px solid #334155', 
                         minWidth: '75px', 
-                        textAlign: 'center', 
-                        boxShadow: isHomeTurn ? '0 0 12px rgba(56, 189, 248, 0.4)' : 'none' 
+                        textAlign: 'center'
                       }}>
                         {sm.currentHomePoints}
                       </div>
+
                       <span style={{ color: '#475569', fontWeight: 'bold', fontSize: '12px' }}>VS</span>
+
+                      {/* BORTAPOÄNG - Tjockare linje vid tur */}
                       <div style={{ 
                         backgroundColor: '#020617', 
-                        color: isAwayTurn ? '#f43f5e' : '#ffee00', 
+                        color: '#ffee00', 
                         fontSize: '28px', 
                         fontWeight: '900', 
                         padding: '6px 14px', 
                         borderRadius: '8px', 
-                        border: isAwayTurn ? '2px solid #f43f5e' : '2px solid #334155', 
+                        border: isAwayTurn ? '3.5px solid #ffee00' : '1px solid #334155', 
                         minWidth: '75px', 
-                        textAlign: 'center', 
-                        boxShadow: isAwayTurn ? '0 0 12px rgba(244, 63, 94, 0.4)' : 'none' 
+                        textAlign: 'center'
                       }}>
                         {sm.currentAwayPoints}
                       </div>
+
                       <div style={{ backgroundColor: '#1e293b', color: '#fff', fontSize: '18px', fontWeight: 'bold', padding: '6px 12px', borderRadius: '8px', border: '1px solid #475569' }}>
                         {sm.awayScore}
                       </div>
@@ -1341,20 +1326,8 @@ function PublicView({ matchData, onSelectMatch }) {
                   )}
 
                   {/* BORTASPELARE */}
-                  <div style={{ 
-                    flex: 1, 
-                    textAlign: 'right', 
-                    overflow: 'hidden', 
-                    textOverflow: 'ellipsis', 
-                    whiteSpace: 'nowrap',
-                    padding: '6px 10px',
-                    borderRadius: '10px',
-                    border: isAwayTurn ? '3px solid #f43f5e' : '3px solid transparent',
-                    backgroundColor: isAwayTurn ? 'rgba(225, 29, 72, 0.25)' : 'transparent',
-                    boxShadow: isAwayTurn ? '0 0 12px rgba(244, 63, 94, 0.4)' : 'none',
-                    transition: 'all 0.3s ease'
-                  }}>
-                    {renderPlayerName(sm.awayPlayer, isAwayWinner, isAwayLoser, false, awayStarts, isAwayTurn)}
+                  <div style={{ flex: 1, textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {renderPlayerName(sm.awayPlayer, isAwayWinner, isAwayLoser, false, awayStarts)}
                   </div>
                 </div>
               </button>
