@@ -22,7 +22,6 @@
       --border-away: #e11d48;
       --text-score: #f59e0b;
     }
-
     body.light-theme {
       --bg-main: #e2e8f0;
       --bg-card: #ffffff;
@@ -40,7 +39,6 @@
       background-color: #e2e8f0 !important;
       color: #0f172a !important;
     }
-
     body.light-theme .card,
     body.light-theme .recent-box,
     body.light-theme .input-box,
@@ -49,12 +47,10 @@
       border-color: #cbd5e1 !important;
       color: #0f172a !important;
     }
-
     body.light-theme .recent-row {
       border-bottom-color: #cbd5e1 !important;
       color: #0f172a !important;
     }
-
     html, body { width: 100%; height: 100%; background-color: var(--bg-main); color: var(--text-main); padding: 6px; overflow: hidden; }
     
     .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 10px; text-align: center; margin-bottom: 8px; position: relative; }
@@ -87,11 +83,9 @@
     
     .dart-col-box { width: 15%; display: flex; display: -webkit-flex; flex-direction: column; justify-content: space-around; align-items: center; height: 160px; overflow: hidden; }
     .dart-col-row { font-size: 20px; font-weight: 800; color: #0284c7; height: 50px; display: flex; align-items: center; justify-content: center; }
-
     .recent-row { font-size: 46px; font-weight: 900; border-bottom: 1px solid var(--border-color); height: 50px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-main); line-height: 1; }
     .recent-row:last-child { border-bottom: none; }
     .recent-rem { font-size: 20px; color: #0284c7; font-weight: bold; margin-left: 6px; }
-
     /* HÖRN-BOXAR FÖR LEGS OCH PILAR */
     .corner-square {
       position: absolute;
@@ -110,7 +104,6 @@
     }
     .corner-square.legs { color: var(--text-score); border-color: #d97706; }
     .corner-square.darts { color: #38bdf8; border-color: #0284c7; }
-
     /* TABELL LAYOUT FÖR NUMPAD */
     .numpad-table {
       width: 100%;
@@ -143,20 +136,16 @@
   </style>
 </head>
 <body>
-
   <div class="card" id="top-match-card">
     <div class="teams-title" id="main-teams">Laddar lag...</div>
     <div class="main-score" id="main-score">0 - 0</div>
   </div>
-
   <div id="start-view">
     <div class="section-title">Välj delmatch att döma:</div>
     <div class="match-list" id="match-list-container"></div>
   </div>
-
   <div id="judge-view"></div>
   <div class="status-text" id="status-bar">Status: Synkar...</div>
-
   <!-- FULLSKÄRMS-POPUP FÖR SCORING -->
   <div id="scoring-modal-overlay" class="modal-overlay" style="display: none;">
     <div class="modal-box" style="border: 3px solid #d97706; background-color: var(--bg-card); max-width: 520px;">
@@ -165,18 +154,15 @@
       <div style="color: #f59e0b; font-weight: 900; font-size: 16px; letter-spacing: 1px; margin-bottom: 6px; text-transform: uppercase;">
         🔥 SCORING (39 PILAR NÅDDA)
       </div>
-
       <!-- TUR-SKYLTA -->
       <div id="sc-turn-card" style="padding: 10px; border-radius: 12px; margin-bottom: 10px; border: 2px solid var(--border-color); background-color: var(--bg-item);">
         <div style="font-size: 12px; color: var(--text-muted); font-weight: bold; text-transform: uppercase;">Aktiv kastaress:</div>
         <div id="sc-turn-name" style="font-size: 22px; font-weight: 900; color: #38bdf8; margin-top: 2px;">-</div>
       </div>
-
       <!-- TILLFÄLLIG HISTORIK I SCORINGEN -->
       <div id="sc-history-summary" style="display: flex; justify-content: space-around; background: var(--bg-item); padding: 6px; border-radius: 8px; margin-bottom: 10px; font-size: 13px; color: var(--text-sub);">
         <!-- Fylls dynamiskt -->
       </div>
-
       <!-- SCORING NUMPAD -->
       <table class="numpad-table">
         <tr>
@@ -206,10 +192,8 @@
           <td><button onclick="handleUndoScoringStep()" class="numpad-btn-legacy" style="font-size: 18px;">Ångra</button></td>
         </tr>
       </table>
-
     </div>
   </div>
-
   <script>
     var SUPABASE_URL = 'https://luznainkmcogcqbuprzw.supabase.co';
     var SUPABASE_KEY = 'sb_publishable_6psZleJBdhdZFhUTutZqnw_Rr4Y2SI6';
@@ -220,6 +204,7 @@
     var activeSubIndex = null;
     var activeMatch = null;
     var isLightTheme = false;
+    var pollingTimer = null;
 
     if (window.localStorage && localStorage.getItem('dart_theme') === 'light') {
       isLightTheme = true;
@@ -258,19 +243,40 @@
       xhr.send(body ? JSON.stringify(body) : null);
     }
 
-    function loadMatchData() {
+    function loadMatchData(cb) {
       document.getElementById('status-bar').innerText = 'Hämtar data...';
       apiCall('GET', '/rest/v1/matches?id=eq.main_match', null, function(err, res) {
         if (!err && res && res.length > 0) {
           fullMatchData = res[0].data;
           if (!fullMatchData.performances) fullMatchData.performances = [];
-          renderStartUI();
+          if (activeSubIndex === null) {
+            renderStartUI();
+          }
           document.getElementById('status-bar').innerText = 'Synkad: ' + new Date().toLocaleTimeString();
+          if (cb) cb(null, fullMatchData);
         } else {
           document.getElementById('status-bar').innerText = 'Fel vid hämtning: ' + (err || 'Ingen data hittades');
-          document.getElementById('main-teams').innerText = 'Kunde inte ladda lag';
+          if (activeSubIndex === null) document.getElementById('main-teams').innerText = 'Kunde inte ladda lag';
+          if (cb) cb(err, null);
         }
       });
+    }
+
+    // Polla matchen var 3:e sekund när man är i startmenyn
+    function startPolling() {
+      stopPolling();
+      pollingTimer = setInterval(function() {
+        if (activeSubIndex === null) {
+          loadMatchData();
+        }
+      }, 3000);
+    }
+
+    function stopPolling() {
+      if (pollingTimer) {
+        clearInterval(pollingTimer);
+        pollingTimer = null;
+      }
     }
 
     function renderStartUI() {
@@ -302,7 +308,6 @@
         } else {
           btn.onclick = (function(idx) { return function() { selectSubMatch(idx); }; })(j);
         }
-
         var infoDiv = document.createElement('div');
         infoDiv.innerHTML = '<div class="match-info-tag">Delmatch ' + (idxMatch(j)) + '</div>' +
                             '<div class="match-players">' + (sm.homePlayer || 'Hemma') + ' vs ' + (sm.awayPlayer || 'Borta') + '</div>';
@@ -325,6 +330,7 @@
     }
 
     function selectSubMatch(index) {
+      stopPolling();
       activeSubIndex = index;
       var sm = fullMatchData.subMatches[index] || {};
       var matchId = idxMatch(index);
@@ -339,9 +345,7 @@
       
       var hPts = (sm.currentHomePoints !== undefined && sm.currentHomePoints !== null) ? sm.currentHomePoints : 501;
       var aPts = (sm.currentAwayPoints !== undefined && sm.currentAwayPoints !== null) ? sm.currentAwayPoints : 501;
-
       var isDouble = index >= 8;
-
       activeMatch = {
         id: matchId,
         type: isDouble ? 'double' : 'single',
@@ -367,7 +371,6 @@
       if (activeMatch.scoringActive) {
         initScoringState();
       }
-
       renderJudgeUI();
       triggerLiveUpdate();
     }
@@ -379,6 +382,7 @@
       document.getElementById('scoring-modal-overlay').style.display = 'none';
       document.getElementById('start-view').style.display = 'block';
       loadMatchData();
+      startPolling();
     }
 
     function countPlayerDarts(rounds, team) {
@@ -425,7 +429,6 @@
         var hP2 = homeTeamName + (hPlayers[1] ? ' - ' + hPlayers[1] : (hPlayers[0] ? ' - ' + hPlayers[0] : ''));
         var aP1 = awayTeamName + (aPlayers[0] ? ' - ' + aPlayers[0] : '');
         var aP2 = awayTeamName + (aPlayers[1] ? ' - ' + aPlayers[1] : (aPlayers[0] ? ' - ' + aPlayers[0] : ''));
-
         if (starter === 'home') {
           m.scoringState = {
             step: 0,
@@ -470,14 +473,11 @@
           '</div>';
         return;
       }
-
       var currentInskriven = m.inputVal || '0';
       var homeDarts = countPlayerDarts(m.rounds, 'home');
       var awayDarts = countPlayerDarts(m.rounds, 'away');
-
       var homeDisplayName = getDisplayPlayerName('home', m.homePlayer);
       var awayDisplayName = getDisplayPlayerName('away', m.awayPlayer);
-
       var html = '';
       // Header
       html += '<div style="display: flex; display: -webkit-flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">' +
@@ -506,12 +506,10 @@
                   '<div class="corner-square darts" style="right: 6px;">' + awayDarts + '</div>' +
                 '</div>' +
               '</div>';
-
       // 2. EXAKT 3 SENASTE KAST
       var roundsList = m.rounds.slice().reverse().slice(0, 3);
       var hasHomeThrows = m.rounds.some(function(r) { return r.home; });
       var hasAwayThrows = m.rounds.some(function(r) { return r.away; });
-
       html += '<div class="recent-throws-container">' +
                 '<div class="recent-box home">';
       if (!hasHomeThrows) {
@@ -528,7 +526,6 @@
         }
       }
       html +=   '</div>';
-
       html +=   '<div class="dart-col-box">';
       if (m.rounds.length === 0) {
         html += '<div class="dart-col-row" style="color: var(--text-muted);">-</div>';
@@ -539,7 +536,6 @@
         }
       }
       html +=   '</div>';
-
       html +=   '<div class="recent-box">';
       if (!hasAwayThrows) {
         html += '<div style="color: var(--text-muted); font-size: 16px; display: flex; align-items: center; justify-content: center; height: 100%;">Inga kast än</div>';
@@ -556,11 +552,9 @@
       }
       html +=   '</div>' +
               '</div>';
-
       // 3. VANLIG NUMPAD
       if (!isFinished && !m.scoringActive) {
         document.getElementById('scoring-modal-overlay').style.display = 'none';
-
         html += '<table class="numpad-table">' +
                   '<tr>' +
                     '<td><button onclick="handleNumClick(\'1\')" class="numpad-btn-legacy">1</button></td>' +
@@ -600,10 +594,8 @@
       if (!m || !m.scoringState) return;
       var modal = document.getElementById('scoring-modal-overlay');
       modal.style.display = 'flex';
-
       var state = m.scoringState;
       var curStepObj = state.queue[state.step];
-
       var turnNameEl = document.getElementById('sc-turn-name');
       var turnCardEl = document.getElementById('sc-turn-card');
       turnNameEl.innerText = curStepObj.label;
@@ -615,9 +607,7 @@
         turnNameEl.style.color = 'var(--accent-away)';
         turnCardEl.style.borderColor = 'var(--border-away)';
       }
-
       document.getElementById('sc-input-display').innerText = m.inputVal || '0';
-
       var summaryEl = document.getElementById('sc-history-summary');
       var summaryHtml = '';
       for (var i = 0; i < state.queue.length; i++) {
@@ -810,10 +800,8 @@
         alert('Ange en giltig poäng mellan 0 och 180.');
         return;
       }
-
       var state = m.scoringState;
       state.queue[state.step].score = val;
-
       if (state.step < state.queue.length - 1) {
         state.step++;
         m.inputVal = '';
@@ -825,7 +813,6 @@
           if (state.queue[i].team === 'home') totalHome += state.queue[i].score;
           else totalAway += state.queue[i].score;
         }
-
         if (totalHome === totalAway) {
           alert('Det blev oavgjort i scoringen (' + totalHome + ' - ' + totalAway + ')! Kör om omgången.');
           state.step = 0;
@@ -834,12 +821,10 @@
           renderScoringModal();
           return;
         }
-
         var winnerTeam = totalHome > totalAway ? 'home' : 'away';
         var homeTeamName = fullMatchData ? fullMatchData.homeTeam : 'Hemmalag';
         var awayTeamName = fullMatchData ? fullMatchData.awayTeam : 'Bortalag';
         var winnerName = winnerTeam === 'home' ? homeTeamName : awayTeamName;
-
         showScoringWinnerModal(winnerTeam, winnerName, totalHome, totalAway);
       }
     }
@@ -891,7 +876,6 @@
       };
     }
 
-    // KONTROLLERAR OM NÅGON VUNNIT HELA DELMATCHEN (3 LEGS)
     function checkMatchWinOrNextLeg(winningTeam) {
       var m = activeMatch;
       if (m.homeLegs === 3 || m.awayLegs === 3) {
@@ -903,7 +887,6 @@
       }
     }
 
-    // POPUP SOM VISAS NÄR MATCHEN ÄR VUNNEN (3-0, 3-1, 3-2 etc.)
     function showMatchWinModal(winnerName, scoreStr) {
       var modal = document.createElement('div');
       modal.className = 'modal-overlay';
@@ -922,7 +905,6 @@
           '</div>' +
         '</div>';
       document.body.appendChild(modal);
-
       document.getElementById('btn-win-ok').onclick = function() {
         document.body.removeChild(modal);
         if (fullMatchData && fullMatchData.subMatches[activeSubIndex]) {
@@ -931,7 +913,6 @@
         triggerLiveUpdate();
         showStartView();
       };
-
       document.getElementById('btn-win-undo').onclick = function() {
         document.body.removeChild(modal);
         handleUndo();
@@ -961,7 +942,6 @@
       m.scoringActive = false;
       m.scoringState = null;
       document.getElementById('scoring-modal-overlay').style.display = 'none';
-
       renderJudgeUI();
       triggerLiveUpdate();
     }
@@ -1073,42 +1053,61 @@
       };
     }
 
+    // ATOMIC MERGE: Hämta alltid senaste datan innan vi sparar
     function triggerLiveUpdate() {
-      if (activeSubIndex === null || !fullMatchData || !activeMatch) return;
-      var sm = fullMatchData.subMatches[activeSubIndex];
-      sm.homeScore = activeMatch.homeLegs;
-      sm.awayScore = activeMatch.awayLegs;
-      sm.currentHomePoints = activeMatch.homeScore;
-      sm.currentAwayPoints = activeMatch.awayScore;
-      sm.rounds = activeMatch.rounds;
-      sm.historyStack = activeMatch.historyStack;
-      sm.turn = activeMatch.turn;
-      sm.legStarter = activeMatch.legStarter;
-      sm.scoringActive = activeMatch.scoringActive;
-      if (fullMatchData.matchStatus !== 'finished') {
-        fullMatchData.matchStatus = 'ongoing';
-      }
-      if (sm.homeScore >= 3 || sm.awayScore >= 3) {
-        sm.status = 'completed';
-      } else {
-        sm.status = 'live';
-      }
-      if (activeMatch.performances && activeMatch.performances.length > 0) {
-        fullMatchData.performances = (fullMatchData.performances || []).concat(activeMatch.performances);
-        activeMatch.performances = [];
-      }
+      if (activeSubIndex === null || !activeMatch) return;
       document.getElementById('status-bar').innerText = 'Sparar...';
-      var payload = {
-        id: 'main_match',
-        data: fullMatchData,
-        updated_at: new Date().toISOString()
+
+      // 1. Skapa lokal kopia av vår aktiva delmatch
+      var mySubMatch = {
+        homeScore: activeMatch.homeLegs,
+        awayScore: activeMatch.awayLegs,
+        currentHomePoints: activeMatch.homeScore,
+        currentAwayPoints: activeMatch.awayScore,
+        rounds: activeMatch.rounds,
+        historyStack: activeMatch.historyStack,
+        turn: activeMatch.turn,
+        legStarter: activeMatch.legStarter,
+        scoringActive: activeMatch.scoringActive,
+        status: (activeMatch.homeLegs >= 3 || activeMatch.awayLegs >= 3) ? 'completed' : 'live'
       };
-      apiCall('POST', '/rest/v1/matches', payload, function(err) {
-        if (!err) {
-          document.getElementById('status-bar').innerText = 'Uppdaterat i realtid!';
-        } else {
-          document.getElementById('status-bar').innerText = 'Kunde inte spara: ' + err;
+
+      var newPerfs = activeMatch.performances ? activeMatch.performances.slice() : [];
+      activeMatch.performances = [];
+
+      // 2. Hämta SENASTE datan från Supabase först
+      apiCall('GET', '/rest/v1/matches?id=eq.main_match', null, function(err, res) {
+        var latestData = (res && res.length > 0 && res[0].data) ? res[0].data : fullMatchData;
+        
+        // 3. Uppdatera BARA vår delmatch i det färska objektet
+        if (latestData && latestData.subMatches && latestData.subMatches[activeSubIndex]) {
+          var targetSm = latestData.subMatches[activeSubIndex];
+          for (var key in mySubMatch) {
+            targetSm[key] = mySubMatch[key];
+          }
         }
+        if (latestData) {
+          if (latestData.matchStatus !== 'finished') latestData.matchStatus = 'ongoing';
+          if (newPerfs.length > 0) {
+            latestData.performances = (latestData.performances || []).concat(newPerfs);
+          }
+        }
+
+        fullMatchData = latestData;
+
+        // 4. Spara till Supabase
+        var payload = {
+          id: 'main_match',
+          data: fullMatchData,
+          updated_at: new Date().toISOString()
+        };
+        apiCall('POST', '/rest/v1/matches', payload, function(postErr) {
+          if (!postErr) {
+            document.getElementById('status-bar').innerText = 'Uppdaterat i realtid!';
+          } else {
+            document.getElementById('status-bar').innerText = 'Kunde inte spara: ' + postErr;
+          }
+        });
       });
     }
 
@@ -1118,6 +1117,7 @@
     }
 
     loadMatchData();
+    startPolling();
   </script>
 </body>
 </html>
