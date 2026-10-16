@@ -110,7 +110,6 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
     const homePlayers = (targetMatch.homePlayer || '').split(' / ').filter(Boolean);
     const awayPlayers = (targetMatch.awayPlayer || '').split(' / ').filter(Boolean);
     const matchPlayers = [...homePlayers, ...awayPlayers];
-
     const updatedSubMatches = (matchData.subMatches || []).map(sm => {
       if (sm.id === id) {
         return Object.assign({}, sm, {
@@ -123,11 +122,9 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
       }
       return sm;
     });
-
     const updatedPerformances = (matchData.performances || []).filter(p => {
       return matchPlayers.indexOf(p.player) === -1;
     });
-
     setMatchData(Object.assign({}, matchData, {
       subMatches: updatedSubMatches,
       performances: updatedPerformances
@@ -141,10 +138,8 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
     let parts = currentName.split(' / ');
     let p1 = parts[0] || '';
     let p2 = parts[1] || '';
-
     if (playerNum === 1) p1 = value;
     if (playerNum === 2) p2 = value;
-
     const combinedName = [p1, p2].filter(Boolean).join(' / ');
     handleSubMatchChange(id, fieldName, combinedName);
   };
@@ -164,23 +159,19 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
       textToSave = manualCheckoutScore + ' ut';
     }
     else if (newPerfTextType === 'custom') textToSave = customPerfText.trim();
-
     if (!textToSave) {
       alert('Ange prestationsbeskrivning.');
       return;
     }
-
     const newPerf = {
       id: Date.now(),
       team: newPerfTeam,
       player: newPerfPlayer.trim(),
       text: textToSave
     };
-
     setMatchData(Object.assign({}, matchData, {
       performances: matchData.performances.concat([newPerf])
     }));
-
     setNewPerfPlayer('');
     setCustomPerfText('');
     setManualCheckoutScore('');
@@ -246,7 +237,6 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
           🔒 Lås Admin
         </button>
       </div>
-
       <div style={{ backgroundColor: '#1e293b', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #334155', display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ color: '#e2e8f0', fontSize: '13px', fontWeight: 'bold' }}>🔄 MATCH-NOLLSTÄLLNING:</span>
         <div style={{ display: 'flex', gap: '10px' }}>
@@ -258,7 +248,6 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
           </button>
         </div>
       </div>
-
       <div style={{ backgroundColor: '#1e293b', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #334155' }}>
         <h2 style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: 'bold', marginBottom: '12px' }}>LAG OCH SPELARTRUPPER (4-7 Spelare)</h2>
         
@@ -287,7 +276,6 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
               </button>
             )}
           </div>
-
           <div>
             <label style={{ display: 'block', color: '#f43f5e', fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>BORTALAG</label>
             <input name="awayTeam" value={matchData.awayTeam} onChange={handleTeamChange} style={{ width: '100%', backgroundColor: '#334155', color: '#fff', padding: '8px', borderRadius: '4px', border: '1px solid #475569', marginBottom: '10px', boxSizing: 'border-box', fontWeight: 'bold' }} />
@@ -314,7 +302,6 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
           </div>
         </div>
       </div>
-
       <div style={{ backgroundColor: '#1e293b', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
         <h2 style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: 'bold', marginBottom: '10px' }}>VÄLJ SPELARE TILL MATCHERNAS UTTAGNING</h2>
         {(matchData.subMatches || []).map((sm) => {
@@ -322,11 +309,9 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
           const partsH = (sm.homePlayer || '').split(' / ');
           const hP1 = partsH[0] || '';
           const hP2 = partsH[1] || '';
-
           const partsA = (sm.awayPlayer || '').split(' / ');
           const aP1 = partsA[0] || '';
           const aP2 = partsA[1] || '';
-
           return (
             <div key={sm.id} style={{ borderBottom: '1px solid #334155', paddingBottom: '12px', marginBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
@@ -355,9 +340,7 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
                     </div>
                   )}
                 </div>
-
                 <span style={{ color: '#64748b', fontSize: '12px', fontWeight: 'bold' }}>VS</span>
-
                 <div style={{ flex: 1 }}>
                   {!isDouble ? (
                     <select
@@ -382,7 +365,6 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
                   )}
                 </div>
               </div>
-
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
                 <button
                   type="button"
@@ -400,13 +382,11 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
                 >
                   🔄 Nollställ Match
                 </button>
-
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', color: '#94a3b8' }}>
                   <span>Legs:</span>
                   <input type="number" min="0" max="3" value={sm.homeScore} onChange={(e) => handleSubMatchChange(sm.id, 'homeScore', e.target.value)} style={{ width: '45px', backgroundColor: '#0f172a', color: '#fcd34d', border: '1px solid #475569', borderRadius: '4px', textAlign: 'center', fontWeight: 'bold', padding: '2px' }} />
                   <span>-</span>
                   <input type="number" min="0" max="3" value={sm.awayScore} onChange={(e) => handleSubMatchChange(sm.id, 'awayScore', e.target.value)} style={{ width: '45px', backgroundColor: '#0f172a', color: '#fcd34d', border: '1px solid #475569', borderRadius: '4px', textAlign: 'center', fontWeight: 'bold', padding: '2px' }} />
-
                   <select value={sm.status} onChange={(e) => handleSubMatchChange(sm.id, 'status', e.target.value)} style={{ backgroundColor: '#0f172a', color: '#fff', border: '1px solid #475569', borderRadius: '4px', padding: '3px 6px' }}>
                     <option value="pending">Ej påbörjad</option>
                     <option value="live">Pågår (LIVE)</option>
@@ -418,16 +398,13 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
           );
         })}
       </div>
-
       <div style={{ backgroundColor: '#1e293b', padding: '15px', borderRadius: '8px' }}>
         <h2 style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: 'bold', marginBottom: '12px' }}>MANUELLA PRESTATIONER</h2>
-
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1.5fr auto', gap: '8px', marginBottom: '15px', alignItems: 'center' }}>
           <select value={newPerfTeam} onChange={(e) => setNewPerfTeam(e.target.value)} style={{ backgroundColor: '#334155', color: '#fff', padding: '8px', borderRadius: '4px', border: '1px solid #475569' }}>
             <option value="home">{matchData.homeTeam || 'Hemmalag'}</option>
             <option value="away">{matchData.awayTeam || 'Bortalag'}</option>
           </select>
-
           {allActivePlayers.length > 0 ? (
             <select value={newPerfPlayer} onChange={(e) => setNewPerfPlayer(e.target.value)} style={{ backgroundColor: '#334155', color: '#fff', padding: '8px', borderRadius: '4px', border: '1px solid #475569' }}>
               <option value="">-- Välj spelare --</option>
@@ -441,18 +418,15 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
               style={{ backgroundColor: '#334155', color: '#fff', padding: '8px', borderRadius: '4px', border: '1px solid #475569' }}
             />
           )}
-
           <select value={newPerfTextType} onChange={(e) => setNewPerfTextType(e.target.value)} style={{ backgroundColor: '#334155', color: '#fff', padding: '8px', borderRadius: '4px', border: '1px solid #475569' }}>
             <option value="180">180</option>
             <option value="utgang">Hög utgång (100+)</option>
             <option value="custom">Annan text...</option>
           </select>
-
           <button onClick={handleAddManualPerformance} style={{ backgroundColor: '#16a34a', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}>
             + Lägg till
           </button>
         </div>
-
         {newPerfTextType === 'utgang' && (
           <div style={{ marginBottom: '15px' }}>
             <input
@@ -464,7 +438,6 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
             />
           </div>
         )}
-
         {newPerfTextType === 'custom' && (
           <div style={{ marginBottom: '15px' }}>
             <input
@@ -475,7 +448,6 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
             />
           </div>
         )}
-
         <div style={{ backgroundColor: '#0f172a', padding: '10px', borderRadius: '6px', border: '1px solid #334155' }}>
           <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 'bold', marginBottom: '8px' }}>BEFINTLIGA PRESTATIONER ({(matchData.performances || []).length}):</div>
           {(matchData.performances || []).length === 0 ? (
@@ -502,40 +474,32 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
     </div>
   );
 }
-
 // --- 2. DOMAR VY ---
 function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) {
   const initialHome = match.currentHomePoints !== undefined ? match.currentHomePoints : 501;
   const initialAway = match.currentAwayPoints !== undefined ? match.currentAwayPoints : 501;
-
   const [homeScore, setHomeScore] = useState(initialHome);
   const [awayScore, setAwayScore] = useState(initialAway);
   const [homeLegs, setHomeLegs] = useState(match.homeScore || 0);
   const [awayLegs, setAwayLegs] = useState(match.awayScore || 0);
   const [status, setStatus] = useState(match.status || 'live');
-
   const [inputVal, setInputVal] = useState('');
   
   const getInitialStarter = () => {
     if (match.id === 'AD') return null;
     return HOME_STARTS_MATCHES.indexOf(match.id) !== -1 ? 'home' : 'away';
   };
-
   const [legStarter, setLegStarter] = useState(getInitialStarter);
   const [turn, setTurn] = useState(getInitialStarter);
-
   const [historyStack, setHistoryStack] = useState([]);
   const [rounds, setRounds] = useState([]);
   const [performances, setPerformances] = useState([]);
-
   const [confirmCheckout, setConfirmCheckout] = useState(null);
   const [confirmRemaining, setConfirmRemaining] = useState(null);
-
   const [scoringActive, setScoringActive] = useState(false);
   const [scoringHomeInput, setScoringHomeInput] = useState('');
   const [scoringAwayInput, setScoringAwayInput] = useState('');
   const [scoringConfirm, setScoringConfirm] = useState(null);
-
   const logContainerRef = useRef(null);
 
   useEffect(() => {
@@ -571,11 +535,9 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
   const recalculateRoundsAndScores = (currentRounds) => {
     let currentHome = 501;
     let currentAway = 501;
-
     const updatedRounds = currentRounds.map((r) => {
       let newHomeEntry = r.home;
       let newAwayEntry = r.away;
-
       if (r.home) {
         const score = r.home.rawScore;
         let rem = currentHome - score;
@@ -591,7 +553,6 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
           remaining: rem
         };
       }
-
       if (r.away) {
         const score = r.away.rawScore;
         let rem = currentAway - score;
@@ -607,13 +568,11 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
           remaining: rem
         };
       }
-
       return Object.assign({}, r, {
         home: newHomeEntry,
         away: newAwayEntry
       });
     });
-
     return {
       updatedRounds: updatedRounds,
       newHomeScore: currentHome,
@@ -657,25 +616,20 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
   const handleEnterScore = () => {
     if (isMatchFinished || !turn) return;
     const score = parseInt(inputVal || '0', 10);
-
     if (isNaN(score) || score > 180) {
       alert('Ange en giltig poäng mellan 0 och 180.');
       return;
     }
-
     if (IMPOSSIBLE_SCORES.indexOf(score) !== -1) {
       alert('Det går inte att få ' + score + ' poäng på 3 pilar!');
       setInputVal('');
       return;
     }
-
     if (status !== 'completed') {
       setStatus('live');
     }
-
     const currentScore = turn === 'home' ? homeScore : awayScore;
     const remaining = currentScore - score;
-
     if (remaining === 0) {
       if (IMPOSSIBLE_CHECKOUTS.indexOf(score) !== -1 || score > 170) {
         processScore(score);
@@ -684,7 +638,6 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
       setConfirmCheckout({ score: score, player: activePlayerName, team: turn });
       return;
     }
-
     processScore(score);
   };
 
@@ -692,24 +645,19 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
     if (isMatchFinished || !turn || !inputVal) return;
     const targetRemaining = parseInt(inputVal, 10);
     const currentScore = turn === 'home' ? homeScore : awayScore;
-
     if (isNaN(targetRemaining) || targetRemaining < 0 || targetRemaining >= currentScore) {
       alert('Återstående poäng måste vara mindre än nuvarande poäng (' + currentScore + ').');
       return;
     }
-
     const calculatedScored = currentScore - targetRemaining;
-
     if (calculatedScored > 180) {
       alert('Detta innebär att spelaren kastat ' + calculatedScored + ' poäng, vilket är över max 180.');
       return;
     }
-
     if (IMPOSSIBLE_SCORES.indexOf(calculatedScored) !== -1) {
       alert('Detta innebär att spelaren kastat ' + calculatedScored + ' poäng, vilket är ett omöjligt kast.');
       return;
     }
-
     setConfirmRemaining({ targetRemaining: targetRemaining, calculatedScored: calculatedScored, player: activePlayerName });
   };
 
@@ -717,14 +665,11 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
     if (!confirmRemaining) return;
     const calculatedScored = confirmRemaining.calculatedScored;
     setConfirmRemaining(null);
-
     if (status !== 'completed') {
       setStatus('live');
     }
-
     const currentScore = turn === 'home' ? homeScore : awayScore;
     const remaining = currentScore - calculatedScored;
-
     if (remaining === 0) {
       if (IMPOSSIBLE_CHECKOUTS.indexOf(calculatedScored) !== -1 || calculatedScored > 170) {
         processScore(calculatedScored);
@@ -733,36 +678,29 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
       setConfirmCheckout({ score: calculatedScored, player: activePlayerName, team: turn });
       return;
     }
-
     processScore(calculatedScored);
   };
 
   const processScore = (score, confirmedCheckout) => {
     saveStateToHistory();
-
     const currentScore = turn === 'home' ? homeScore : awayScore;
     let newScore = currentScore - score;
     let isBust = false;
-
     if (newScore < 0 || newScore === 1 || (newScore === 0 && (IMPOSSIBLE_CHECKOUTS.indexOf(score) !== -1 || score > 170))) {
       isBust = true;
       newScore = currentScore;
     }
-
     if (score === 180 && !isBust) {
       setPerformances(function(prev) { return prev.concat([{ id: Date.now(), team: turn, player: activePlayerName, text: '180' }]); });
     }
-
     const entryData = {
       rawScore: score,
       score: isBust ? 'BUST' : score,
       remaining: newScore
     };
-
     if (turn === 'home') {
       const updatedRounds = rounds.concat([{ round: (rounds.length + 1) * 3, home: entryData, away: null }]);
       setRounds(updatedRounds);
-
       if (confirmedCheckout) {
         checkAndAddCheckoutPerformances('home', activePlayerName, score, updatedRounds.length);
         const newHomeLegs = homeLegs + 1;
@@ -772,7 +710,6 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
         setInputVal('');
         return;
       }
-
       setHomeScore(newScore);
       setTurn('away');
     } else {
@@ -784,9 +721,7 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
       } else {
         updatedRounds = rounds.concat([{ round: (rounds.length + 1) * 3, home: null, away: entryData }]);
       }
-
       setRounds(updatedRounds);
-
       if (confirmedCheckout) {
         checkAndAddCheckoutPerformances('away', activePlayerName, score, updatedRounds.length);
         const newAwayLegs = awayLegs + 1;
@@ -796,32 +731,26 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
         setInputVal('');
         return;
       }
-
       setAwayScore(newScore);
-
       if (updatedRounds.length === 13) {
         setScoringActive(true);
         setInputVal('');
         return;
       }
-
       setTurn('home');
     }
-
     setInputVal('');
   };
 
   const checkAndAddCheckoutPerformances = (team, player, checkoutScore, roundsCount) => {
     const totalDarts = roundsCount * 3;
     const newPerfs = [];
-
     if (checkoutScore >= 100) {
       newPerfs.push({ id: Date.now() + 1, team: team, player: player, text: checkoutScore + ' ut' });
     }
     if (totalDarts <= 15) {
       newPerfs.push({ id: Date.now() + 2, team: team, player: player, text: totalDarts + ' pilars leg' });
     }
-
     if (newPerfs.length > 0) {
       setPerformances(function(prev) { return prev.concat(newPerfs); });
     }
@@ -830,7 +759,6 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
   const handleScoringSubmit = () => {
     const hVal = parseInt(scoringHomeInput, 10);
     const aVal = parseInt(scoringAwayInput, 10);
-
     if (isNaN(hVal) || hVal < 0 || hVal > 180 || IMPOSSIBLE_SCORES.indexOf(hVal) !== -1) {
       alert('Ogiltig poäng för ' + homeName + '.');
       return;
@@ -839,15 +767,12 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
       alert('Ogiltig poäng för ' + awayName + '.');
       return;
     }
-
     if (hVal === aVal) {
       alert('Det blev oavgjort! Scoring måste ge en vinnare (kasta igen vid oavgjort).');
       return;
     }
-
     const winner = hVal > aVal ? 'home' : 'away';
     const winnerName = winner === 'home' ? homeName : awayName;
-
     setScoringConfirm({ winner: winner, winnerName: winnerName, homeVal: hVal, awayVal: aVal });
   };
 
@@ -862,7 +787,6 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
       setAwayLegs(newLegs);
       if (newLegs === 3) setStatus('completed');
     }
-
     setScoringActive(false);
     setScoringConfirm(null);
     setScoringHomeInput('');
@@ -887,19 +811,15 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
     const targetRound = rounds[index];
     const currentEntry = team === 'home' ? targetRound.home : targetRound.away;
     if (!currentEntry) return;
-
     const currentVal = currentEntry.rawScore;
     const newValStr = prompt('Ändra kastad poäng för omgång ' + (index + 1) + ':', currentVal);
     if (newValStr === null) return;
-
     const newVal = parseInt(newValStr, 10);
     if (isNaN(newVal) || newVal < 0 || newVal > 180 || IMPOSSIBLE_SCORES.indexOf(newVal) !== -1) {
       alert('Ogiltig poäng.');
       return;
     }
-
     saveStateToHistory();
-
     const rawRounds = rounds.map((r, i) => {
       if (i === index) {
         var updatedTeam = Object.assign({}, r[team], { rawScore: newVal });
@@ -909,7 +829,6 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
       }
       return r;
     });
-
     const res = recalculateRoundsAndScores(rawRounds);
     setRounds(res.updatedRounds);
     setHomeScore(res.newHomeScore);
@@ -1054,7 +973,6 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
               Ångra
             </button>
           </div>
-
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
             {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
               <button key={num} onClick={() => handleNumClick(num.toString())} style={{ backgroundColor: '#1e293b', color: '#fff', border: 'none', padding: '14px', borderRadius: '10px', fontSize: '20px', fontWeight: 'bold', cursor: 'pointer' }}>
@@ -1114,6 +1032,9 @@ function N01Scorer({ match, homeTeam, awayTeam, onBack, onSave, onLiveUpdate }) 
     </div>
   );
 }
+Här kommer Del 3 igen!
+
+JavaScript
 // --- 3. PUBLIK VY (NY TV-ANPASSD DESIGN MED EXAKT TILLDELNING AV STARTPILAR) ---
 function PublicView({ matchData, onSelectMatch }) {
   const subMatches = matchData.subMatches || [];
@@ -1122,20 +1043,17 @@ function PublicView({ matchData, onSelectMatch }) {
   const homeTotalLegs = subMatches.reduce((sum, m) => sum + (m.homeScore || 0), 0);
   const awayTotalLegs = subMatches.reduce((sum, m) => sum + (m.awayScore || 0), 0);
 
-  // Exakt lista på matcher där hemmalaget börjar
   const HOME_STARTS = ['S1', 'D1', 'S4', 'S6', 'S7'];
 
-  // Hjälpfunktion för att avgöra vem som startar matchen
   const getMatchStarter = (sm) => {
-    if (sm.legStarter) return sm.legStarter; // Om legStarter finns sparat i kasten
-    if (sm.id === 'AD') return null; // AD avgörs av slantkastning
+    if (sm.legStarter) return sm.legStarter;
+    if (sm.id === 'AD') return null;
     return HOME_STARTS.includes(sm.id) ? 'home' : 'away';
   };
 
   const renderPlayerName = (name, isWinner, isLoser, isHome, startsMatch) => {
     const displayName = name || (isHome ? matchData.homeTeam : matchData.awayTeam) || 'Spelare';
     
-    // Pil-symbolen som visar vem som servar/börjar
     const ArrowIndicator = startsMatch ? (
       <span 
         title="Börjar kasta i matchen"
@@ -1267,7 +1185,6 @@ function PublicView({ matchData, onSelectMatch }) {
           const isHomeLoser = isCompleted && sm.awayScore === 3;
           const isAwayLoser = isCompleted && sm.homeScore === 3;
           const isBlockGap = sm.id === 'S3' || sm.id === 'D2' || sm.id === 'S8';
-
           const starter = getMatchStarter(sm);
           const homeStarts = starter === 'home';
           const awayStarts = starter === 'away';
@@ -1385,7 +1302,6 @@ function PublicView({ matchData, onSelectMatch }) {
                   </div>
                 </div>
               </button>
-
               {isBlockGap && (
                 <div style={{ gridColumn: '1 / -1', height: '20px' }} />
               )}
@@ -1441,6 +1357,7 @@ function PublicView({ matchData, onSelectMatch }) {
     </div>
   );
 }
+
 // --- 4. HUVUDKOMPONENT (App) ---
 export default function App() {
   const [activeTab, setActiveTab] = useState('public');
@@ -1485,7 +1402,6 @@ export default function App() {
           }
         )
         .subscribe();
-
       return () => {
         supabase.removeChannel(channel);
       };
@@ -1512,39 +1428,70 @@ export default function App() {
     setActiveTab('scorer');
   };
 
-  const handleLiveUpdateFromScorer = (subMatchId, updatedSubMatchData, scorerPerformances) => {
-    const updatedMatches = (matchData.subMatches || []).map(sm => sm.id === subMatchId ? Object.assign({}, sm, updatedSubMatchData) : sm);
-    
-    const existingPerfs = matchData.performances || [];
-    const newUniquePerformances = (scorerPerformances || []).filter(function(p) {
-      return !existingPerfs.some(function(ep) { return ep.id === p.id; });
-    });
+  const handleLiveUpdateFromScorer = async (subMatchId, updatedSubMatchData, scorerPerformances) => {
+    try {
+      // Hämta färsk data från Supabase innan sparning
+      const res = await supabase
+        .from('matches')
+        .select('data')
+        .eq('id', 'main_match')
+        .single();
+      
+      const latestData = (res && res.data && res.data.data) ? res.data.data : matchData;
+      
+      const updatedMatches = (latestData.subMatches || []).map(sm => 
+        sm.id === subMatchId ? Object.assign({}, sm, updatedSubMatchData) : sm
+      );
+      
+      const existingPerfs = latestData.performances || [];
+      const newUniquePerformances = (scorerPerformances || []).filter(function(p) {
+        return !existingPerfs.some(function(ep) { return ep.id === p.id; });
+      });
 
-    const updatedMatchData = Object.assign({}, matchData, {
-      subMatches: updatedMatches,
-      performances: existingPerfs.concat(newUniquePerformances)
-    });
+      const finalMatchData = Object.assign({}, latestData, {
+        subMatches: updatedMatches,
+        performances: existingPerfs.concat(newUniquePerformances)
+      });
 
-    saveToSupabase(updatedMatchData);
+      saveToSupabase(finalMatchData);
+    } catch (err) {
+      console.log('Fel vid uppdatering av match:', err);
+    }
   };
 
-  const handleSaveMatch = (updatedSubMatchData, newPerformances) => {
+  const handleSaveMatch = async (updatedSubMatchData, newPerformances) => {
     if (!selectedMatch) return;
-    const updatedMatches = (matchData.subMatches || []).map(sm => sm.id === selectedMatch.id ? Object.assign({}, sm, updatedSubMatchData) : sm);
-    
-    const existingPerfs = matchData.performances || [];
-    const newUniquePerformances = (newPerformances || []).filter(function(p) {
-      return !existingPerfs.some(function(ep) { return ep.id === p.id; });
-    });
+    try {
+      const res = await supabase
+        .from('matches')
+        .select('data')
+        .eq('id', 'main_match')
+        .single();
+      
+      const latestData = (res && res.data && res.data.data) ? res.data.data : matchData;
 
-    const updatedMatchData = Object.assign({}, matchData, {
-      subMatches: updatedMatches,
-      performances: existingPerfs.concat(newUniquePerformances)
-    });
+      const updatedMatches = (latestData.subMatches || []).map(sm => 
+        sm.id === selectedMatch.id ? Object.assign({}, sm, updatedSubMatchData) : sm
+      );
+      
+      const existingPerfs = latestData.performances || [];
+      const newUniquePerformances = (newPerformances || []).filter(function(p) {
+        return !existingPerfs.some(function(ep) { return ep.id === p.id; });
+      });
 
-    saveToSupabase(updatedMatchData);
-    setActiveTab('public');
-    setSelectedMatch(null);
+      const finalMatchData = Object.assign({}, latestData, {
+        subMatches: updatedMatches,
+        performances: existingPerfs.concat(newUniquePerformances)
+      });
+
+      saveToSupabase(finalMatchData);
+      setActiveTab('public');
+      setSelectedMatch(null);
+    } catch (err) {
+      console.log('Fel vid sparande av match:', err);
+      setActiveTab('public');
+      setSelectedMatch(null);
+    }
   };
 
   const handleAdminSetMatchData = (newData) => {
@@ -1570,7 +1517,6 @@ export default function App() {
         >
           📺 Publikvy
         </button>
-
         <button
           type="button"
           onClick={() => setActiveTab('admin')}
@@ -1588,11 +1534,9 @@ export default function App() {
           ⚙️ Admin
         </button>
       </div>
-
       {activeTab === 'public' && (
         <PublicView matchData={matchData} onSelectMatch={handleSelectMatch} />
       )}
-
       {activeTab === 'admin' && (
         <AdminView
           matchData={matchData}
@@ -1601,7 +1545,6 @@ export default function App() {
           setIsAdminAuthenticated={setIsAdminAuthenticated}
         />
       )}
-
       {activeTab === 'scorer' && selectedMatch && (
         <N01Scorer
           match={selectedMatch}
