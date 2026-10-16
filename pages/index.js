@@ -612,9 +612,9 @@ function PublicView({ matchData }) {
 
       {/* DELMATCHEN I TV-GRID */}
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(620px, 1fr))',
-        gap: '16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
         marginBottom: '25px'
       }}>
         {subMatches.map((sm) => {
@@ -648,7 +648,8 @@ function PublicView({ matchData }) {
                   opacity: isCompleted ? 0.88 : 1,
                   color: 'inherit',
                   position: 'relative',
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  boxSizing: 'border-box'
                 }}
               >
                 {/* LIVE BADGE INDIKATOR */}
@@ -767,8 +768,10 @@ function PublicView({ matchData }) {
                   </div>
                 </div>
               </div>
+
+              {/* MELLANRUM MELLAN BLOCKEN */}
               {isBlockGap && (
-                <div style={{ gridColumn: '1 / -1', height: '20px' }} />
+                <div style={{ height: '16px' }} />
               )}
             </React.Fragment>
           );
