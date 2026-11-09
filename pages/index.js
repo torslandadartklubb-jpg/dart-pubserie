@@ -481,7 +481,7 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
   );
 }
 
-// --- 2. STATISTIK VY (NY FLIK) ---
+// --- 2. STATISTIK VY (MED PILSNITT OCH EXAKT PILRÄKNING, UTAN REGLER) ---
 function StatsView({ matchData }) {
   const safeMatchData = matchData || {};
   const subMatches = safeMatchData.subMatches || [];
@@ -504,6 +504,9 @@ function StatsView({ matchData }) {
         matchesWon: 0,
         legsWon: 0,
         legsLost: 0,
+        totalScore: 0,
+        totalDarts: 0,
+        threeDartAvg: 0,
         highCheckouts: [],
         count180s: 0
       };
@@ -549,6 +552,34 @@ function StatsView({ matchData }) {
         });
       }
     }
+
+    // Beräkna poäng och exakta pilar från ronderna (ignorerar scoring)
+    if (sm.rounds && Array.isArray(sm.rounds)) {
+      sm.rounds.forEach(function(round) {
+        if (round.home && round.home.rawScore !== undefined && sm.homePlayer && !round.home.isScoring) {
+          var hScoreVal = round.home.score === 'BUST' ? 0 : (round.home.rawScore || 0);
+          var hDarts = round.home.dartsUsed !== undefined ? round.home.dartsUsed : 3;
+          sm.homePlayer.split(' / ').forEach(function(p) {
+            var cleanP = p.trim();
+            if (playerStats[cleanP]) {
+              playerStats[cleanP].totalScore += hScoreVal;
+              playerStats[cleanP].totalDarts += hDarts;
+            }
+          });
+        }
+        if (round.away && round.away.rawScore !== undefined && sm.awayPlayer && !round.away.isScoring) {
+          var aScoreVal = round.away.score === 'BUST' ? 0 : (round.away.rawScore || 0);
+          var aDarts = round.away.dartsUsed !== undefined ? round.away.dartsUsed : 3;
+          sm.awayPlayer.split(' / ').forEach(function(p) {
+            var cleanP = p.trim();
+            if (playerStats[cleanP]) {
+              playerStats[cleanP].totalScore += aScoreVal;
+              playerStats[cleanP].totalDarts += aDarts;
+            }
+          });
+        }
+      });
+    }
   });
 
   performances.forEach(function(perf) {
@@ -562,6 +593,9 @@ function StatsView({ matchData }) {
         matchesWon: 0,
         legsWon: 0,
         legsLost: 0,
+        totalScore: 0,
+        totalDarts: 0,
+        threeDartAvg: 0,
         highCheckouts: [],
         count180s: 0
       };
@@ -571,28 +605,46 @@ function StatsView({ matchData }) {
       playerStats[pName].count180s += 1;
     }
     if (txt.indexOf('ut') !== -1) {
-      playerStats[pName].highCheckouts.push(perf.text);
+      var checkoutVal = parseInt(perf.text, 10);
+      if (!isNaN(checkoutVal)) {
+        playerStats[pName].highCheckouts.push(checkoutVal);
+      }
     }
   });
 
   var playersArray = [];
   for (var key in playerStats) {
     if (playerStats.hasOwnProperty(key)) {
-      playersArray.push(playerStats[key]);
+      var pl = playerStats[key];
+      if (pl.totalDarts > 0) {
+        pl.threeDartAvg = parseFloat(((pl.totalScore / pl.totalDarts) * 3).toFixed(2));
+      } else {
+        pl.threeDartAvg = 0.0;
+      }
+
+      if (pl.highCheckouts.length > 0) {
+        pl.maxCheckout = Math.max.apply(null, pl.highCheckouts);
+      } else {
+        pl.maxCheckout = 0;
+      }
+
+      playersArray.push(pl);
     }
   }
 
+  // Sortera på pilsnitt (högst först)
+  playersArray.sort(function(a, b) {
+    return b.threeDartAvg - a.threeDartAvg;
+  });
+
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', fontFamily: 'sans-serif', color: '#fff', padding: '10px' }}>
-      <div style={{ backgroundColor: '#090d16', padding: '20px', borderRadius: '16px', border: '1px solid #1e293b', marginBottom: '25px' }}>
-        <h2 style={{ color: '#60a5fa', marginTop: 0, fontSize: '22px' }}>📊 Turneringens Statistik & Regler</h2>
-        <p style={{ color: '#94a3b8', fontSize: '14px', lineHeight: '1.6' }}>
-          Här sammanställs ställning, spelarnas form och prestationer. Matchregler: Standardmatcher (legs 1–4) spelas på max <strong style={{ color: '#38bdf8' }}>39 pilar</strong>, och det avgörande leget (leg 5 / decider) spelas på max <strong style={{ color: '#fcd34d' }}>60 pilar</strong>.
-        </p>
+      <div style={{ backgroundColor: '#090d16', padding: '20px', borderRadius: '16px', border: '1px solid #1e293b', marginBottom: '25px', textAlign: 'center' }}>
+        <h2 style={{ color: '#60a5fa', margin: 0, fontSize: '24px', letterSpacing: '1px' }}>STATISTIK</h2>
       </div>
 
       <div style={{ backgroundColor: '#090d16', padding: '20px', borderRadius: '16px', border: '1px solid #1e293b' }}>
-        <h3 style={{ color: '#fcd34d', marginTop: 0, fontSize: '18px', marginBottom: '15px' }}>Spelarstatistik</h3>
+        <h3 style={{ color: '#fcd34d', marginTop: 0, fontSize: '18px', marginBottom: '15px' }}>Spelarstatistik (Sorterad på 3-pilsnitt)</h3>
         {playersArray.length === 0 ? (
           <p style={{ color: '#64748b', fontStyle: 'italic' }}>Inga spelare registrerade ännu.</p>
         ) : (
@@ -605,8 +657,9 @@ function StatsView({ matchData }) {
                   <th style={{ padding: '10px', textAlign: 'center' }}>Matcher</th>
                   <th style={{ padding: '10px', textAlign: 'center' }}>Vinster</th>
                   <th style={{ padding: '10px', textAlign: 'center' }}>Legs (V-F)</th>
+                  <th style={{ padding: '10px', textAlign: 'center' }}>3-pils Snitt</th>
                   <th style={{ padding: '10px', textAlign: 'center' }}>180s</th>
-                  <th style={{ padding: '10px' }}>Höga utgångar</th>
+                  <th style={{ padding: '10px', textAlign: 'center' }}>Högsta Utgång</th>
                 </tr>
               </thead>
               <tbody>
@@ -618,9 +671,10 @@ function StatsView({ matchData }) {
                       <td style={{ padding: '12px', textAlign: 'center' }}>{pl.matchesPlayed}</td>
                       <td style={{ padding: '12px', textAlign: 'center', color: '#22c55e', fontWeight: 'bold' }}>{pl.matchesWon}</td>
                       <td style={{ padding: '12px', textAlign: 'center' }}>{pl.legsWon} - {pl.legsLost}</td>
+                      <td style={{ padding: '12px', textAlign: 'center', color: '#38bdf8', fontWeight: '900' }}>{pl.threeDartAvg > 0 ? pl.threeDartAvg.toFixed(2) : '-'}</td>
                       <td style={{ padding: '12px', textAlign: 'center', color: '#fcd34d', fontWeight: 'bold' }}>{pl.count180s > 0 ? pl.count180s : '-'}</td>
-                      <td style={{ padding: '12px' }}>
-                        {pl.highCheckouts.length > 0 ? pl.highCheckouts.join(', ') : '-'}
+                      <td style={{ padding: '12px', textAlign: 'center', color: '#a7f3d0', fontWeight: 'bold' }}>
+                        {pl.maxCheckout > 0 ? pl.maxCheckout : '-'}
                       </td>
                     </tr>
                   );
@@ -633,7 +687,7 @@ function StatsView({ matchData }) {
     </div>
   );
 }
-// --- 3. PUBLIKVYN ---
+// --- 3. PUBLIKVYN (MED LIVE HÖGST PILSNITT) ---
 function PublicView({ matchData }) {
   const safeMatchData = matchData || {};
   const subMatches = safeMatchData.subMatches || [];
@@ -641,15 +695,82 @@ function PublicView({ matchData }) {
   const awayTotalMatches = subMatches.filter(m => m.awayScore === 3).length;
   const homeTotalLegs = subMatches.reduce((sum, m) => sum + (m.homeScore || 0), 0);
   const awayTotalLegs = subMatches.reduce((sum, m) => sum + (m.awayScore || 0), 0);
+
+  const homeTeam = safeMatchData.homeTeam || 'Hemmalag';
+  const awayTeam = safeMatchData.awayTeam || 'Bortalag';
+
+  // Beräkna live vem som har högst pilsnitt för raden på publikvyn
+  var bestPlayerName = '-';
+  var bestPlayerAvg = 0;
+  var bestPlayerTeam = '';
+  var livePlayerStats = {};
+
+  const regP = function(name, team) {
+    if (!name) return;
+    var t = name.trim();
+    if (t && !livePlayerStats[t]) {
+      livePlayerStats[t] = { name: t, team: team, score: 0, darts: 0 };
+    }
+  };
+
+  (safeMatchData.homeRoster || []).forEach(function(p) { regP(p, homeTeam); });
+  (safeMatchData.awayRoster || []).forEach(function(p) { regP(p, awayTeam); });
+
+  subMatches.forEach(function(sm) {
+    if (sm.homePlayer) sm.homePlayer.split(' / ').forEach(function(p) { regP(p, homeTeam); });
+    if (sm.awayPlayer) sm.awayPlayer.split(' / ').forEach(function(p) { regP(p, awayTeam); });
+
+    if (sm.rounds && Array.isArray(sm.rounds)) {
+      sm.rounds.forEach(function(round) {
+        if (round.home && round.home.rawScore !== undefined && sm.homePlayer && !round.home.isScoring) {
+          var sc = round.home.score === 'BUST' ? 0 : (round.home.rawScore || 0);
+          var dt = round.home.dartsUsed !== undefined ? round.home.dartsUsed : 3;
+          sm.homePlayer.split(' / ').forEach(function(p) {
+            var tp = p.trim();
+            if (livePlayerStats[tp]) {
+              livePlayerStats[tp].score += sc;
+              livePlayerStats[tp].darts += dt;
+            }
+          });
+        }
+        if (round.away && round.away.rawScore !== undefined && sm.awayPlayer && !round.away.isScoring) {
+          var scA = round.away.score === 'BUST' ? 0 : (round.away.rawScore || 0);
+          var dtA = round.away.dartsUsed !== undefined ? round.away.dartsUsed : 3;
+          sm.awayPlayer.split(' / ').forEach(function(p) {
+            var tp = p.trim();
+            if (livePlayerStats[tp]) {
+              livePlayerStats[tp].score += scA;
+              livePlayerStats[tp].darts += dtA;
+            }
+          });
+        }
+      });
+    }
+  });
+
+  for (var k in livePlayerStats) {
+    if (livePlayerStats.hasOwnProperty(k)) {
+      var lp = livePlayerStats[k];
+      if (lp.darts > 0) {
+        var avg = (lp.score / lp.darts) * 3;
+        if (avg > bestPlayerAvg) {
+          bestPlayerAvg = avg;
+          bestPlayerName = lp.name;
+          bestPlayerTeam = lp.team;
+        }
+      }
+    }
+  }
+
   const HOME_STARTS = ['S1', 'D1', 'S4', 'S6', 'S7'];
   const getMatchStarter = (sm) => {
     if (sm.legStarter) return sm.legStarter;
     if (sm.id === 'AD') return null;
     return HOME_STARTS.includes(sm.id) ? 'home' : 'away';
   };
+
   const renderPlayerName = (name, isWinner, isLoser, isHome, startsMatch) => {
     const displayName = name || (isHome ? safeMatchData.homeTeam : safeMatchData.awayTeam) || 'Spelare';
-    
     const ArrowIndicator = startsMatch ? (
       <span 
         title="Börjar kasta i matchen"
@@ -707,7 +828,7 @@ function PublicView({ matchData }) {
         borderRadius: '20px',
         border: '2px solid #1e293b',
         padding: '24px 30px',
-        marginBottom: '25px',
+        marginBottom: '20px',
         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -756,6 +877,31 @@ function PublicView({ matchData }) {
               Legs: <strong style={{ color: '#fb7185', fontSize: '16px' }}>{awayTotalLegs}</strong>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* LIVE HÖGST PILSNITT RAD */}
+      <div style={{
+        backgroundColor: '#090d16',
+        borderRadius: '12px',
+        border: '1px solid #334155',
+        padding: '12px 20px',
+        marginBottom: '20px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <div style={{ fontSize: '14px', color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>
+          🎯 Högst pilsnitt (Live):
+        </div>
+        <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#fff' }}>
+          {bestPlayerName !== '-' ? (
+            <span>
+              <strong style={{ color: bestPlayerTeam === homeTeam ? '#60a5fa' : '#f43f5e' }}>{bestPlayerName}</strong> ({bestPlayerTeam}) — <span style={{ color: '#38bdf8', fontWeight: '900' }}>{bestPlayerAvg.toFixed(2)}</span> p
+            </span>
+          ) : (
+            <span style={{ color: '#64748b', fontStyle: 'italic' }}>Inga kast registrerade ännu</span>
+          )}
         </div>
       </div>
 
