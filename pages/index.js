@@ -481,7 +481,7 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
   );
 }
 
-// --- 2. STATISTIK VY (MED PILSNITT OCH EXAKT PILRÄKNING, UTAN REGLER) ---
+// --- 2. STATISTIK VY (ANPASSAD, STÖRRE LAYOUT, NUMRERAD) ---
 function StatsView({ matchData }) {
   const safeMatchData = matchData || {};
   const subMatches = safeMatchData.subMatches || [];
@@ -508,7 +508,7 @@ function StatsView({ matchData }) {
         totalDarts: 0,
         threeDartAvg: 0,
         highCheckouts: [],
-        count180s: 0
+        shortestLegs: []
       };
     }
   };
@@ -517,12 +517,8 @@ function StatsView({ matchData }) {
   (safeMatchData.awayRoster || []).forEach(function(p) { registerPlayer(p, awayTeam); });
 
   subMatches.forEach(function(sm) {
-    if (sm.homePlayer) {
-      sm.homePlayer.split(' / ').forEach(function(p) { registerPlayer(p, homeTeam); });
-    }
-    if (sm.awayPlayer) {
-      sm.awayPlayer.split(' / ').forEach(function(p) { registerPlayer(p, awayTeam); });
-    }
+    if (sm.homePlayer) sm.homePlayer.split(' / ').forEach(function(p) { registerPlayer(p, homeTeam); });
+    if (sm.awayPlayer) sm.awayPlayer.split(' / ').forEach(function(p) { registerPlayer(p, awayTeam); });
 
     const isCompleted = sm.status === 'completed' || sm.homeScore === 3 || sm.awayScore === 3;
     if (isCompleted) {
@@ -553,7 +549,6 @@ function StatsView({ matchData }) {
       }
     }
 
-    // Beräkna poäng och exakta pilar från ronderna (ignorerar scoring)
     if (sm.rounds && Array.isArray(sm.rounds)) {
       sm.rounds.forEach(function(round) {
         if (round.home && round.home.rawScore !== undefined && sm.homePlayer && !round.home.isScoring) {
@@ -597,17 +592,20 @@ function StatsView({ matchData }) {
         totalDarts: 0,
         threeDartAvg: 0,
         highCheckouts: [],
-        count180s: 0
+        shortestLegs: []
       };
     }
     var txt = (perf.text || '').toLowerCase();
-    if (txt.indexOf('180') !== -1) {
-      playerStats[pName].count180s += 1;
-    }
     if (txt.indexOf('ut') !== -1) {
       var checkoutVal = parseInt(perf.text, 10);
       if (!isNaN(checkoutVal)) {
         playerStats[pName].highCheckouts.push(checkoutVal);
+      }
+    }
+    if (txt.indexOf('pilars leg') !== -1) {
+      var legDarts = parseInt(perf.text, 10);
+      if (!isNaN(legDarts)) {
+        playerStats[pName].shortestLegs.push(legDarts);
       }
     }
   });
@@ -628,52 +626,65 @@ function StatsView({ matchData }) {
         pl.maxCheckout = 0;
       }
 
+      if (pl.shortestLegs.length > 0) {
+        pl.minDartsLeg = Math.min.apply(null, pl.shortestLegs);
+      } else {
+        pl.minDartsLeg = 0;
+      }
+
       playersArray.push(pl);
     }
   }
 
-  // Sortera på pilsnitt (högst först)
+  // Sortera på 3-pilsnitt (högst överst)
   playersArray.sort(function(a, b) {
     return b.threeDartAvg - a.threeDartAvg;
   });
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', fontFamily: 'sans-serif', color: '#fff', padding: '10px' }}>
-      <div style={{ backgroundColor: '#090d16', padding: '20px', borderRadius: '16px', border: '1px solid #1e293b', marginBottom: '25px', textAlign: 'center' }}>
-        <h2 style={{ color: '#60a5fa', margin: 0, fontSize: '24px', letterSpacing: '1px' }}>STATISTIK</h2>
+    <div style={{ width: '96%', maxWidth: '1400px', margin: '0 auto', fontFamily: 'sans-serif', color: '#fff', padding: '10px' }}>
+      <div style={{ backgroundColor: '#090d16', padding: '16px 24px', borderRadius: '16px', border: '1px solid #1e293b', marginBottom: '20px', textAlign: 'center' }}>
+        <h2 style={{ color: '#60a5fa', margin: 0, fontSize: '28px', fontWeight: '900', letterSpacing: '2px' }}>STATISTIK</h2>
       </div>
 
-      <div style={{ backgroundColor: '#090d16', padding: '20px', borderRadius: '16px', border: '1px solid #1e293b' }}>
-        <h3 style={{ color: '#fcd34d', marginTop: 0, fontSize: '18px', marginBottom: '15px' }}>Spelarstatistik (Sorterad på 3-pilsnitt)</h3>
+      <div style={{ backgroundColor: '#090d16', padding: '24px', borderRadius: '16px', border: '1px solid #1e293b', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
         {playersArray.length === 0 ? (
-          <p style={{ color: '#64748b', fontStyle: 'italic' }}>Inga spelare registrerade ännu.</p>
+          <p style={{ color: '#64748b', fontStyle: 'italic', fontSize: '18px', textAlign: 'center' }}>Inga spelare registrerade ännu.</p>
         ) : (
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '16px' }}>
               <thead>
-                <tr style={{ borderBottom: '2px solid #334155', color: '#94a3b8' }}>
-                  <th style={{ padding: '10px' }}>Spelare</th>
-                  <th style={{ padding: '10px' }}>Lag</th>
-                  <th style={{ padding: '10px', textAlign: 'center' }}>Matcher</th>
-                  <th style={{ padding: '10px', textAlign: 'center' }}>Vinster</th>
-                  <th style={{ padding: '10px', textAlign: 'center' }}>Legs (V-F)</th>
-                  <th style={{ padding: '10px', textAlign: 'center' }}>3-pils Snitt</th>
-                  <th style={{ padding: '10px', textAlign: 'center' }}>180s</th>
-                  <th style={{ padding: '10px', textAlign: 'center' }}>Högsta Utgång</th>
+                <tr style={{ borderBottom: '3px solid #334155', color: '#94a3b8', textTransform: 'uppercase', fontSize: '14px', letterSpacing: '1px' }}>
+                  <th style={{ padding: '14px 10px', width: '50px', textAlign: 'center' }}>#</th>
+                  <th style={{ padding: '14px 10px' }}>Spelare</th>
+                  <th style={{ padding: '14px 10px' }}>Lag</th>
+                  <th style={{ padding: '14px 10px', textAlign: 'center', color: '#38bdf8' }}>3-pils Snitt</th>
+                  <th style={{ padding: '14px 10px', textAlign: 'center' }}>Matcher</th>
+                  <th style={{ padding: '14px 10px', textAlign: 'center' }}>Vinster</th>
+                  <th style={{ padding: '14px 10px', textAlign: 'center' }}>Legs (V-F)</th>
+                  <th style={{ padding: '14px 10px', textAlign: 'center' }}>Kortast leg</th>
+                  <th style={{ padding: '14px 10px', textAlign: 'center' }}>Högsta Utgång</th>
                 </tr>
               </thead>
               <tbody>
                 {playersArray.map(function(pl, i) {
                   return (
-                    <tr key={i} style={{ borderBottom: '1px solid #1e293b' }}>
-                      <td style={{ padding: '12px', fontWeight: 'bold', color: '#f8fafc' }}>{pl.name}</td>
-                      <td style={{ padding: '12px', color: pl.team === homeTeam ? '#60a5fa' : '#f43f5e' }}>{pl.team}</td>
-                      <td style={{ padding: '12px', textAlign: 'center' }}>{pl.matchesPlayed}</td>
-                      <td style={{ padding: '12px', textAlign: 'center', color: '#22c55e', fontWeight: 'bold' }}>{pl.matchesWon}</td>
-                      <td style={{ padding: '12px', textAlign: 'center' }}>{pl.legsWon} - {pl.legsLost}</td>
-                      <td style={{ padding: '12px', textAlign: 'center', color: '#38bdf8', fontWeight: '900' }}>{pl.threeDartAvg > 0 ? pl.threeDartAvg.toFixed(2) : '-'}</td>
-                      <td style={{ padding: '12px', textAlign: 'center', color: '#fcd34d', fontWeight: 'bold' }}>{pl.count180s > 0 ? pl.count180s : '-'}</td>
-                      <td style={{ padding: '12px', textAlign: 'center', color: '#a7f3d0', fontWeight: 'bold' }}>
+                    <tr key={i} style={{ borderBottom: '1px solid #1e293b', height: '55px' }}>
+                      <td style={{ padding: '14px 10px', textAlign: 'center', fontWeight: 'bold', color: i === 0 ? '#fcd34d' : '#64748b', fontSize: '18px' }}>
+                        {i + 1}
+                      </td>
+                      <td style={{ padding: '14px 10px', fontWeight: 'bold', color: '#f8fafc', fontSize: '17px' }}>{pl.name}</td>
+                      <td style={{ padding: '14px 10px', color: pl.team === homeTeam ? '#60a5fa' : '#f43f5e', fontWeight: 'bold' }}>{pl.team}</td>
+                      <td style={{ padding: '14px 10px', textAlign: 'center', color: '#38bdf8', fontWeight: '900', fontSize: '20px' }}>
+                        {pl.threeDartAvg > 0 ? pl.threeDartAvg.toFixed(2) : '-'}
+                      </td>
+                      <td style={{ padding: '14px 10px', textAlign: 'center', fontSize: '16px' }}>{pl.matchesPlayed}</td>
+                      <td style={{ padding: '14px 10px', textAlign: 'center', color: '#22c55e', fontWeight: 'bold', fontSize: '17px' }}>{pl.matchesWon}</td>
+                      <td style={{ padding: '14px 10px', textAlign: 'center', fontSize: '16px' }}>{pl.legsWon} - {pl.legsLost}</td>
+                      <td style={{ padding: '14px 10px', textAlign: 'center', color: '#f59e0b', fontWeight: 'bold', fontSize: '16px' }}>
+                        {pl.minDartsLeg > 0 ? pl.minDartsLeg + ' pilar' : '-'}
+                      </td>
+                      <td style={{ padding: '14px 10px', textAlign: 'center', color: '#a7f3d0', fontWeight: 'bold', fontSize: '16px' }}>
                         {pl.maxCheckout > 0 ? pl.maxCheckout : '-'}
                       </td>
                     </tr>
@@ -699,7 +710,6 @@ function PublicView({ matchData }) {
   const homeTeam = safeMatchData.homeTeam || 'Hemmalag';
   const awayTeam = safeMatchData.awayTeam || 'Bortalag';
 
-  // Beräkna live vem som har högst pilsnitt för raden på publikvyn
   var bestPlayerName = '-';
   var bestPlayerAvg = 0;
   var bestPlayerTeam = '';
