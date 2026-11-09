@@ -156,7 +156,7 @@
   <div id="scoring-modal-overlay" class="modal-overlay" style="display: none;">
     <div class="modal-box" style="border: 3px solid #d97706; background-color: var(--bg-card); max-width: 520px;">
       <div id="sc-modal-title" style="color: #f59e0b; font-weight: 900; font-size: 16px; letter-spacing: 1px; margin-bottom: 6px; text-transform: uppercase;">
-        🔥 SCORING
+        🔥 SCORING (EJ STATISTIKGRUNDANDE)
       </div>
       <div id="sc-turn-card" style="padding: 10px; border-radius: 12px; margin-bottom: 10px; border: 2px solid var(--border-color); background-color: var(--bg-item);">
         <div style="font-size: 12px; color: var(--text-muted); font-weight: bold; text-transform: uppercase;">Aktiv kastaress:</div>
@@ -388,8 +388,10 @@
     function countPlayerDarts(rounds, team) {
       var count = 0;
       for (var i = 0; i < rounds.length; i++) {
-        if (team === 'home' && rounds[i].home) count += 3;
-        if (team === 'away' && rounds[i].away) count += 3;
+        var entry = team === 'home' ? rounds[i].home : rounds[i].away;
+        if (entry && !entry.isScoring) {
+          count += (entry.dartsUsed !== undefined ? entry.dartsUsed : 3);
+        }
       }
       return count;
     }
@@ -606,7 +608,7 @@
 
       var maxRounds = getMaxRoundsForCurrentLeg();
       var maxDarts = maxRounds * 3;
-      document.getElementById('sc-modal-title').innerText = '🔥 SCORING (' + maxDarts + ' PILAR NÅDDA)';
+      document.getElementById('sc-modal-title').innerText = '🔥 SCORING (' + maxDarts + ' PILAR NÅDDA - EJ STATISTIK)';
 
       var state = m.scoringState;
       var curStepObj = state.queue[state.step];
@@ -724,13 +726,13 @@
       var remaining = currentScore - score;
       if (remaining === 0) {
         if (IMPOSSIBLE_CHECKOUTS.indexOf(score) !== -1 || score > 170) {
-          processScore(score, false);
+          processScore(score, false, 3);
           return;
         }
         showCheckoutModal(score);
         return;
       }
-      processScore(score, false);
+      processScore(score, false, 3);
     }
 
     function handleOpenRemainingModal() {
@@ -750,7 +752,8 @@
       showRemainingModal(targetRemaining, calculatedScored);
     }
 
-    function processScore(score, confirmedCheckout) {
+    function processScore(score, confirmedCheckout, dartsUsedInTurn) {
+      var dartsCount = (dartsUsedInTurn !== undefined) ? dartsUsedInTurn : 3;
       saveStateToHistory();
       var m = activeMatch;
       var activePlayerName = m.turn === 'home' ? m.homePlayer : m.awayPlayer;
@@ -764,13 +767,13 @@
       if (score === 180 && !isBust) {
         m.performances.push({ id: Date.now(), team: m.turn, player: activePlayerName, text: '180' });
       }
-      var entryData = { rawScore: score, score: isBust ? 'BUST' : score, remaining: newScore };
+      var entryData = { rawScore: score, score: isBust ? 'BUST' : score, remaining: newScore, dartsUsed: dartsCount, isScoring: false };
       var maxRoundsLimit = getMaxRoundsForCurrentLeg();
 
       if (m.turn === 'home') {
         m.rounds.push({ round: (m.rounds.length + 1) * 3, home: entryData, away: null });
         if (confirmedCheckout) {
-          checkAndAddCheckoutPerformances('home', activePlayerName, score, m.rounds.length);
+          checkAndAddCheckoutPerformances('home', activePlayerName, score, m.rounds);
           m.homeLegs++;
           m.homeScore = 0;
           checkMatchWinOrNextLeg('home');
@@ -787,7 +790,7 @@
           m.rounds.push({ round: (m.rounds.length + 1) * 3, home: null, away: entryData });
         }
         if (confirmedCheckout) {
-          checkAndAddCheckoutPerformances('away', activePlayerName, score, m.rounds.length);
+          checkAndAddCheckoutPerformances('away', activePlayerName, score, m.rounds);
           m.awayLegs++;
           m.awayScore = 0;
           checkMatchWinOrNextLeg('away');
@@ -842,6 +845,14 @@
         var homeTeamName = fullMatchData ? fullMatchData.homeTeam : 'Hemmalag';
         var awayTeamName = fullMatchData ? fullMatchData.awayTeam : 'Bortalag';
         var winnerName = winnerTeam === 'home' ? homeTeamName : awayTeamName;
+
+        // Flagga scoring i rounds så det exkluderas från pilsnittet i index.js
+        m.rounds.push({
+          round: (m.rounds.length + 1) * 3,
+          home: { rawScore: totalHome, score: totalHome, remaining: 0, dartsUsed: 3, isScoring: true },
+          away: { rawScore: totalAway, score: totalAway, remaining: 0, dartsUsed: 3, isScoring: true }
+        });
+
         showScoringWinnerModal(winnerTeam, winnerName, totalHome, totalAway);
       }
     }
@@ -934,12 +945,18 @@
       };
     }
 
-    function checkAndAddCheckoutPerformances(team, player, checkoutScore, roundsCount) {
-      var totalDarts = roundsCount * 3;
+    function checkAndAddCheckoutPerformances(team, player, checkoutScore, rounds) {
+      var totalDarts = 0;
+      for (var i = 0; i < rounds.length; i++) {
+        var entry = team === 'home' ? rounds[i].home : rounds[i].away;
+        if (entry && !entry.isScoring) {
+          totalDarts += (entry.dartsUsed !== undefined ? entry.dartsUsed : 3);
+        }
+      }
       if (checkoutScore >= 100) {
         activeMatch.performances.push({ id: Date.now() + 1, team: team, player: player, text: checkoutScore + ' ut' });
       }
-      if (totalDarts <= 15) {
+      if (totalDarts > 0 && totalDarts <= 15) {
         activeMatch.performances.push({ id: Date.now() + 2, team: team, player: player, text: totalDarts + ' pilars leg' });
       }
     }
@@ -993,7 +1010,7 @@
           var isBust1 = rem1 < 0 || rem1 === 1 || (rem1 === 0 && (IMPOSSIBLE_CHECKOUTS.indexOf(s1) !== -1 || s1 > 170));
           if (isBust1) rem1 = currentHome;
           else currentHome = rem1;
-          r.home = { rawScore: s1, score: isBust1 ? 'BUST' : s1, remaining: rem1 };
+          r.home = { rawScore: s1, score: isBust1 ? 'BUST' : s1, remaining: rem1, dartsUsed: r.home.dartsUsed || 3, isScoring: r.home.isScoring || false };
         }
         if (r.away) {
           var s2 = r.away.rawScore;
@@ -1001,7 +1018,7 @@
           var isBust2 = rem2 < 0 || rem2 === 1 || (rem2 === 0 && (IMPOSSIBLE_CHECKOUTS.indexOf(s2) !== -1 || s2 > 170));
           if (isBust2) rem2 = currentAway;
           else currentAway = rem2;
-          r.away = { rawScore: s2, score: isBust2 ? 'BUST' : s2, remaining: rem2 };
+          r.away = { rawScore: s2, score: isBust2 ? 'BUST' : s2, remaining: rem2, dartsUsed: r.away.dartsUsed || 3, isScoring: r.away.isScoring || false };
         }
       }
       m.homeScore = currentHome;
@@ -1026,10 +1043,45 @@
       document.body.appendChild(modal);
       document.getElementById('btn-yes').onclick = function() {
         document.body.removeChild(modal);
-        processScore(score, true);
+        showDartsUsedModal(score);
       };
       document.getElementById('btn-no').onclick = function() {
         document.body.removeChild(modal);
+      };
+    }
+
+    function showDartsUsedModal(score) {
+      var m = activeMatch;
+      var playerName = getDisplayPlayerName(m.turn, m.turn === 'home' ? m.homePlayer : m.awayPlayer);
+      var modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.style.zIndex = '130';
+      modal.innerHTML = 
+        '<div class="modal-box" style="border: 3px solid #38bdf8;">' +
+          '<div style="font-size: 36px; margin-bottom: 6px;">🎯</div>' +
+          '<h3 style="font-size: 22px; margin-bottom: 8px;">Hur många pilar krävdes?</h3>' +
+          '<p style="color: var(--text-sub); font-size: 15px; margin-bottom: 20px;">' +
+            'Hur många pilar använde <strong style="color: #38bdf8;">' + playerName + '</strong> i sista omgången för att gå ut på ' + score + '?' +
+          '</p>' +
+          '<div style="display: flex; display: -webkit-flex; gap: 10px;">' +
+            '<button id="btn-dart-1" style="flex: 1; background-color: #0284c7; color: #fff; border: none; padding: 18px 8px; border-radius: 12px; font-size: 20px; font-weight: bold; cursor: pointer;">1 pil</button>' +
+            '<button id="btn-dart-2" style="flex: 1; background-color: #0284c7; color: #fff; border: none; padding: 18px 8px; border-radius: 12px; font-size: 20px; font-weight: bold; cursor: pointer;">2 pilar</button>' +
+            '<button id="btn-dart-3" style="flex: 1; background-color: #0284c7; color: #fff; border: none; padding: 18px 8px; border-radius: 12px; font-size: 20px; font-weight: bold; cursor: pointer;">3 pilar</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(modal);
+
+      document.getElementById('btn-dart-1').onclick = function() {
+        document.body.removeChild(modal);
+        processScore(score, true, 1);
+      };
+      document.getElementById('btn-dart-2').onclick = function() {
+        document.body.removeChild(modal);
+        processScore(score, true, 2);
+      };
+      document.getElementById('btn-dart-3').onclick = function() {
+        document.body.removeChild(modal);
+        processScore(score, true, 3);
       };
     }
 
@@ -1055,13 +1107,13 @@
         var rem = currentScore - calculatedScored;
         if (rem === 0) {
           if (IMPOSSIBLE_CHECKOUTS.indexOf(calculatedScored) !== -1 || calculatedScored > 170) {
-            processScore(calculatedScored, false);
+            processScore(calculatedScored, false, 3);
             return;
           }
           showCheckoutModal(calculatedScored);
           return;
         }
-        processScore(calculatedScored, false);
+        processScore(calculatedScored, false, 3);
       };
       document.getElementById('btn-rem-no').onclick = function() {
         document.body.removeChild(modal);
