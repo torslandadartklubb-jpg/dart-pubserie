@@ -697,7 +697,7 @@ function StatsView({ matchData }) {
     </div>
   );
 }
-// --- 3. PUBLIKVY (BREDDARE MATCHER, TOPP 3 PÅ PILSNITT TILL HÖGER, KOMPAKT STATISTIK LÄNGST NER) ---
+// --- 3. PUBLIKVY (HÖGRE MATCH-KORT, STÖRRE MELLANRUM, ALLA SPELARE VISAS & OPTIMERAD ÖVERSIKT) ---
 function PublicView({ matchData }) {
   const safeMatchData = matchData || {};
   const subMatches = safeMatchData.subMatches || [];
@@ -838,26 +838,26 @@ function PublicView({ matchData }) {
   const renderPlayerName = (name, isWinner, isLoser, isHome, startsMatch) => {
     const displayName = name || (isHome ? safeMatchData.homeTeam : safeMatchData.awayTeam) || 'Spelare';
     const ArrowIndicator = startsMatch ? (
-      <span style={{ fontSize: '11px', color: '#38bdf8', backgroundColor: '#0f172a', border: '1px solid #0284c7', padding: '1px 5px', borderRadius: '4px', fontWeight: '900', display: 'inline-block' }}>
+      <span style={{ fontSize: '13px', color: '#38bdf8', backgroundColor: '#0f172a', border: '1px solid #0284c7', padding: '2px 6px', borderRadius: '4px', fontWeight: '900', display: 'inline-block' }}>
         {isHome ? '▶' : '◀'}
       </span>
     ) : null;
     if (isWinner) {
       return (
-        <span style={{ fontSize: '16px', fontWeight: '900', color: '#22c55e', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+        <span style={{ fontSize: '18px', fontWeight: '900', color: '#22c55e', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
           {isHome && ArrowIndicator} {isHome && <span>🏆</span>} <span>{displayName}</span> {!isHome && <span>🏆</span>} {!isHome && ArrowIndicator}
         </span>
       );
     }
     if (isLoser) {
       return (
-        <span style={{ fontSize: '15px', fontWeight: 'normal', color: '#64748b', opacity: 0.8, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+        <span style={{ fontSize: '17px', fontWeight: 'normal', color: '#64748b', opacity: 0.8, display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
           {isHome && ArrowIndicator} <span>{displayName}</span> {!isHome && ArrowIndicator}
         </span>
       );
     }
     return (
-      <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#f8fafc', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+      <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#f8fafc', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
         {isHome && ArrowIndicator} <span>{displayName}</span> {!isHome && ArrowIndicator}
       </span>
     );
@@ -885,26 +885,30 @@ function PublicView({ matchData }) {
       <div key={sm.id} style={{
         backgroundColor: isLive ? '#0a1733' : isCompleted ? '#081220' : '#0f172a',
         borderRadius: '16px',
-        padding: '12px 18px',
+        padding: '16px 20px',
         border: isLive ? '2px solid #22c55e' : isCompleted ? '1px solid #059669' : '1px solid #1e293b',
         boxShadow: isLive ? '0 0 20px rgba(34, 197, 94, 0.3)' : '0 4px 6px rgba(0,0,0,0.3)',
         opacity: isCompleted ? 0.85 : 1,
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        minHeight: '85px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center'
       }}>
         {isLive && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ width: '8px', height: '8px', backgroundColor: '#22c55e', borderRadius: '50%', boxShadow: '0 0 8px #22c55e' }}></span>
+              <span style={{ width: '9px', height: '9px', backgroundColor: '#22c55e', borderRadius: '50%', boxShadow: '0 0 8px #22c55e' }}></span>
               <span style={{ color: '#22c55e', fontWeight: '900', fontSize: '11px', letterSpacing: '1px' }}>
                 PÅGÅR — MATCH {sm.id}
               </span>
             </div>
-            <span style={{ fontSize: '9px', backgroundColor: '#22c55e', color: '#000', padding: '2px 5px', borderRadius: '4px', fontWeight: '900' }}>LIVE</span>
+            <span style={{ fontSize: '10px', backgroundColor: '#22c55e', color: '#000', padding: '2px 6px', borderRadius: '4px', fontWeight: '900' }}>LIVE</span>
           </div>
         )}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-            <span style={{ fontSize: '13px', fontWeight: 'bold', color: isCompleted ? '#10b981' : '#eab308', backgroundColor: '#020617', padding: '4px 8px', borderRadius: '6px', textAlign: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
+            <span style={{ fontSize: '14px', fontWeight: 'bold', color: isCompleted ? '#10b981' : '#eab308', backgroundColor: '#020617', padding: '6px 10px', borderRadius: '6px', textAlign: 'center' }}>
               {sm.id}
             </span>
             <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -913,27 +917,27 @@ function PublicView({ matchData }) {
           </div>
 
           {isLive ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '0 4px' }}>
-              <div style={{ backgroundColor: '#1e293b', color: '#fff', fontSize: '15px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '6px', border: '1px solid #475569' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 6px' }}>
+              <div style={{ backgroundColor: '#1e293b', color: '#fff', fontSize: '17px', fontWeight: 'bold', padding: '6px 10px', borderRadius: '8px', border: '1px solid #475569' }}>
                 {sm.homeScore || 0}
               </div>
-              <div style={{ backgroundColor: '#020617', color: '#ffee00', fontSize: '22px', fontWeight: '900', padding: '4px 10px', borderRadius: '6px', border: isHomeTurn ? '2.5px solid #ffee00' : '1px solid #334155', minWidth: '60px', textAlign: 'center' }}>
+              <div style={{ backgroundColor: '#020617', color: '#ffee00', fontSize: '26px', fontWeight: '900', padding: '6px 14px', borderRadius: '8px', border: isHomeTurn ? '3px solid #ffee00' : '1px solid #334155', minWidth: '70px', textAlign: 'center', boxShadow: isHomeTurn ? '0 0 12px rgba(255, 238, 0, 0.4)' : 'none' }}>
                 {sm.currentHomePoints ?? 501}
               </div>
-              <span style={{ color: '#475569', fontSize: '11px' }}>VS</span>
-              <div style={{ backgroundColor: '#020617', color: '#ffee00', fontSize: '22px', fontWeight: '900', padding: '4px 10px', borderRadius: '6px', border: isAwayTurn ? '2.5px solid #ffee00' : '1px solid #334155', minWidth: '60px', textAlign: 'center' }}>
+              <span style={{ color: '#475569', fontSize: '12px', fontWeight: 'bold' }}>VS</span>
+              <div style={{ backgroundColor: '#020617', color: '#ffee00', fontSize: '26px', fontWeight: '900', padding: '6px 14px', borderRadius: '8px', border: isAwayTurn ? '3px solid #ffee00' : '1px solid #334155', minWidth: '70px', textAlign: 'center', boxShadow: isAwayTurn ? '0 0 12px rgba(255, 238, 0, 0.4)' : 'none' }}>
                 {sm.currentAwayPoints ?? 501}
               </div>
-              <div style={{ backgroundColor: '#1e293b', color: '#fff', fontSize: '15px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '6px', border: '1px solid #475569' }}>
+              <div style={{ backgroundColor: '#1e293b', color: '#fff', fontSize: '17px', fontWeight: 'bold', padding: '6px 10px', borderRadius: '8px', border: '1px solid #475569' }}>
                 {sm.awayScore || 0}
               </div>
             </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div style={{ backgroundColor: isCompleted ? '#022c22' : '#020617', padding: '5px 12px', borderRadius: '6px', border: isCompleted ? '1px solid #059669' : '1px solid #334155', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '16px', fontWeight: 'bold', color: isCompleted ? '#34d399' : '#64748b' }}>{sm.homeScore || 0}</span>
-                <span style={{ color: '#475569', fontSize: '11px' }}>-</span>
-                <span style={{ fontSize: '16px', fontWeight: 'bold', color: isCompleted ? '#34d399' : '#64748b' }}>{sm.awayScore || 0}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ backgroundColor: isCompleted ? '#022c22' : '#020617', padding: '8px 16px', borderRadius: '8px', border: isCompleted ? '1px solid #059669' : '1px solid #334155', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '18px', fontWeight: 'bold', color: isCompleted ? '#34d399' : '#64748b' }}>{sm.homeScore || 0}</span>
+                <span style={{ color: '#475569', fontSize: '12px' }}>-</span>
+                <span style={{ fontSize: '18px', fontWeight: 'bold', color: isCompleted ? '#34d399' : '#64748b' }}>{sm.awayScore || 0}</span>
               </div>
             </div>
           )}
@@ -949,8 +953,8 @@ function PublicView({ matchData }) {
   const renderBlock = (items) => {
     if (!items || items.length === 0) return null;
     return (
-      <div style={{ marginBottom: '16px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
           {items.map(sm => renderMatchCard(sm))}
         </div>
       </div>
@@ -960,10 +964,10 @@ function PublicView({ matchData }) {
   return (
     <div style={{ width: '98vw', margin: '0 auto', fontFamily: 'sans-serif', color: '#fff', padding: '5px 0' }}>
       
-      {/* HUVUDGRID: VÄNSTER (MATCHFAKTORER) & HÖGER (TOPP 3 PILSNITT) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '16px', alignItems: 'start' }}>
+      {/* HUVUDGRID: VÄNSTER (MATCHFAKTORER) & HÖGER (ALLA SPELARE I PILSNITT) */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '16px', alignItems: 'start' }}>
         
-        {/* VÄNSTER SPALT: CENTRERAD SCOREBOARD + BLOCKVIS UTAN TEXT */}
+        {/* VÄNSTER SPALT: CENTRERAD SCOREBOARD + BLOCKMED STÖRRE MELLANRUM */}
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           
           {/* CENTRERAD SCOREBOARD BANNER */}
@@ -972,7 +976,7 @@ function PublicView({ matchData }) {
             borderRadius: '16px',
             border: '2px solid #1e293b',
             padding: '16px 30px',
-            marginBottom: '16px',
+            marginBottom: '20px',
             boxShadow: '0 10px 20px rgba(0, 0, 0, 0.5)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -999,7 +1003,7 @@ function PublicView({ matchData }) {
             </div>
           </div>
 
-          {/* MATCHBLOCK (Utan rubriktexter, enbart mellanrum) */}
+          {/* MATCHBLOCK */}
           {renderBlock(block1)}
           {renderBlock(block2)}
           {renderBlock(block3)}
@@ -1007,7 +1011,7 @@ function PublicView({ matchData }) {
 
         </div>
 
-        {/* HÖGER SPALT: LIVE PILSNITT (TOPP 3 + SCROLLBART FÖR RESTEN) */}
+        {/* HÖGER SPALT: LIVE PILSNITT (ALLA SPELARE UTAN RULLISTA, STÖRRE NAMN) */}
         <div style={{
           backgroundColor: '#090d16',
           borderRadius: '20px',
@@ -1021,10 +1025,10 @@ function PublicView({ matchData }) {
             <h3 style={{ color: '#fcd34d', margin: 0, fontSize: '17px', fontWeight: '900', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span>🎯</span> LIVE PILSNITT
             </h3>
-            <span style={{ fontSize: '10px', backgroundColor: '#22c55e', color: '#000', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>TOPP 3</span>
+            <span style={{ fontSize: '10px', backgroundColor: '#22c55e', color: '#000', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>ALLA SPELARE</span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '420px', overflowY: 'auto', paddingRight: '4px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {livePlayersArr.map((pl, idx) => {
               const isTop1 = idx === 0 && pl.threeDartAvg > 0;
               const isTop2 = idx === 1 && pl.threeDartAvg > 0;
@@ -1033,7 +1037,7 @@ function PublicView({ matchData }) {
               return (
                 <div key={idx} style={{
                   backgroundColor: isTop1 ? '#1e293b' : '#0f172a',
-                  padding: '10px 12px',
+                  padding: '12px 14px',
                   borderRadius: '10px',
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -1041,27 +1045,27 @@ function PublicView({ matchData }) {
                   border: isTop1 ? '1px solid #fcd34d' : isTop2 ? '1px solid #94a3b8' : isTop3 ? '1px solid #b45309' : '1px solid #1e293b',
                   boxShadow: isTop1 ? '0 0 10px rgba(252, 211, 77, 0.15)' : 'none'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
                     <span style={{
                       fontWeight: '900',
-                      fontSize: '13px',
+                      fontSize: '15px',
                       color: isTop1 ? '#fcd34d' : isTop2 ? '#cbd5e1' : isTop3 ? '#f97316' : '#475569',
-                      minWidth: '20px'
+                      minWidth: '22px'
                     }}>
                       #{idx + 1}
                     </span>
-                    <strong style={{ color: pl.team === homeTeam ? '#60a5fa' : '#f43f5e', fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <strong style={{ color: pl.team === homeTeam ? '#60a5fa' : '#f43f5e', fontSize: '16px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {pl.name}
                     </strong>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
                     {pl.maxCheckout > 0 && (
-                      <span style={{ color: '#a7f3d0', fontSize: '10px', fontWeight: 'bold', backgroundColor: '#064e3b', padding: '1px 5px', borderRadius: '4px' }} title="Högsta utgång">
+                      <span style={{ color: '#a7f3d0', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#064e3b', padding: '2px 6px', borderRadius: '4px' }} title="Högsta utgång">
                         ut {pl.maxCheckout}
                       </span>
                     )}
-                    <span style={{ color: '#38bdf8', fontWeight: '900', fontSize: '16px' }}>
+                    <span style={{ color: '#38bdf8', fontWeight: '900', fontSize: '18px' }}>
                       {pl.threeDartAvg > 0 ? pl.threeDartAvg.toFixed(2) : '-'}
                     </span>
                   </div>
@@ -1070,7 +1074,7 @@ function PublicView({ matchData }) {
             })}
             
             {livePlayersArr.length === 0 && (
-              <div style={{ color: '#64748b', fontSize: '13px', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>
+              <div style={{ color: '#64748b', fontSize: '14px', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>
                 Inga kast registrerade än
               </div>
             )}
@@ -1079,48 +1083,48 @@ function PublicView({ matchData }) {
 
       </div>
 
-      {/* KOMPAKT FULLSTÄNDIG STATISTIK LÄNGST NER */}
-      <div style={{ marginTop: '20px', backgroundColor: '#090d16', borderRadius: '16px', border: '1px solid #1e293b', padding: '16px 20px', boxShadow: '0 10px 20px rgba(0,0,0,0.4)' }}>
-        <h3 style={{ color: '#60a5fa', margin: '0 0 12px 0', fontSize: '16px', fontWeight: 'bold', borderBottom: '1px solid #1e293b', paddingBottom: '8px' }}>
+      {/* MATCHSTATISTIK & SPELARÖVERSIKT (ANPASSAD BREDD LÄNGST NER) */}
+      <div style={{ marginTop: '24px', backgroundColor: '#090d16', borderRadius: '20px', border: '2px solid #1e293b', padding: '20px 24px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
+        <h3 style={{ color: '#60a5fa', margin: '0 0 16px 0', fontSize: '18px', fontWeight: 'bold', borderBottom: '1px solid #1e293b', paddingBottom: '10px' }}>
           📊 Matchstatistik & Spelaröversikt
         </h3>
         {livePlayersArr.length === 0 ? (
-          <div style={{ color: '#64748b', fontSize: '13px', fontStyle: 'italic', textAlign: 'center', padding: '10px' }}>Ingen statistik tillgänglig ännu.</div>
+          <div style={{ color: '#64748b', fontSize: '14px', fontStyle: 'italic', textAlign: 'center', padding: '15px' }}>Ingen statistik tillgänglig ännu.</div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
               <thead>
-                <tr style={{ borderBottom: '2px solid #334155', color: '#94a3b8', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '1px' }}>
-                  <th style={{ padding: '8px', width: '35px', textAlign: 'center' }}>#</th>
-                  <th style={{ padding: '8px' }}>Spelare</th>
-                  <th style={{ padding: '8px' }}>Lag</th>
-                  <th style={{ padding: '8px', textAlign: 'center', color: '#38bdf8' }}>3-pils Snitt</th>
-                  <th style={{ padding: '8px', textAlign: 'center' }}>Matcher</th>
-                  <th style={{ padding: '8px', textAlign: 'center' }}>Vinster</th>
-                  <th style={{ padding: '8px', textAlign: 'center' }}>Legs (V-F)</th>
-                  <th style={{ padding: '8px', textAlign: 'center' }}>Kortast leg</th>
-                  <th style={{ padding: '8px', textAlign: 'center' }}>Högsta Utgång</th>
+                <tr style={{ borderBottom: '2px solid #334155', color: '#94a3b8', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '1px' }}>
+                  <th style={{ padding: '10px', width: '40px', textAlign: 'center' }}>#</th>
+                  <th style={{ padding: '10px' }}>Spelare</th>
+                  <th style={{ padding: '10px' }}>Lag</th>
+                  <th style={{ padding: '10px', textAlign: 'center', color: '#38bdf8' }}>3-pils Snitt</th>
+                  <th style={{ padding: '10px', textAlign: 'center' }}>Matcher</th>
+                  <th style={{ padding: '10px', textAlign: 'center' }}>Vinster</th>
+                  <th style={{ padding: '10px', textAlign: 'center' }}>Legs (V-F)</th>
+                  <th style={{ padding: '10px', textAlign: 'center' }}>Kortast leg</th>
+                  <th style={{ padding: '10px', textAlign: 'center' }}>Högsta Utgång</th>
                 </tr>
               </thead>
               <tbody>
                 {livePlayersArr.map(function(pl, i) {
                   return (
-                    <tr key={i} style={{ borderBottom: '1px solid #1e293b', height: '38px' }}>
-                      <td style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', color: i === 0 ? '#fcd34d' : '#64748b' }}>
+                    <tr key={i} style={{ borderBottom: '1px solid #1e293b', height: '42px' }}>
+                      <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: i === 0 ? '#fcd34d' : '#64748b' }}>
                         {i + 1}
                       </td>
-                      <td style={{ padding: '8px', fontWeight: 'bold', color: '#f8fafc' }}>{pl.name}</td>
-                      <td style={{ padding: '8px', color: pl.team === homeTeam ? '#60a5fa' : '#f43f5e', fontWeight: 'bold' }}>{pl.team}</td>
-                      <td style={{ padding: '8px', textAlign: 'center', color: '#38bdf8', fontWeight: '900', fontSize: '15px' }}>
+                      <td style={{ padding: '10px', fontWeight: 'bold', color: '#f8fafc' }}>{pl.name}</td>
+                      <td style={{ padding: '10px', color: pl.team === homeTeam ? '#60a5fa' : '#f43f5e', fontWeight: 'bold' }}>{pl.team}</td>
+                      <td style={{ padding: '10px', textAlign: 'center', color: '#38bdf8', fontWeight: '900', fontSize: '16px' }}>
                         {pl.threeDartAvg > 0 ? pl.threeDartAvg.toFixed(2) : '-'}
                       </td>
-                      <td style={{ padding: '8px', textAlign: 'center' }}>{pl.matchesPlayed}</td>
-                      <td style={{ padding: '8px', textAlign: 'center', color: '#22c55e', fontWeight: 'bold' }}>{pl.matchesWon}</td>
-                      <td style={{ padding: '8px', textAlign: 'center' }}>{pl.legsWon} - {pl.legsLost}</td>
-                      <td style={{ padding: '8px', textAlign: 'center', color: '#f59e0b', fontWeight: 'bold' }}>
+                      <td style={{ padding: '10px', textAlign: 'center' }}>{pl.matchesPlayed}</td>
+                      <td style={{ padding: '10px', textAlign: 'center', color: '#22c55e', fontWeight: 'bold' }}>{pl.matchesWon}</td>
+                      <td style={{ padding: '10px', textAlign: 'center' }}>{pl.legsWon} - {pl.legsLost}</td>
+                      <td style={{ padding: '10px', textAlign: 'center', color: '#f59e0b', fontWeight: 'bold' }}>
                         {pl.minDartsLeg > 0 ? pl.minDartsLeg + ' pilar' : '-'}
                       </td>
-                      <td style={{ padding: '8px', textAlign: 'center', color: '#a7f3d0', fontWeight: 'bold' }}>
+                      <td style={{ padding: '10px', textAlign: 'center', color: '#a7f3d0', fontWeight: 'bold' }}>
                         {pl.maxCheckout > 0 ? pl.maxCheckout : '-'}
                       </td>
                     </tr>
