@@ -480,7 +480,6 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
     </div>
   );
 }
-
 // --- 2. STATISTIK VY ---
 function StatsView({ matchData }) {
   const safeMatchData = matchData || {};
@@ -525,6 +524,7 @@ function StatsView({ matchData }) {
       const hScore = sm.homeScore || 0;
       const aScore = sm.awayScore || 0;
 
+      // Matcher och legs räknas för alla (även dubbel)
       if (sm.homePlayer) {
         sm.homePlayer.split(' / ').forEach(function(p) {
           var cleanP = p.trim();
@@ -549,7 +549,8 @@ function StatsView({ matchData }) {
       }
     }
 
-    if (sm.rounds && Array.isArray(sm.rounds)) {
+    // SNITT OCH PILAR RÄKNAS ENDAST FÖR SINGELMATCHER!
+    if (sm.type === 'single' && sm.rounds && Array.isArray(sm.rounds)) {
       sm.rounds.forEach(function(round) {
         if (round.home && round.home.rawScore !== undefined && sm.homePlayer && !round.home.isScoring) {
           var hScoreVal = round.home.score === 'BUST' ? 0 : (round.home.rawScore || 0);
@@ -697,7 +698,8 @@ function StatsView({ matchData }) {
     </div>
   );
 }
-// --- 3. PUBLIKVY (HÖGRE MATCH-KORT, STÖRRE MELLANRUM, ALLA SPELARE VISAS & OPTIMERAD ÖVERSIKT) ---
+
+// --- 3. PUBLIKVY ---
 function PublicView({ matchData }) {
   const safeMatchData = matchData || {};
   const subMatches = safeMatchData.subMatches || [];
@@ -765,7 +767,8 @@ function PublicView({ matchData }) {
       }
     }
 
-    if (sm.rounds && Array.isArray(sm.rounds)) {
+    // SNITT OCH PILAR RÄKNAS ENDAST FÖR SINGELMATCHER!
+    if (sm.type === 'single' && sm.rounds && Array.isArray(sm.rounds)) {
       sm.rounds.forEach(function(round) {
         if (round.home && round.home.rawScore !== undefined && sm.homePlayer && !round.home.isScoring) {
           var sc = round.home.score === 'BUST' ? 0 : (round.home.rawScore || 0);
@@ -967,7 +970,7 @@ function PublicView({ matchData }) {
       {/* HUVUDGRID: VÄNSTER (MATCHFAKTORER) & HÖGER (ALLA SPELARE I PILSNITT) */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '16px', alignItems: 'start' }}>
         
-        {/* VÄNSTER SPALT: CENTRERAD SCOREBOARD + BLOCKMED STÖRRE MELLANRUM */}
+        {/* VÄNSTER SPALT: CENTRERAD SCOREBOARD + BLOCK MED STÖRRE MELLANRUM */}
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           
           {/* CENTRERAD SCOREBOARD BANNER */}
@@ -1025,7 +1028,7 @@ function PublicView({ matchData }) {
             <h3 style={{ color: '#fcd34d', margin: 0, fontSize: '17px', fontWeight: '900', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span>🎯</span> LIVE PILSNITT
             </h3>
-            <span style={{ fontSize: '10px', backgroundColor: '#22c55e', color: '#000', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>ALLA SPELARE</span>
+            <span style={{ fontSize: '10px', backgroundColor: '#22c55e', color: '#000', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>ENDAST SINGEL</span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1083,10 +1086,10 @@ function PublicView({ matchData }) {
 
       </div>
 
-      {/* MATCHSTATISTIK & SPELARÖVERSIKT (ANPASSAD BREDD LÄNGST NER) */}
+      {/* MATCHSTATISTIK & SPELARÖVERSIKT */}
       <div style={{ marginTop: '24px', backgroundColor: '#090d16', borderRadius: '20px', border: '2px solid #1e293b', padding: '20px 24px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
         <h3 style={{ color: '#60a5fa', margin: '0 0 16px 0', fontSize: '18px', fontWeight: 'bold', borderBottom: '1px solid #1e293b', paddingBottom: '10px' }}>
-          📊 Matchstatistik & Spelaröversikt
+          📊 Matchstatistik & Spelaröversikt (Singelmatcher)
         </h3>
         {livePlayersArr.length === 0 ? (
           <div style={{ color: '#64748b', fontSize: '14px', fontStyle: 'italic', textAlign: 'center', padding: '15px' }}>Ingen statistik tillgänglig ännu.</div>
@@ -1139,7 +1142,6 @@ function PublicView({ matchData }) {
     </div>
   );
 }
-
 // --- 4. HUVUDKOMPONENT (App) ---
 export default function App() {
   const [activeTab, setActiveTab] = useState('public');
