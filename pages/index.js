@@ -119,6 +119,8 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
           awayScore: 0,
           currentHomePoints: 501,
           currentAwayPoints: 501,
+          rounds: [],
+          completedLegs: [],
           status: 'pending'
         });
       }
@@ -480,8 +482,9 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
     </div>
   );
 }
-// --- 2. STATISTIK VY ---
-function StatsView({ matchData }) {
+
+// --- GEMENSAM BERÄKNINGSHJÄLP FÖR STATISTIK & PILSNITT (ÖVER ALLA DELMATCHER & LEG) ---
+function calculatePlayerStats(matchData) {
   const safeMatchData = matchData || {};
   const subMatches = safeMatchData.subMatches || [];
   const performances = safeMatchData.performances || [];
@@ -506,6 +509,7 @@ function StatsView({ matchData }) {
         totalScore: 0,
         totalDarts: 0,
         threeDartAvg: 0,
+        bestLegAvg: 0,
         highCheckouts: [],
         shortestLegs: []
       };
@@ -524,7 +528,6 @@ function StatsView({ matchData }) {
       const hScore = sm.homeScore || 0;
       const aScore = sm.awayScore || 0;
 
-      // Matcher och legs räknas för alla (även dubbel)
       if (sm.homePlayer) {
         sm.homePlayer.split(' / ').forEach(function(p) {
           var cleanP = p.trim();
@@ -549,28 +552,75 @@ function StatsView({ matchData }) {
       }
     }
 
-    // SNITT OCH PILAR RÄKNAS ENDAST FÖR SINGELMATCHER!
-    if (sm.type === 'single' && sm.rounds && Array.isArray(sm.rounds)) {
-      sm.rounds.forEach(function(round) {
-        if (round.home && round.home.rawScore !== undefined && sm.homePlayer && !round.home.isScoring) {
-          var hScoreVal = round.home.score === 'BUST' ? 0 : (round.home.rawScore || 0);
-          var hDarts = round.home.dartsUsed !== undefined ? round.home.dartsUsed : 3;
+    // GÅ IGENOM BÅDE AVSLUTADE LEG (completedLegs) OCH AKTUELLA RUNDOR (rounds) FÖR TOTALA SNITTET OCH BÄSTA LEG
+    if (sm.type === 'single') {
+      var allLegs = [];
+      if (sm.completedLegs && Array.isArray(sm.completedLegs)) {
+        allLegs = allLegs.concat(sm.completedLegs);
+      }
+      if (sm.rounds && Array.isArray(sm.rounds) && sm.rounds.length > 0) {
+        allLegs.push({ rounds: sm.rounds });
+      }
+
+      allLegs.forEach(function(legObj) {
+        var legRounds = legObj.rounds || [];
+        var homeLegScore = 0;
+        var homeLegDarts = 0;
+        var awayLegScore = 0;
+        var awayLegDarts = 0;
+
+        legRounds.forEach(function(round) {
+          if (round.home && round.home.rawScore !== undefined && !round.home.isScoring) {
+            var hScoreVal = round.home.score === 'BUST' ? 0 : (round.home.rawScore || 0);
+            var hDarts = round.home.dartsUsed !== undefined ? round.home.dartsUsed : 3;
+            homeLegScore += hScoreVal;
+            homeLegDarts += hDarts;
+
+            if (sm.homePlayer) {
+              sm.homePlayer.split(' / ').forEach(function(p) {
+                var cleanP = p.trim();
+                if (playerStats[cleanP]) {
+                  playerStats[cleanP].totalScore += hScoreVal;
+                  playerStats[cleanP].totalDarts += hDarts;
+                }
+              });
+            }
+          }
+
+          if (round.away && round.away.rawScore !== undefined && !round.away.isScoring) {
+            var aScoreVal = round.away.score === 'BUST' ? 0 : (round.away.rawScore || 0);
+            var aDarts = round.away.dartsUsed !== undefined ? round.away.dartsUsed : 3;
+            awayLegScore += aScoreVal;
+            awayLegDarts += aDarts;
+
+            if (sm.awayPlayer) {
+              sm.awayPlayer.split(' / ').forEach(function(p) {
+                var cleanP = p.trim();
+                if (playerStats[cleanP]) {
+                  playerStats[cleanP].totalScore += aScoreVal;
+                  playerStats[cleanP].totalDarts += aDarts;
+                }
+              });
+            }
+          }
+        });
+
+        // Uppdatera bästa leg-snitt per spelare om detta leg har pilar
+        if (homeLegDarts > 0 && sm.homePlayer) {
+          var hLegAvg = (homeLegScore / homeLegDarts) * 3;
           sm.homePlayer.split(' / ').forEach(function(p) {
             var cleanP = p.trim();
-            if (playerStats[cleanP]) {
-              playerStats[cleanP].totalScore += hScoreVal;
-              playerStats[cleanP].totalDarts += hDarts;
+            if (playerStats[cleanP] && hLegAvg > playerStats[cleanP].bestLegAvg) {
+              playerStats[cleanP].bestLegAvg = hLegAvg;
             }
           });
         }
-        if (round.away && round.away.rawScore !== undefined && sm.awayPlayer && !round.away.isScoring) {
-          var aScoreVal = round.away.score === 'BUST' ? 0 : (round.away.rawScore || 0);
-          var aDarts = round.away.dartsUsed !== undefined ? round.away.dartsUsed : 3;
+        if (awayLegDarts > 0 && sm.awayPlayer) {
+          var aLegAvg = (awayLegScore / awayLegDarts) * 3;
           sm.awayPlayer.split(' / ').forEach(function(p) {
             var cleanP = p.trim();
-            if (playerStats[cleanP]) {
-              playerStats[cleanP].totalScore += aScoreVal;
-              playerStats[cleanP].totalDarts += aDarts;
+            if (playerStats[cleanP] && aLegAvg > playerStats[cleanP].bestLegAvg) {
+              playerStats[cleanP].bestLegAvg = aLegAvg;
             }
           });
         }
@@ -592,6 +642,7 @@ function StatsView({ matchData }) {
         totalScore: 0,
         totalDarts: 0,
         threeDartAvg: 0,
+        bestLegAvg: 0,
         highCheckouts: [],
         shortestLegs: []
       };
@@ -615,23 +666,11 @@ function StatsView({ matchData }) {
   for (var key in playerStats) {
     if (playerStats.hasOwnProperty(key)) {
       var pl = playerStats[key];
-      if (pl.totalDarts > 0) {
-        pl.threeDartAvg = parseFloat(((pl.totalScore / pl.totalDarts) * 3).toFixed(2));
-      } else {
-        pl.threeDartAvg = 0.0;
-      }
+      pl.threeDartAvg = pl.totalDarts > 0 ? parseFloat(((pl.totalScore / pl.totalDarts) * 3).toFixed(2)) : 0.0;
+      pl.bestLegAvg = pl.bestLegAvg > 0 ? parseFloat(pl.bestLegAvg.toFixed(2)) : 0.0;
 
-      if (pl.highCheckouts.length > 0) {
-        pl.maxCheckout = Math.max.apply(null, pl.highCheckouts);
-      } else {
-        pl.maxCheckout = 0;
-      }
-
-      if (pl.shortestLegs.length > 0) {
-        pl.minDartsLeg = Math.min.apply(null, pl.shortestLegs);
-      } else {
-        pl.minDartsLeg = 0;
-      }
+      pl.maxCheckout = pl.highCheckouts.length > 0 ? Math.max.apply(null, pl.highCheckouts) : 0;
+      pl.minDartsLeg = pl.shortestLegs.length > 0 ? Math.min.apply(null, pl.shortestLegs) : 0;
 
       playersArray.push(pl);
     }
@@ -640,6 +679,15 @@ function StatsView({ matchData }) {
   playersArray.sort(function(a, b) {
     return b.threeDartAvg - a.threeDartAvg;
   });
+
+  return playersArray;
+}
+
+// --- 2. STATISTIK VY ---
+function StatsView({ matchData }) {
+  const playersArray = calculatePlayerStats(matchData);
+  const safeMatchData = matchData || {};
+  const homeTeam = safeMatchData.homeTeam || 'Hemmalag';
 
   return (
     <div style={{ width: '98vw', margin: '0 auto', fontFamily: 'sans-serif', color: '#fff', padding: '10px 0' }}>
@@ -658,7 +706,8 @@ function StatsView({ matchData }) {
                   <th style={{ padding: '14px 10px', width: '50px', textAlign: 'center' }}>#</th>
                   <th style={{ padding: '14px 10px' }}>Spelare</th>
                   <th style={{ padding: '14px 10px' }}>Lag</th>
-                  <th style={{ padding: '14px 10px', textAlign: 'center', color: '#38bdf8' }}>3-pils Snitt</th>
+                  <th style={{ padding: '14px 10px', textAlign: 'center', color: '#38bdf8' }}>3-pils Snitt (Total)</th>
+                  <th style={{ padding: '14px 10px', textAlign: 'center', color: '#f59e0b' }}>Bästa Leg-snitt</th>
                   <th style={{ padding: '14px 10px', textAlign: 'center' }}>Matcher</th>
                   <th style={{ padding: '14px 10px', textAlign: 'center' }}>Vinster</th>
                   <th style={{ padding: '14px 10px', textAlign: 'center' }}>Legs (V-F)</th>
@@ -677,6 +726,9 @@ function StatsView({ matchData }) {
                       <td style={{ padding: '14px 10px', color: pl.team === homeTeam ? '#60a5fa' : '#f43f5e', fontWeight: 'bold' }}>{pl.team}</td>
                       <td style={{ padding: '14px 10px', textAlign: 'center', color: '#38bdf8', fontWeight: '900', fontSize: '20px' }}>
                         {pl.threeDartAvg > 0 ? pl.threeDartAvg.toFixed(2) : '-'}
+                      </td>
+                      <td style={{ padding: '14px 10px', textAlign: 'center', color: '#f59e0b', fontWeight: '900', fontSize: '18px' }}>
+                        {pl.bestLegAvg > 0 ? pl.bestLegAvg.toFixed(2) : '-'}
                       </td>
                       <td style={{ padding: '14px 10px', textAlign: 'center', fontSize: '16px' }}>{pl.matchesPlayed}</td>
                       <td style={{ padding: '14px 10px', textAlign: 'center', color: '#22c55e', fontWeight: 'bold', fontSize: '17px' }}>{pl.matchesWon}</td>
@@ -711,125 +763,7 @@ function PublicView({ matchData }) {
   const homeTeam = safeMatchData.homeTeam || 'Hemmalag';
   const awayTeam = safeMatchData.awayTeam || 'Bortalag';
 
-  var playerStats = {};
-  const regP = function(name, team) {
-    if (!name) return;
-    var t = name.trim();
-    if (t && !playerStats[t]) {
-      playerStats[t] = {
-        name: t,
-        team: team,
-        matchesPlayed: 0,
-        matchesWon: 0,
-        legsWon: 0,
-        legsLost: 0,
-        totalScore: 0,
-        totalDarts: 0,
-        threeDartAvg: 0,
-        highCheckouts: [],
-        shortestLegs: []
-      };
-    }
-  };
-
-  (safeMatchData.homeRoster || []).forEach(function(p) { regP(p, homeTeam); });
-  (safeMatchData.awayRoster || []).forEach(function(p) { regP(p, awayTeam); });
-
-  subMatches.forEach(function(sm) {
-    if (sm.homePlayer) sm.homePlayer.split(' / ').forEach(function(p) { regP(p, homeTeam); });
-    if (sm.awayPlayer) sm.awayPlayer.split(' / ').forEach(function(p) { regP(p, awayTeam); });
-
-    const isCompleted = sm.status === 'completed' || sm.homeScore === 3 || sm.awayScore === 3;
-    if (isCompleted) {
-      const hScore = sm.homeScore || 0;
-      const aScore = sm.awayScore || 0;
-      if (sm.homePlayer) {
-        sm.homePlayer.split(' / ').forEach(function(p) {
-          var cleanP = p.trim();
-          if (playerStats[cleanP]) {
-            playerStats[cleanP].matchesPlayed += 1;
-            playerStats[cleanP].legsWon += hScore;
-            playerStats[cleanP].legsLost += aScore;
-            if (hScore > aScore) playerStats[cleanP].matchesWon += 1;
-          }
-        });
-      }
-      if (sm.awayPlayer) {
-        sm.awayPlayer.split(' / ').forEach(function(p) {
-          var cleanP = p.trim();
-          if (playerStats[cleanP]) {
-            playerStats[cleanP].matchesPlayed += 1;
-            playerStats[cleanP].legsWon += aScore;
-            playerStats[cleanP].legsLost += hScore;
-            if (aScore > hScore) playerStats[cleanP].matchesWon += 1;
-          }
-        });
-      }
-    }
-
-    // SNITT OCH PILAR RÄKNAS ENDAST FÖR SINGELMATCHER!
-    if (sm.type === 'single' && sm.rounds && Array.isArray(sm.rounds)) {
-      sm.rounds.forEach(function(round) {
-        if (round.home && round.home.rawScore !== undefined && sm.homePlayer && !round.home.isScoring) {
-          var sc = round.home.score === 'BUST' ? 0 : (round.home.rawScore || 0);
-          var dt = round.home.dartsUsed !== undefined ? round.home.dartsUsed : 3;
-          sm.homePlayer.split(' / ').forEach(function(p) {
-            var tp = p.trim();
-            if (playerStats[tp]) { playerStats[tp].totalScore += sc; playerStats[tp].totalDarts += dt; }
-          });
-        }
-        if (round.away && round.away.rawScore !== undefined && sm.awayPlayer && !round.away.isScoring) {
-          var scA = round.away.score === 'BUST' ? 0 : (round.away.rawScore || 0);
-          var dtA = round.away.dartsUsed !== undefined ? round.away.dartsUsed : 3;
-          sm.awayPlayer.split(' / ').forEach(function(p) {
-            var tp = p.trim();
-            if (playerStats[tp]) { playerStats[tp].totalScore += scA; playerStats[tp].totalDarts += dtA; }
-          });
-        }
-      });
-    }
-  });
-
-  (safeMatchData.performances || []).forEach(function(perf) {
-    var pName = (perf.player || '').trim();
-    if (!pName) return;
-    if (!playerStats[pName]) {
-      playerStats[pName] = {
-        name: pName,
-        team: perf.team === 'home' ? homeTeam : awayTeam,
-        matchesPlayed: 0,
-        matchesWon: 0,
-        legsWon: 0,
-        legsLost: 0,
-        totalScore: 0,
-        totalDarts: 0,
-        threeDartAvg: 0,
-        highCheckouts: [],
-        shortestLegs: []
-      };
-    }
-    var txt = (perf.text || '').toLowerCase();
-    if (txt.indexOf('ut') !== -1) {
-      var coVal = parseInt(perf.text, 10);
-      if (!isNaN(coVal)) playerStats[pName].highCheckouts.push(coVal);
-    }
-    if (txt.indexOf('pilars leg') !== -1) {
-      var legDarts = parseInt(perf.text, 10);
-      if (!isNaN(legDarts)) playerStats[pName].shortestLegs.push(legDarts);
-    }
-  });
-
-  var livePlayersArr = [];
-  for (var k in playerStats) {
-    if (playerStats.hasOwnProperty(k)) {
-      var lp = playerStats[k];
-      lp.threeDartAvg = lp.totalDarts > 0 ? parseFloat(((lp.totalScore / lp.totalDarts) * 3).toFixed(2)) : 0;
-      if (lp.highCheckouts.length > 0) lp.maxCheckout = Math.max.apply(null, lp.highCheckouts);
-      if (lp.shortestLegs.length > 0) lp.minDartsLeg = Math.min.apply(null, lp.shortestLegs);
-      livePlayersArr.push(lp);
-    }
-  }
-  livePlayersArr.sort(function(a, b) { return b.threeDartAvg - a.threeDartAvg; });
+  const livePlayersArr = calculatePlayerStats(matchData);
 
   const HOME_STARTS = ['S1', 'D1', 'S4', 'S6', 'S7'];
   const getMatchStarter = (sm) => {
@@ -1014,7 +948,7 @@ function PublicView({ matchData }) {
 
         </div>
 
-        {/* HÖGER SPALT: LIVE PILSNITT (ALLA SPELARE UTAN RULLISTA, STÖRRE NAMN) */}
+        {/* HÖGER SPALT: LIVE PILSNITT (VISAR TOTALSNITT FÖR KVÄLLEN) */}
         <div style={{
           backgroundColor: '#090d16',
           borderRadius: '20px',
@@ -1028,7 +962,7 @@ function PublicView({ matchData }) {
             <h3 style={{ color: '#fcd34d', margin: 0, fontSize: '17px', fontWeight: '900', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span>🎯</span> LIVE PILSNITT
             </h3>
-            <span style={{ fontSize: '10px', backgroundColor: '#22c55e', color: '#000', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>ENDAST SINGEL</span>
+            <span style={{ fontSize: '10px', backgroundColor: '#22c55e', color: '#000', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>KVÄLLENS TOTAL</span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1086,7 +1020,7 @@ function PublicView({ matchData }) {
 
       </div>
 
-      {/* MATCHSTATISTIK & SPELARÖVERSIKT */}
+      {/* MATCHSTATISTIK & SPELARÖVERSIKT (INKLUDERAR BÄSTA LEG-SNITT) */}
       <div style={{ marginTop: '24px', backgroundColor: '#090d16', borderRadius: '20px', border: '2px solid #1e293b', padding: '20px 24px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
         <h3 style={{ color: '#60a5fa', margin: '0 0 16px 0', fontSize: '18px', fontWeight: 'bold', borderBottom: '1px solid #1e293b', paddingBottom: '10px' }}>
           📊 Matchstatistik & Spelaröversikt (Singelmatcher)
@@ -1101,7 +1035,8 @@ function PublicView({ matchData }) {
                   <th style={{ padding: '10px', width: '40px', textAlign: 'center' }}>#</th>
                   <th style={{ padding: '10px' }}>Spelare</th>
                   <th style={{ padding: '10px' }}>Lag</th>
-                  <th style={{ padding: '10px', textAlign: 'center', color: '#38bdf8' }}>3-pils Snitt</th>
+                  <th style={{ padding: '10px', textAlign: 'center', color: '#38bdf8' }}>3-pils Snitt (Total)</th>
+                  <th style={{ padding: '10px', textAlign: 'center', color: '#f59e0b' }}>Bästa Leg-snitt</th>
                   <th style={{ padding: '10px', textAlign: 'center' }}>Matcher</th>
                   <th style={{ padding: '10px', textAlign: 'center' }}>Vinster</th>
                   <th style={{ padding: '10px', textAlign: 'center' }}>Legs (V-F)</th>
@@ -1120,6 +1055,9 @@ function PublicView({ matchData }) {
                       <td style={{ padding: '10px', color: pl.team === homeTeam ? '#60a5fa' : '#f43f5e', fontWeight: 'bold' }}>{pl.team}</td>
                       <td style={{ padding: '10px', textAlign: 'center', color: '#38bdf8', fontWeight: '900', fontSize: '16px' }}>
                         {pl.threeDartAvg > 0 ? pl.threeDartAvg.toFixed(2) : '-'}
+                      </td>
+                      <td style={{ padding: '10px', textAlign: 'center', color: '#f59e0b', fontWeight: '900', fontSize: '16px' }}>
+                        {pl.bestLegAvg > 0 ? pl.bestLegAvg.toFixed(2) : '-'}
                       </td>
                       <td style={{ padding: '10px', textAlign: 'center' }}>{pl.matchesPlayed}</td>
                       <td style={{ padding: '10px', textAlign: 'center', color: '#22c55e', fontWeight: 'bold' }}>{pl.matchesWon}</td>
