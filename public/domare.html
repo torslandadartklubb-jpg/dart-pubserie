@@ -159,7 +159,7 @@
         🔥 SCORING (EJ STATISTIKGRUNDANDE)
       </div>
       <div id="sc-turn-card" style="padding: 10px; border-radius: 12px; margin-bottom: 10px; border: 2px solid var(--border-color); background-color: var(--bg-item);">
-        <div style="font-size: 12px; color: var(--text-muted); font-weight: bold; text-transform: uppercase;">Aktiv kastaress:</div>
+        <div style="font-size: 12px; color: var(--text-muted); font-weight: bold; text-transform: uppercase;">Aktiv kastare:</div>
         <div id="sc-turn-name" style="font-size: 22px; font-weight: 900; color: #38bdf8; margin-top: 2px;">-</div>
       </div>
       <div id="sc-history-summary" style="display: flex; justify-content: space-around; background: var(--bg-item); padding: 6px; border-radius: 8px; margin-bottom: 10px; font-size: 13px; color: var(--text-sub);"></div>
@@ -771,7 +771,13 @@
       var maxRoundsLimit = getMaxRoundsForCurrentLeg();
 
       if (m.turn === 'home') {
-        m.rounds.push({ round: (m.rounds.length + 1) * 3, home: entryData, away: null });
+        if (m.rounds.length === 0) {
+          m.rounds.push({ round: 3, home: entryData, away: null });
+        } else if (m.rounds[m.rounds.length - 1].home === null) {
+          m.rounds[m.rounds.length - 1].home = entryData;
+        } else {
+          m.rounds.push({ round: (m.rounds.length + 1) * 3, home: entryData, away: null });
+        }
         if (confirmedCheckout) {
           checkAndAddCheckoutPerformances('home', activePlayerName, score, m.rounds);
           m.homeLegs++;
@@ -797,16 +803,26 @@
           return;
         }
         m.awayScore = newScore;
-        if (m.rounds.length === maxRoundsLimit) {
-          m.scoringActive = true;
-          initScoringState();
-          m.inputVal = '';
-          renderJudgeUI();
-          triggerLiveUpdate();
-          return;
-        }
         m.turn = 'home';
       }
+
+      // Räknar exakt hur många omgångar BÅDA spelarna har kastat innan scoring aktiveras
+      var homeCount = 0;
+      var awayCount = 0;
+      for (var i = 0; i < m.rounds.length; i++) {
+        if (m.rounds[i].home) homeCount++;
+        if (m.rounds[i].away) awayCount++;
+      }
+
+      if (homeCount >= maxRoundsLimit && awayCount >= maxRoundsLimit) {
+        m.scoringActive = true;
+        initScoringState();
+        m.inputVal = '';
+        renderJudgeUI();
+        triggerLiveUpdate();
+        return;
+      }
+
       m.inputVal = '';
       renderJudgeUI();
       triggerLiveUpdate();
@@ -846,7 +862,6 @@
         var awayTeamName = fullMatchData ? fullMatchData.awayTeam : 'Bortalag';
         var winnerName = winnerTeam === 'home' ? homeTeamName : awayTeamName;
 
-        // Flagga scoring i rounds så det exkluderas från pilsnittet i index.js
         m.rounds.push({
           round: (m.rounds.length + 1) * 3,
           home: { rawScore: totalHome, score: totalHome, remaining: 0, dartsUsed: 3, isScoring: true },
