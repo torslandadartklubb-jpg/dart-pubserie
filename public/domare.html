@@ -309,6 +309,7 @@
           btn.onclick = (function(idx) { return function() { selectSubMatch(idx); }; })(j);
         }
         var infoDiv = document.createElement('div');
+        // Använd sm.id direkt utan indexgissning
         infoDiv.innerHTML = '<div class="match-info-tag">Delmatch ' + (sm.id || ('M' + (j + 1))) + '</div>' +
                             '<div class="match-players">' + (sm.homePlayer || 'Hemma') + ' vs ' + (sm.awayPlayer || 'Borta') + '</div>';
         var statusText = (sm.homeScore || 0) + ' - ' + (sm.awayScore || 0);
@@ -336,6 +337,7 @@
         initialStarter = HOME_STARTS_MATCHES.indexOf(matchId) !== -1 ? 'home' : 'away';
       }
       var restoredRounds = sm.rounds ? JSON.parse(JSON.stringify(sm.rounds)) : [];
+      var restoredCompletedLegs = sm.completedLegs ? JSON.parse(JSON.stringify(sm.completedLegs)) : [];
       var restoredHistory = sm.historyStack ? JSON.parse(JSON.stringify(sm.historyStack)) : [];
       var restoredLegStarter = sm.legStarter || initialStarter;
       var restoredTurn = sm.turn || restoredLegStarter;
@@ -357,6 +359,7 @@
         inputVal: '',
         historyStack: restoredHistory,
         rounds: restoredRounds,
+        completedLegs: restoredCompletedLegs,
         performances: [],
         scoringActive: sm.scoringActive || false,
         scoringState: null
@@ -515,7 +518,7 @@
                 '</div>' +
               '</div>';
 
-      // SCROLLBAR HISTORIKVIKT (Visar ALLA tidigare kast, nyaste överst, scrolla nedåt för äldre)
+      // Scrollbar historikvy (visar alla kast, nyaste överst)
       var roundsList = m.rounds.slice().reverse();
       var hasHomeThrows = m.rounds.some(function(r) { return r.home; });
       var hasAwayThrows = m.rounds.some(function(r) { return r.away; });
@@ -921,6 +924,15 @@
 
     function checkMatchWinOrNextLeg(winningTeam) {
       var m = activeMatch;
+      
+      // Spara undan det avslutade leget i completedLegs för total statistik
+      if (!m.completedLegs) m.completedLegs = [];
+      m.completedLegs.push({
+        legNumber: m.homeLegs + m.awayLegs,
+        starter: m.legStarter,
+        rounds: JSON.parse(JSON.stringify(m.rounds))
+      });
+
       triggerLiveUpdate();
       
       if (m.homeLegs === 3 || m.awayLegs === 3) {
@@ -993,7 +1005,6 @@
       triggerLiveUpdate();
     }
 
-    // NY SNYGG MODAL FÖR ATT ÄNDRA TIDIGARE KAST
     function handleEditRound(index, team) {
       var m = activeMatch;
       var targetRound = m.rounds[index];
@@ -1177,6 +1188,7 @@
         currentHomePoints: activeMatch.homeScore,
         currentAwayPoints: activeMatch.awayScore,
         rounds: activeMatch.rounds,
+        completedLegs: activeMatch.completedLegs || [],
         historyStack: activeMatch.historyStack,
         turn: activeMatch.turn,
         legStarter: activeMatch.legStarter,
