@@ -309,7 +309,8 @@
           btn.onclick = (function(idx) { return function() { selectSubMatch(idx); }; })(j);
         }
         var infoDiv = document.createElement('div');
-        infoDiv.innerHTML = '<div class="match-info-tag">Delmatch ' + (idxMatch(j)) + '</div>' +
+        // Använd sm.id direkt istället för indexbaserad gissning
+        infoDiv.innerHTML = '<div class="match-info-tag">Delmatch ' + (sm.id || ('M' + (j + 1))) + '</div>' +
                             '<div class="match-players">' + (sm.homePlayer || 'Hemma') + ' vs ' + (sm.awayPlayer || 'Borta') + '</div>';
         var statusText = (sm.homeScore || 0) + ' - ' + (sm.awayScore || 0);
         if (isFinished) statusText += ' (KLAR - EJ VALBAR)';
@@ -323,17 +324,15 @@
       }
     }
 
-    function idxMatch(j) {
-      if (j < 8) return 'S' + (j + 1);
-      if (j < 11) return 'D' + (j - 7);
-      return 'AD';
-    }
-
     function selectSubMatch(index) {
       stopPolling();
       activeSubIndex = index;
       var sm = fullMatchData.subMatches[index] || {};
-      var matchId = idxMatch(index);
+      
+      // Hämta ID och typ direkt från objektet istället för gammal indexlogik
+      var matchId = sm.id || 'S1';
+      var isDouble = (sm.type === 'double');
+
       var initialStarter = null;
       if (matchId !== 'AD') {
         initialStarter = HOME_STARTS_MATCHES.indexOf(matchId) !== -1 ? 'home' : 'away';
@@ -345,7 +344,7 @@
       
       var hPts = (sm.currentHomePoints !== undefined && sm.currentHomePoints !== null) ? sm.currentHomePoints : 501;
       var aPts = (sm.currentAwayPoints !== undefined && sm.currentAwayPoints !== null) ? sm.currentAwayPoints : 501;
-      var isDouble = index >= 8;
+
       activeMatch = {
         id: matchId,
         type: isDouble ? 'double' : 'single',
@@ -806,7 +805,6 @@
         m.turn = 'home';
       }
 
-      // Räknar exakt hur många omgångar BÅDA spelarna har kastat innan scoring aktiveras
       var homeCount = 0;
       var awayCount = 0;
       for (var i = 0; i < m.rounds.length; i++) {
