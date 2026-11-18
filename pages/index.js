@@ -29,7 +29,7 @@ const INITIAL_SUB_MATCHES = [
 ];
 const IMPOSSIBLE_CHECKOUTS = [159, 162, 163, 165, 166, 168, 169];
 
-// --- 1. ADMIN VY ---
+// --- 1. ADMIN VY (Uppdaterad med lokalt state för att förhindra lagg vid skrivning) ---
 function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAuthenticated }) {
   const [passwordInput, setPasswordInput] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -38,6 +38,20 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
   const [manualCheckoutScore, setManualCheckoutScore] = useState('');
   const [newPerfTextType, setNewPerfTextType] = useState('180');
   const [customPerfText, setCustomPerfText] = useState('');
+
+  // Lokalt state för att förhindra att tangentbordet laggar när man skriver
+  const [localHomeTeam, setLocalHomeTeam] = useState(matchData.homeTeam || '');
+  const [localAwayTeam, setLocalAwayTeam] = useState(matchData.awayTeam || '');
+  const [localHomeRoster, setLocalHomeRoster] = useState(matchData.homeRoster || ['','','','']);
+  const [localAwayRoster, setLocalAwayRoster] = useState(matchData.awayRoster || ['','','','']);
+
+  // Synka om matchData ändras utifrån
+  useEffect(() => {
+    setLocalHomeTeam(matchData.homeTeam || '');
+    setLocalAwayTeam(matchData.awayTeam || '');
+    setLocalHomeRoster(matchData.homeRoster || ['','','','']);
+    setLocalAwayRoster(matchData.awayRoster || ['','','','']);
+  }, [matchData.homeTeam, matchData.awayTeam, matchData.homeRoster, matchData.awayRoster]);
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -49,40 +63,61 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
     }
   };
 
-  const handleTeamChange = (e) => {
+  const handleTeamBlur = (field, value) => {
     var obj = {};
-    obj[e.target.name] = e.target.value;
+    obj[field] = value;
     setMatchData(Object.assign({}, matchData, obj));
   };
 
-  const handleRosterChange = (teamKey, index, value) => {
-    const updatedRoster = (matchData[teamKey] || []).slice();
-    updatedRoster[index] = value;
+  const handleRosterLocalChange = (teamKey, index, value) => {
+    if (teamKey === 'homeRoster') {
+      const updated = localHomeRoster.slice();
+      updated[index] = value;
+      setLocalHomeRoster(updated);
+    } else {
+      const updated = localAwayRoster.slice();
+      updated[index] = value;
+      setLocalAwayRoster(updated);
+    }
+  };
+
+  const handleRosterBlur = (teamKey) => {
     var obj = {};
-    obj[teamKey] = updatedRoster;
+    obj[teamKey] = teamKey === 'homeRoster' ? localHomeRoster : localAwayRoster;
     setMatchData(Object.assign({}, matchData, obj));
   };
 
   const addRosterPlayer = (teamKey) => {
-    const roster = matchData[teamKey] || [];
+    const roster = teamKey === 'homeRoster' ? localHomeRoster : localAwayRoster;
     if (roster.length >= 7) {
       alert('Max 7 spelare tillåtna per lag.');
       return;
     }
+    const updated = roster.concat(['']);
+    if (teamKey === 'homeRoster') {
+      setLocalHomeRoster(updated);
+    } else {
+      setLocalAwayRoster(updated);
+    }
     var obj = {};
-    obj[teamKey] = roster.concat(['']);
+    obj[teamKey] = updated;
     setMatchData(Object.assign({}, matchData, obj));
   };
 
   const removeRosterPlayer = (teamKey, index) => {
-    const roster = matchData[teamKey] || [];
+    const roster = teamKey === 'homeRoster' ? localHomeRoster : localAwayRoster;
     if (roster.length <= 4) {
       alert('Minst 4 spelare krävs per lag.');
       return;
     }
-    const updatedRoster = roster.filter((_, idx) => idx !== index);
+    const updated = roster.filter((_, idx) => idx !== index);
+    if (teamKey === 'homeRoster') {
+      setLocalHomeRoster(updated);
+    } else {
+      setLocalAwayRoster(updated);
+    }
     var obj = {};
-    obj[teamKey] = updatedRoster;
+    obj[teamKey] = updated;
     setMatchData(Object.assign({}, matchData, obj));
   };
 
@@ -235,8 +270,8 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
     );
   }
 
-  const homeRosterList = matchData && matchData.homeRoster ? matchData.homeRoster : [];
-  const awayRosterList = matchData && matchData.awayRoster ? matchData.awayRoster : [];
+  const homeRosterList = localHomeRoster;
+  const awayRosterList = localAwayRoster;
   const allActivePlayers = homeRosterList.concat(awayRosterList).filter(function(n) { return n && n.trim() !== ''; });
   const subMatchesList = matchData && matchData.subMatches ? matchData.subMatches : [];
   const performancesList = matchData && matchData.performances ? matchData.performances : [];
@@ -265,14 +300,20 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
           <div>
             <label style={{ display: 'block', color: '#60a5fa', fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>HEMMALAG</label>
-            <input name="homeTeam" value={matchData.homeTeam || ''} onChange={handleTeamChange} style={{ width: '100%', backgroundColor: '#334155', color: '#fff', padding: '8px', borderRadius: '4px', border: '1px solid #475569', marginBottom: '10px', boxSizing: 'border-box', fontWeight: 'bold' }} />
+            <input
+              value={localHomeTeam}
+              onChange={(e) => setLocalHomeTeam(e.target.value)}
+              onBlur={(e) => handleTeamBlur('homeTeam', e.target.value)}
+              style={{ width: '100%', backgroundColor: '#334155', color: '#fff', padding: '8px', borderRadius: '4px', border: '1px solid #475569', marginBottom: '10px', boxSizing: 'border-box', fontWeight: 'bold' }}
+            />
             <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '6px', fontWeight: 'bold' }}>Spelare Hemmalag:</div>
             {homeRosterList.map((player, idx) => (
               <div key={idx} style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
                 <input
                   placeholder={'Spelare ' + (idx + 1)}
                   value={player}
-                  onChange={(e) => handleRosterChange('homeRoster', idx, e.target.value)}
+                  onChange={(e) => handleRosterLocalChange('homeRoster', idx, e.target.value)}
+                  onBlur={() => handleRosterBlur('homeRoster')}
                   style={{ flex: 1, backgroundColor: '#0f172a', color: '#fff', padding: '6px', borderRadius: '4px', border: '1px solid #475569', fontSize: '13px' }}
                 />
                 {homeRosterList.length > 4 && (
@@ -288,14 +329,20 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
           </div>
           <div>
             <label style={{ display: 'block', color: '#f43f5e', fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>BORTALAG</label>
-            <input name="awayTeam" value={matchData.awayTeam || ''} onChange={handleTeamChange} style={{ width: '100%', backgroundColor: '#334155', color: '#fff', padding: '8px', borderRadius: '4px', border: '1px solid #475569', marginBottom: '10px', boxSizing: 'border-box', fontWeight: 'bold' }} />
+            <input
+              value={localAwayTeam}
+              onChange={(e) => setLocalAwayTeam(e.target.value)}
+              onBlur={(e) => handleTeamBlur('awayTeam', e.target.value)}
+              style={{ width: '100%', backgroundColor: '#334155', color: '#fff', padding: '8px', borderRadius: '4px', border: '1px solid #475569', marginBottom: '10px', boxSizing: 'border-box', fontWeight: 'bold' }}
+            />
             <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '6px', fontWeight: 'bold' }}>Spelare Bortalag:</div>
             {awayRosterList.map((player, idx) => (
               <div key={idx} style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
                 <input
                   placeholder={'Spelare ' + (idx + 1)}
                   value={player}
-                  onChange={(e) => handleRosterChange('awayRoster', idx, e.target.value)}
+                  onChange={(e) => handleRosterLocalChange('awayRoster', idx, e.target.value)}
+                  onBlur={() => handleRosterBlur('awayRoster')}
                   style={{ flex: 1, backgroundColor: '#0f172a', color: '#fff', padding: '6px', borderRadius: '4px', border: '1px solid #475569', fontSize: '13px' }}
                 />
                 {awayRosterList.length > 4 && (
@@ -482,7 +529,6 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
     </div>
   );
 }
-
 // --- GEMENSAM BERÄKNINGSHJÄLP FÖR STATISTIK & PILSNITT ---
 function calculatePlayerStats(matchData) {
   const safeMatchData = matchData || {};
