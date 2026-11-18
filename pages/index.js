@@ -191,8 +191,8 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
     let textToSave = '';
     if (newPerfTextType === '180') textToSave = '180';
     else if (newPerfTextType === 'utgang') {
-      if (!manualCheckoutScore || isNaN(manualCheckoutScore) || manualCheckoutScore < 100 || manualCheckoutScore > 170 || IMPOSSIBLE_CHECKOUTS.indexOf(parseInt(manualCheckoutScore, 10)) !== -1) {
-        alert('Ange en giltig utgångspoäng (100-170).');
+      if (!manualCheckoutScore || isNaN(manualCheckoutScore) || manualCheckoutScore < 2 || manualCheckoutScore > 170) {
+        alert('Ange en giltig utgångspoäng (2-170).');
         return;
       }
       textToSave = manualCheckoutScore + ' ut';
@@ -452,7 +452,7 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
         })}
       </div>
       <div style={{ backgroundColor: '#1e293b', padding: '15px', borderRadius: '8px' }}>
-        <h2 style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: 'bold', marginBottom: '12px' }}>MANUELLA PRESTATIONER (BACKUP FÖR ÄNDRINGAR)</h2>
+        <h2 style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: 'bold', marginBottom: '12px' }}>MANUELLA JUSTERINGAR (HÖGSTA UTGÅNG / KORTAST LEG)</h2>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1.5fr auto', gap: '8px', marginBottom: '15px', alignItems: 'center' }}>
           <select value={newPerfTeam} onChange={(e) => setNewPerfTeam(e.target.value)} style={{ backgroundColor: '#334155', color: '#fff', padding: '8px', borderRadius: '4px', border: '1px solid #475569' }}>
             <option value="home">{matchData.homeTeam || 'Hemmalag'}</option>
@@ -473,7 +473,7 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
           )}
           <select value={newPerfTextType} onChange={(e) => setNewPerfTextType(e.target.value)} style={{ backgroundColor: '#334155', color: '#fff', padding: '8px', borderRadius: '4px', border: '1px solid #475569' }}>
             <option value="180">180</option>
-            <option value="utgang">Hög utgång (100+)</option>
+            <option value="utgang">Hög utgång (valfri poäng)</option>
             <option value="custom">Kortast leg (t.ex. 38 pilar)</option>
           </select>
           <button onClick={handleAddManualPerformance} style={{ backgroundColor: '#16a34a', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}>
@@ -484,7 +484,7 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
           <div style={{ marginBottom: '15px' }}>
             <input
               type="number"
-              placeholder="Ange utgångspoäng (t.ex. 113)"
+              placeholder="Ange utgångspoäng (t.ex. 120)"
               value={manualCheckoutScore}
               onChange={(e) => setManualCheckoutScore(e.target.value)}
               style={{ width: '100%', backgroundColor: '#334155', color: '#fff', padding: '8px', borderRadius: '4px', border: '1px solid #475569', boxSizing: 'border-box' }}
@@ -502,9 +502,9 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
           </div>
         )}
         <div style={{ backgroundColor: '#0f172a', padding: '10px', borderRadius: '6px', border: '1px solid #334155' }}>
-          <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 'bold', marginBottom: '8px' }}>REGISTRERADE PRESTATIONER / JUSTERINGAR ({performancesList.length}):</div>
+          <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 'bold', marginBottom: '8px' }}>REGISTRERADE JUSTERINGAR ({performancesList.length}):</div>
           {performancesList.length === 0 ? (
-            <div style={{ color: '#64748b', fontSize: '13px', fontStyle: 'italic' }}>Inga manuella justeringar eller prestationer tillagda.</div>
+            <div style={{ color: '#64748b', fontSize: '13px', fontStyle: 'italic' }}>Inga manuella justeringar tillagda.</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {performancesList.map((p, idx) => (
@@ -528,7 +528,7 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
   );
 }
 
-// --- GEMENSAM BERÄKNINGSHJÄLP FÖR STATISTIK & PILSNITT (FÅNGAR AUTOMATIK OCH MANUELLA PRESTATIONER) ---
+// --- GEMENSAM BERÄKNINGSHJÄLP FÖR STATISTIK & PILSNITT ---
 function calculatePlayerStats(matchData) {
   const safeMatchData = matchData || {};
   const subMatches = safeMatchData.subMatches || [];
@@ -673,7 +673,7 @@ function calculatePlayerStats(matchData) {
               }
               if (homeWonLeg) {
                 playerStats[cleanP].shortestLegs.push(homeLegDarts);
-                if (homeCheckoutVal >= 100) {
+                if (homeCheckoutVal > 0) {
                   playerStats[cleanP].highCheckouts.push(homeCheckoutVal);
                 }
               }
@@ -691,7 +691,7 @@ function calculatePlayerStats(matchData) {
               }
               if (awayWonLeg) {
                 playerStats[cleanP].shortestLegs.push(awayLegDarts);
-                if (awayCheckoutVal >= 100) {
+                if (awayCheckoutVal > 0) {
                   playerStats[cleanP].highCheckouts.push(awayCheckoutVal);
                 }
               }
@@ -702,7 +702,7 @@ function calculatePlayerStats(matchData) {
     }
   });
 
-  // Fånga upp både automatiska värden och manuella prestationer / admin-justeringar
+  // Fånga upp utgångar och kortast leg oavsett summa (ingen övre spärr)
   performances.forEach(function(perf) {
     var pName = (perf.player || '').trim();
     if (!pName) return;
@@ -840,11 +840,13 @@ function PublicView({ matchData }) {
 
   const livePlayersArr = calculatePlayerStats(matchData);
 
-  const HOME_STARTS = ['S1', 'D1', 'S4', 'S6', 'S7'];
   const getMatchStarter = (sm) => {
     if (sm.legStarter) return sm.legStarter;
-    if (sm.id === 'AD') return null;
-    return HOME_STARTS.includes(sm.id) ? 'home' : 'away';
+    const homeStartsList = ['S1', 'D1', 'S4', 'S6', 'S7'];
+    if (homeStartsList.includes(sm.id)) {
+      return 'home';
+    }
+    return 'away';
   };
 
   const renderPlayerName = (name, isWinner, isLoser, isHome, startsMatch) => {
