@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Dart Domarpanel</title>
   <style>
-* { 
+    * { 
       box-sizing: border-box; 
       margin: 0; 
       padding: 0; 
@@ -13,6 +13,7 @@
       -webkit-touch-callout: none;
       -webkit-user-select: none;
       user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
     
     :root {
@@ -57,16 +58,21 @@
       padding: 6px; 
       overflow: hidden;
       position: fixed;
-      touch-action: none;
+      touch-action: manipulation;
     }
     
+    button, .match-item, .recent-row, .clickable-card {
+      touch-action: manipulation;
+      cursor: pointer;
+    }
+
     .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 10px; text-align: center; margin-bottom: 8px; position: relative; }
     .teams-title { font-size: 18px; font-weight: bold; color: var(--text-sub); }
     .main-score { font-size: 36px; font-weight: 900; color: var(--text-score); margin: 2px 0; }
     
     .section-title { font-size: 16px; font-weight: bold; color: var(--text-sub); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
     .match-list { display: block; width: 100%; }
-    .match-item { background: var(--bg-item); border: 2px solid var(--border-color); border-radius: 12px; padding: 14px; display: flex; display: -webkit-flex; justify-content: space-between; align-items: center; cursor: pointer; text-align: left; width: 100%; color: var(--text-main); margin-bottom: 8px; }
+    .match-item { background: var(--bg-item); border: 2px solid var(--border-color); border-radius: 12px; padding: 14px; display: flex; display: -webkit-flex; justify-content: space-between; align-items: center; text-align: left; width: 100%; color: var(--text-main); margin-bottom: 8px; }
     .match-item:active { background: var(--border-color); }
     
     .match-item.finished { border-color: #059669; background-color: #061f17; opacity: 0.6; cursor: not-allowed; }
@@ -85,11 +91,11 @@
     .modal-box { background-color: var(--bg-card); border-radius: 16px; padding: 20px; text-align: center; max-width: 500px; width: 100%; color: var(--text-main); border: 2px solid var(--border-color); }
     
     .recent-throws-container { display: flex; display: -webkit-flex; margin-bottom: 8px; align-items: stretch; }
-    .recent-box { width: 42.5%; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 2px; text-align: center; height: 160px; overflow-y: auto; display: flex; flex-direction: column; }
+    .recent-box { width: 42.5%; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 2px; text-align: center; height: 160px; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; }
     
     .dart-col-box { width: 15%; display: flex; display: -webkit-flex; flex-direction: column; align-items: center; height: 160px; overflow-y: auto; }
     .dart-col-row { font-size: 20px; font-weight: 800; color: #0284c7; height: 50px; min-height: 50px; display: flex; align-items: center; justify-content: center; }
-    .recent-row { font-size: 46px; font-weight: 900; border-bottom: 1px solid var(--border-color); height: 50px; min-height: 50px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-main); line-height: 1; flex-shrink: 0; }
+    .recent-row { font-size: 46px; font-weight: 900; border-bottom: 1px solid var(--border-color); height: 50px; min-height: 50px; display: flex; align-items: center; justify-content: center; color: var(--text-main); line-height: 1; flex-shrink: 0; }
     .recent-row:last-child { border-bottom: none; }
     .recent-rem { font-size: 20px; color: #0284c7; font-weight: bold; margin-left: 6px; }
     
@@ -132,13 +138,15 @@
       border-radius: 14px;
       font-size: 38px;
       font-weight: bold;
-      cursor: pointer;
       display: block;
       text-align: center;
       line-height: 82px;
       -webkit-appearance: none;
     }
-    .numpad-btn-legacy:active { background-color: var(--border-color); }
+    .numpad-btn-legacy:active, .numpad-btn-legacy.pressed { 
+      background-color: var(--border-color); 
+      transform: scale(0.97);
+    }
   </style>
 </head>
 <body>
@@ -194,7 +202,52 @@
     </div>
   </div>
 <script>
-    document.addEventListener('touchmove', function(e) { e.preventDefault(); }, false);
+    // --- FAST-TAP OPTIMERING FÖR ÄLDRE IPADS ---
+    // Gör att knappar svarar direkt vid beröring (touchstart) utan 300ms fördröjning eller krav på helt stillastående finger
+    (function() {
+      var lastTouchTime = 0;
+      document.addEventListener('touchstart', function(e) {
+        var target = e.target;
+        // Leta upp närmaste klickbara element (knapp, rad i historik, matchkort eller poängruta)
+        while (target && target !== document.body) {
+          if (
+            target.tagName === 'BUTTON' ||
+            target.classList.contains('clickable-card') ||
+            target.classList.contains('recent-row')
+          ) {
+            // Tillåt scroll i historikboxen om man drar, men trigga direkt på knappar och poängkort
+            if (target.classList.contains('recent-row')) {
+              return; 
+            }
+            if (target.disabled || target.classList.contains('finished')) {
+              return;
+            }
+            e.preventDefault();
+            lastTouchTime = Date.now();
+            target.classList.add('pressed');
+            setTimeout(function(el) {
+              if (el) el.classList.remove('pressed');
+            }, 120, target);
+
+            if (typeof target.onclick === 'function') {
+              target.onclick.call(target, e);
+            } else {
+              target.click();
+            }
+            return;
+          }
+          target = target.parentNode;
+        }
+      }, { passive: false });
+
+      // Förhindra att ett efterföljande "spökklick" triggar funktionen två gånger
+      document.addEventListener('click', function(e) {
+        if (Date.now() - lastTouchTime < 450) {
+          e.stopPropagation();
+          e.preventDefault();
+        }
+      }, true);
+    })();
 
     var SUPABASE_URL = 'https://luznainkmcogcqbuprzw.supabase.co';
     var SUPABASE_KEY = 'sb_publishable_6psZleJBdhdZFhUTutZqnw_Rr4Y2SI6';
@@ -478,8 +531,8 @@
             '<h2 style="color: #eab308; font-size: 24px; margin-bottom: 10px;">AVGÖRANDE DUBBEL (AD)</h2>' +
             '<p style="color: var(--text-sub); font-size: 16px; margin-bottom: 20px;">Vem vann slantkastningen och börjar?</p>' +
             '<div style="display: flex; display: -webkit-flex;">' +
-              '<button onclick="setADStarter(\'home\')" style="width: 48%; margin-right: 4%; background-color: var(--bg-item); color: var(--accent-home); border: 2px solid var(--border-home); padding: 20px; border-radius: 12px; font-weight: bold; font-size: 20px; cursor: pointer;">' + hDisplayName + '</button>' +
-              '<button onclick="setADStarter(\'away\')" style="width: 48%; background-color: var(--bg-item); color: var(--accent-away); border: 2px solid var(--border-away); padding: 20px; border-radius: 12px; font-weight: bold; font-size: 20px; cursor: pointer;">' + aDisplayName + '</button>' +
+              '<button onclick="setADStarter(\'home\')" style="width: 48%; margin-right: 4%; background-color: var(--bg-item); color: var(--accent-home); border: 2px solid var(--border-home); padding: 20px; border-radius: 12px; font-weight: bold; font-size: 20px;">' + hDisplayName + '</button>' +
+              '<button onclick="setADStarter(\'away\')" style="width: 48%; background-color: var(--bg-item); color: var(--accent-away); border: 2px solid var(--border-away); padding: 20px; border-radius: 12px; font-weight: bold; font-size: 20px;">' + aDisplayName + '</button>' +
             '</div>' +
           '</div>';
         return;
@@ -493,24 +546,23 @@
       
       html += '<div style="display: flex; display: -webkit-flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">' +
                 '<div style="display: flex; display: -webkit-flex; gap: 6px; flex: 1;">' +
-                  '<button onclick="showStartView()" style="background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold;">← Meny</button>' +
-                  '<button onclick="toggleTheme()" style="background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-size: 16px; cursor: pointer;">' + (isLightTheme ? '🌙' : '☀️') + '</button>' +
+                  '<button onclick="showStartView()" style="background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: bold;">← Meny</button>' +
+                  '<button onclick="toggleTheme()" style="background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-size: 16px;">' + (isLightTheme ? '🌙' : '☀️') + '</button>' +
                 '</div>' +
                 '<div style="flex: 1.5; text-align: center;">' +
                   '<span style="color: #d97706; font-weight: 900; font-size: 22px; text-transform: uppercase;">MATCH ' + m.id + '</span>' +
                 '</div>' +
-                '<div style="flex: 1; text-align: right;"><button onclick="saveAndCloseMatch()" style="background-color: #16a34a; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold;">Klar</button></div>' +
+                '<div style="flex: 1; text-align: right;"><button onclick="saveAndCloseMatch()" style="background-color: #16a34a; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 14px; font-weight: bold;">Klar</button></div>' +
               '</div>';
       
-      // Klickbara stora poängboxar för att tvinga/flytta tur
       html += '<div style="display: flex; display: -webkit-flex; margin-bottom: 6px;">' +
-                '<div class="card" onclick="forceTurn(\'home\')" style="width: 49%; margin-right: 2%; padding: 6px 2px 34px 2px; border-radius: 16px; cursor: pointer; border: ' + (m.turn === 'home' ? '4px solid var(--border-home)' : '1px solid var(--border-color)') + ';" title="Klicka för att ge turen hit">' +
+                '<div class="card clickable-card" onclick="forceTurn(\'home\')" style="width: 49%; margin-right: 2%; padding: 6px 2px 34px 2px; border-radius: 16px; border: ' + (m.turn === 'home' ? '4px solid var(--border-home)' : '1px solid var(--border-color)') + ';" title="Klicka för att ge turen hit">' +
                   '<div style="font-size: 18px; font-weight: bold; color: var(--text-sub); margin-bottom: 0px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + homeDisplayName + '</div>' +
                   '<div style="font-size: 150px; font-size: min(150px, 16vw); font-weight: 900; color: ' + (m.turn === 'home' ? 'var(--accent-home)' : 'var(--text-muted)') + '; line-height: 0.8; letter-spacing: -4px; margin: 2px 0;">' + m.homeScore + '</div>' +
                   '<div class="corner-square darts" style="left: 6px;">' + homeDarts + '</div>' +
                   '<div class="corner-square legs" style="right: 6px;">' + m.homeLegs + '</div>' +
                 '</div>' +
-                '<div class="card" onclick="forceTurn(\'away\')" style="width: 49%; padding: 6px 2px 34px 2px; border-radius: 16px; cursor: pointer; border: ' + (m.turn === 'away' ? '4px solid var(--border-away)' : '1px solid var(--border-color)') + ';" title="Klicka för att ge turen hit">' +
+                '<div class="card clickable-card" onclick="forceTurn(\'away\')" style="width: 49%; padding: 6px 2px 34px 2px; border-radius: 16px; border: ' + (m.turn === 'away' ? '4px solid var(--border-away)' : '1px solid var(--border-color)') + ';" title="Klicka för att ge turen hit">' +
                   '<div style="font-size: 18px; font-weight: bold; color: var(--text-sub); margin-bottom: 0px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + awayDisplayName + '</div>' +
                   '<div style="font-size: 150px; font-size: min(150px, 16vw); font-weight: 900; color: ' + (m.turn === 'away' ? 'var(--accent-away)' : 'var(--text-muted)') + '; line-height: 0.8; letter-spacing: -4px; margin: 2px 0;">' + m.awayScore + '</div>' +
                   '<div class="corner-square legs" style="left: 6px;">' + m.awayLegs + '</div>' +
@@ -603,10 +655,9 @@
       container.innerHTML = html;
     }
 
-    // Funktion för att tvinga/flytta turen till vald spelare via klick på poängen
     function forceTurn(team) {
       var m = activeMatch;
-      if (!m || m.turn === team) return; // Om det redan är den spelarens tur händer inget
+      if (!m || m.turn === team) return;
       
       var playerName = getDisplayPlayerName(team, team === 'home' ? m.homePlayer : m.awayPlayer);
       
@@ -620,8 +671,8 @@
             'Vill du flytta turen till <strong>' + playerName + '</strong> utan att registrera några poäng för nuvarande omgång?' +
           '</p>' +
           '<div style="display: flex; gap: 10px;">' +
-            '<button id="btn-force-yes" style="flex: 1; background-color: #16a34a; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;">Ja, flytta tur</button>' +
-            '<button id="btn-force-no" style="flex: 1; background-color: #dc2626; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;">Avbryt</button>' +
+            '<button id="btn-force-yes" style="flex: 1; background-color: #16a34a; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: bold;">Ja, flytta tur</button>' +
+            '<button id="btn-force-no" style="flex: 1; background-color: #dc2626; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: bold;">Avbryt</button>' +
           '</div>' +
         '</div>';
       document.body.appendChild(modal);
@@ -937,8 +988,8 @@
             'Stämmer det att <strong style="color: #f59e0b;">' + winnerName + '</strong> vann leget?' +
           '</p>' +
           '<div style="display: flex; display: -webkit-flex;">' +
-            '<button id="btn-sc-yes" style="width: 48%; margin-right: 4%; background-color: #10b981; color: #fff; border: none; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer;">JA (Tilldela leg)</button>' +
-            '<button id="btn-sc-no" style="width: 48%; background-color: #dc2626; color: #fff; border: none; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer;">NEJ (Ändra)</button>' +
+            '<button id="btn-sc-yes" style="width: 48%; margin-right: 4%; background-color: #10b981; color: #fff; border: none; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: bold;">JA (Tilldela leg)</button>' +
+            '<button id="btn-sc-no" style="width: 48%; background-color: #dc2626; color: #fff; border: none; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: bold;">NEJ (Ändra)</button>' +
           '</div>' +
         '</div>';
       document.body.appendChild(modal);
@@ -992,7 +1043,7 @@
           '</p>' +
           '<p style="color: var(--text-sub); font-size: 14px; margin-bottom: 24px;">Resultatet har sparats.</p>' +
           '<div style="display: flex; display: -webkit-flex;">' +
-            '<button id="btn-win-ok" style="width: 100%; background-color: #16a34a; color: #fff; border: none; padding: 18px; border-radius: 14px; font-size: 20px; font-weight: bold; cursor: pointer;">OK (Till meny)</button>' +
+            '<button id="btn-win-ok" style="width: 100%; background-color: #16a34a; color: #fff; border: none; padding: 18px; border-radius: 14px; font-size: 20px; font-weight: bold;">OK (Till meny)</button>' +
           '</div>' +
         '</div>';
       document.body.appendChild(modal);
@@ -1061,8 +1112,8 @@
           '<input type="number" id="edit-score-input" value="' + currentEntry.rawScore + '" min="0" max="180" ' +
             'style="width: 100%; padding: 12px; font-size: 28px; text-align: center; background: var(--input-bg); color: var(--text-main); border: 2px solid var(--border-color); border-radius: 8px; margin-bottom: 16px; box-sizing: border-box;" />' +
           '<div style="display: flex; gap: 10px;">' +
-            '<button id="btn-edit-save" style="flex: 1; background-color: #16a34a; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;">Spara</button>' +
-            '<button id="btn-edit-cancel" style="flex: 1; background-color: #dc2626; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;">Avbryt</button>' +
+            '<button id="btn-edit-save" style="flex: 1; background-color: #16a34a; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: bold;">Spara</button>' +
+            '<button id="btn-edit-cancel" style="flex: 1; background-color: #dc2626; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: bold;">Avbryt</button>' +
           '</div>' +
         '</div>';
       document.body.appendChild(modal);
@@ -1129,8 +1180,8 @@
           '<h3 style="font-size: 24px; margin-bottom: 8px;">Gick spelaren ut?</h3>' +
           '<p style="color: var(--text-sub); font-size: 16px; margin-bottom: 20px;"><strong style="color: #059669;">' + playerName + '</strong> har knappat in <strong>' + score + '</strong>.</p>' +
           '<div style="display: flex; display: -webkit-flex;">' +
-            '<button id="btn-yes" style="width: 48%; margin-right: 4%; background-color: #10b981; color: #fff; border: none; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer;">JA (Vann leg)</button>' +
-            '<button id="btn-no" style="width: 48%; background-color: #dc2626; color: #fff; border: none; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer;">NEJ (Fel)</button>' +
+            '<button id="btn-yes" style="width: 48%; margin-right: 4%; background-color: #10b981; color: #fff; border: none; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: bold;">JA (Vann leg)</button>' +
+            '<button id="btn-no" style="width: 48%; background-color: #dc2626; color: #fff; border: none; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: bold;">NEJ (Fel)</button>' +
           '</div>' +
         '</div>';
       document.body.appendChild(modal);
@@ -1157,9 +1208,9 @@
             'Hur många pilar använde <strong style="color: #38bdf8;">' + playerName + '</strong> i sista omgången för att gå ut på ' + score + '?' +
           '</p>' +
           '<div style="display: flex; display: -webkit-flex; gap: 10px;">' +
-            '<button id="btn-dart-1" style="flex: 1; background-color: #0284c7; color: #fff; border: none; padding: 18px 8px; border-radius: 12px; font-size: 20px; font-weight: bold; cursor: pointer;">1 pil</button>' +
-            '<button id="btn-dart-2" style="flex: 1; background-color: #0284c7; color: #fff; border: none; padding: 18px 8px; border-radius: 12px; font-size: 20px; font-weight: bold; cursor: pointer;">2 pilar</button>' +
-            '<button id="btn-dart-3" style="flex: 1; background-color: #0284c7; color: #fff; border: none; padding: 18px 8px; border-radius: 12px; font-size: 20px; font-weight: bold; cursor: pointer;">3 pilar</button>' +
+            '<button id="btn-dart-1" style="flex: 1; background-color: #0284c7; color: #fff; border: none; padding: 18px 8px; border-radius: 12px; font-size: 20px; font-weight: bold;">1 pil</button>' +
+            '<button id="btn-dart-2" style="flex: 1; background-color: #0284c7; color: #fff; border: none; padding: 18px 8px; border-radius: 12px; font-size: 20px; font-weight: bold;">2 pilar</button>' +
+            '<button id="btn-dart-3" style="flex: 1; background-color: #0284c7; color: #fff; border: none; padding: 18px 8px; border-radius: 12px; font-size: 20px; font-weight: bold;">3 pilar</button>' +
           '</div>' +
         '</div>';
       document.body.appendChild(modal);
@@ -1189,8 +1240,8 @@
           '<p style="color: var(--text-sub); font-size: 16px; margin-bottom: 14px;">Sätt <strong style="color: var(--accent-home);">' + playerName + 's</strong> poäng till <strong style="color: var(--text-score); font-size: 22px;">' + targetRemaining + '</strong>?</p>' +
           '<p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px; background-color: var(--bg-item); padding: 8px; border-radius: 8px;">(Registrerar <strong>' + calculatedScored + '</strong> poäng)</p>' +
           '<div style="display: flex; display: -webkit-flex;">' +
-            '<button id="btn-rem-yes" style="width: 48%; margin-right: 4%; background-color: #2563eb; color: #fff; border: none; padding: 16px; border-radius: 16px; font-size: 16px; font-weight: bold; cursor: pointer;">JA (Sätt)</button>' +
-            '<button id="btn-rem-no" style="width: 48%; background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); padding: 16px; border-radius: 16px; font-size: 16px; font-weight: bold; cursor: pointer;">NEJ</button>' +
+            '<button id="btn-rem-yes" style="width: 48%; margin-right: 4%; background-color: #2563eb; color: #fff; border: none; padding: 16px; border-radius: 16px; font-size: 16px; font-weight: bold;">JA (Sätt)</button>' +
+            '<button id="btn-rem-no" style="width: 48%; background-color: var(--bg-item); color: var(--text-main); border: 1px solid var(--border-color); padding: 16px; border-radius: 16px; font-size: 16px; font-weight: bold;">NEJ</button>' +
           '</div>' +
         '</div>';
       document.body.appendChild(modal);
