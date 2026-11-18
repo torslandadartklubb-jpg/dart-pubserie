@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Dart Domarpanel</title>
   <style>
-    * { 
+* { 
       box-sizing: border-box; 
       margin: 0; 
       padding: 0; 
@@ -309,7 +309,6 @@
           btn.onclick = (function(idx) { return function() { selectSubMatch(idx); }; })(j);
         }
         var infoDiv = document.createElement('div');
-        // Använd sm.id direkt utan indexgissning
         infoDiv.innerHTML = '<div class="match-info-tag">Delmatch ' + (sm.id || ('M' + (j + 1))) + '</div>' +
                             '<div class="match-players">' + (sm.homePlayer || 'Hemma') + ' vs ' + (sm.awayPlayer || 'Borta') + '</div>';
         var statusText = (sm.homeScore || 0) + ' - ' + (sm.awayScore || 0);
@@ -409,9 +408,9 @@
       if (!m) return 13;
       var currentLegNumber = m.homeLegs + m.awayLegs + 1;
       if (currentLegNumber === 5) {
-        return 20; // Leg 5 (Decider): 20 omgångar = 60 pilar
+        return 20; 
       }
-      return 13; // Leg 1-4: 13 omgångar = 39 pilar
+      return 13; 
     }
 
     function initScoringState() {
@@ -503,14 +502,15 @@
                 '<div style="flex: 1; text-align: right;"><button onclick="saveAndCloseMatch()" style="background-color: #16a34a; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold;">Klar</button></div>' +
               '</div>';
       
+      // Klickbara stora poängboxar för att tvinga/flytta tur
       html += '<div style="display: flex; display: -webkit-flex; margin-bottom: 6px;">' +
-                '<div class="card" style="width: 49%; margin-right: 2%; padding: 6px 2px 34px 2px; border-radius: 16px; border: ' + (m.turn === 'home' ? '4px solid var(--border-home)' : '1px solid var(--border-color)') + ';">' +
+                '<div class="card" onclick="forceTurn(\'home\')" style="width: 49%; margin-right: 2%; padding: 6px 2px 34px 2px; border-radius: 16px; cursor: pointer; border: ' + (m.turn === 'home' ? '4px solid var(--border-home)' : '1px solid var(--border-color)') + ';" title="Klicka för att ge turen hit">' +
                   '<div style="font-size: 18px; font-weight: bold; color: var(--text-sub); margin-bottom: 0px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + homeDisplayName + '</div>' +
                   '<div style="font-size: 150px; font-size: min(150px, 16vw); font-weight: 900; color: ' + (m.turn === 'home' ? 'var(--accent-home)' : 'var(--text-muted)') + '; line-height: 0.8; letter-spacing: -4px; margin: 2px 0;">' + m.homeScore + '</div>' +
                   '<div class="corner-square darts" style="left: 6px;">' + homeDarts + '</div>' +
                   '<div class="corner-square legs" style="right: 6px;">' + m.homeLegs + '</div>' +
                 '</div>' +
-                '<div class="card" style="width: 49%; padding: 6px 2px 34px 2px; border-radius: 16px; border: ' + (m.turn === 'away' ? '4px solid var(--border-away)' : '1px solid var(--border-color)') + ';">' +
+                '<div class="card" onclick="forceTurn(\'away\')" style="width: 49%; padding: 6px 2px 34px 2px; border-radius: 16px; cursor: pointer; border: ' + (m.turn === 'away' ? '4px solid var(--border-away)' : '1px solid var(--border-color)') + ';" title="Klicka för att ge turen hit">' +
                   '<div style="font-size: 18px; font-weight: bold; color: var(--text-sub); margin-bottom: 0px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + awayDisplayName + '</div>' +
                   '<div style="font-size: 150px; font-size: min(150px, 16vw); font-weight: 900; color: ' + (m.turn === 'away' ? 'var(--accent-away)' : 'var(--text-muted)') + '; line-height: 0.8; letter-spacing: -4px; margin: 2px 0;">' + m.awayScore + '</div>' +
                   '<div class="corner-square legs" style="left: 6px;">' + m.awayLegs + '</div>' +
@@ -518,7 +518,6 @@
                 '</div>' +
               '</div>';
 
-      // Scrollbar historikvy (visar alla kast, nyaste överst)
       var roundsList = m.rounds.slice().reverse();
       var hasHomeThrows = m.rounds.some(function(r) { return r.home; });
       var hasAwayThrows = m.rounds.some(function(r) { return r.away; });
@@ -602,6 +601,43 @@
         renderScoringModal();
       }
       container.innerHTML = html;
+    }
+
+    // Funktion för att tvinga/flytta turen till vald spelare via klick på poängen
+    function forceTurn(team) {
+      var m = activeMatch;
+      if (!m || m.turn === team) return; // Om det redan är den spelarens tur händer inget
+      
+      var playerName = getDisplayPlayerName(team, team === 'home' ? m.homePlayer : m.awayPlayer);
+      
+      var modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.style.zIndex = '150';
+      modal.innerHTML = 
+        '<div class="modal-box" style="border: 3px solid #f59e0b; max-width: 400px;">' +
+          '<h3 style="font-size: 20px; margin-bottom: 8px; color: #f59e0b;">Flytta kasttur?</h3>' +
+          '<p style="color: var(--text-sub); font-size: 15px; margin-bottom: 20px;">' +
+            'Vill du flytta turen till <strong>' + playerName + '</strong> utan att registrera några poäng för nuvarande omgång?' +
+          '</p>' +
+          '<div style="display: flex; gap: 10px;">' +
+            '<button id="btn-force-yes" style="flex: 1; background-color: #16a34a; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;">Ja, flytta tur</button>' +
+            '<button id="btn-force-no" style="flex: 1; background-color: #dc2626; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;">Avbryt</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(modal);
+
+      document.getElementById('btn-force-yes').onclick = function() {
+        document.body.removeChild(modal);
+        saveStateToHistory();
+        m.turn = team;
+        m.inputVal = '';
+        renderJudgeUI();
+        triggerLiveUpdate();
+      };
+
+      document.getElementById('btn-force-no').onclick = function() {
+        document.body.removeChild(modal);
+      };
     }
 
     function renderScoringModal() {
@@ -925,7 +961,6 @@
     function checkMatchWinOrNextLeg(winningTeam) {
       var m = activeMatch;
       
-      // Spara undan det avslutade leget i completedLegs för total statistik
       if (!m.completedLegs) m.completedLegs = [];
       m.completedLegs.push({
         legNumber: m.homeLegs + m.awayLegs,
