@@ -29,7 +29,7 @@ const INITIAL_SUB_MATCHES = [
 ];
 const IMPOSSIBLE_CHECKOUTS = [159, 162, 163, 165, 166, 168, 169];
 
-// --- 1. ADMIN VY (Uppdaterad med lokalt state för att förhindra lagg vid skrivning) ---
+// --- 1. ADMIN VY ---
 function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAuthenticated }) {
   const [passwordInput, setPasswordInput] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -39,13 +39,11 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
   const [newPerfTextType, setNewPerfTextType] = useState('180');
   const [customPerfText, setCustomPerfText] = useState('');
 
-  // Lokalt state för att förhindra att tangentbordet laggar när man skriver
   const [localHomeTeam, setLocalHomeTeam] = useState(matchData.homeTeam || '');
   const [localAwayTeam, setLocalAwayTeam] = useState(matchData.awayTeam || '');
   const [localHomeRoster, setLocalHomeRoster] = useState(matchData.homeRoster || ['','','','']);
   const [localAwayRoster, setLocalAwayRoster] = useState(matchData.awayRoster || ['','','','']);
 
-  // Synka om matchData ändras utifrån
   useEffect(() => {
     setLocalHomeTeam(matchData.homeTeam || '');
     setLocalAwayTeam(matchData.awayTeam || '');
@@ -529,7 +527,8 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
     </div>
   );
 }
-// --- GEMENSAM BERÄKNINGSHJÄLP FÖR STATISTIK & PILSNITT ---
+
+// --- GEMENSAM BERÄKNINGSHJÄLP FÖR STATISTIK & PILSNITT (FÅNGAR AUTOMATIK OCH MANUELLA PRESTATIONER) ---
 function calculatePlayerStats(matchData) {
   const safeMatchData = matchData || {};
   const subMatches = safeMatchData.subMatches || [];
@@ -598,7 +597,6 @@ function calculatePlayerStats(matchData) {
       }
     }
 
-    // GÅ IGENOM BÅDE AVSLUTADE LEG (completedLegs) OCH AKTUELLA RUNDOR (rounds) FÖR SNITT & BÄSTA LEG
     if (sm.type === 'single') {
       var allLegs = [];
       if (sm.completedLegs && Array.isArray(sm.completedLegs)) {
@@ -614,6 +612,10 @@ function calculatePlayerStats(matchData) {
         var homeLegDarts = 0;
         var awayLegScore = 0;
         var awayLegDarts = 0;
+        var homeWonLeg = false;
+        var awayWonLeg = false;
+        var homeCheckoutVal = 0;
+        var awayCheckoutVal = 0;
 
         legRounds.forEach(function(round) {
           if (round.home && round.home.rawScore !== undefined && !round.home.isScoring) {
@@ -621,6 +623,11 @@ function calculatePlayerStats(matchData) {
             var hDarts = round.home.dartsUsed !== undefined ? round.home.dartsUsed : 3;
             homeLegScore += hScoreVal;
             homeLegDarts += hDarts;
+
+            if (round.home.remaining === 0) {
+              homeWonLeg = true;
+              homeCheckoutVal = round.home.rawScore;
+            }
 
             if (sm.homePlayer) {
               sm.homePlayer.split(' / ').forEach(function(p) {
@@ -639,6 +646,11 @@ function calculatePlayerStats(matchData) {
             awayLegScore += aScoreVal;
             awayLegDarts += aDarts;
 
+            if (round.away.remaining === 0) {
+              awayWonLeg = true;
+              awayCheckoutVal = round.away.rawScore;
+            }
+
             if (sm.awayPlayer) {
               sm.awayPlayer.split(' / ').forEach(function(p) {
                 var cleanP = p.trim();
@@ -655,17 +667,34 @@ function calculatePlayerStats(matchData) {
           var hLegAvg = (homeLegScore / homeLegDarts) * 3;
           sm.homePlayer.split(' / ').forEach(function(p) {
             var cleanP = p.trim();
-            if (playerStats[cleanP] && hLegAvg > playerStats[cleanP].bestLegAvg) {
-              playerStats[cleanP].bestLegAvg = hLegAvg;
+            if (playerStats[cleanP]) {
+              if (hLegAvg > playerStats[cleanP].bestLegAvg) {
+                playerStats[cleanP].bestLegAvg = hLegAvg;
+              }
+              if (homeWonLeg) {
+                playerStats[cleanP].shortestLegs.push(homeLegDarts);
+                if (homeCheckoutVal >= 100) {
+                  playerStats[cleanP].highCheckouts.push(homeCheckoutVal);
+                }
+              }
             }
           });
         }
+
         if (awayLegDarts > 0 && sm.awayPlayer) {
           var aLegAvg = (awayLegScore / awayLegDarts) * 3;
           sm.awayPlayer.split(' / ').forEach(function(p) {
             var cleanP = p.trim();
-            if (playerStats[cleanP] && aLegAvg > playerStats[cleanP].bestLegAvg) {
-              playerStats[cleanP].bestLegAvg = aLegAvg;
+            if (playerStats[cleanP]) {
+              if (aLegAvg > playerStats[cleanP].bestLegAvg) {
+                playerStats[cleanP].bestLegAvg = aLegAvg;
+              }
+              if (awayWonLeg) {
+                playerStats[cleanP].shortestLegs.push(awayLegDarts);
+                if (awayCheckoutVal >= 100) {
+                  playerStats[cleanP].highCheckouts.push(awayCheckoutVal);
+                }
+              }
             }
           });
         }
@@ -673,7 +702,7 @@ function calculatePlayerStats(matchData) {
     }
   });
 
-  // Hämta högsta utgång och kortast leg (om manuellt inlagt eller justerat via admin)
+  // Fånga upp både automatiska värden och manuella prestationer / admin-justeringar
   performances.forEach(function(perf) {
     var pName = (perf.player || '').trim();
     if (!pName) return;
