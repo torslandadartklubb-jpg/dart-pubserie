@@ -407,7 +407,7 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
         })}
       </div>
       <div style={{ backgroundColor: '#1e293b', padding: '15px', borderRadius: '8px' }}>
-        <h2 style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: 'bold', marginBottom: '12px' }}>MANUELLA PRESTATIONER</h2>
+        <h2 style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: 'bold', marginBottom: '12px' }}>MANUELLA PRESTATIONER (BACKUP FÖR ÄNDRINGAR)</h2>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1.5fr auto', gap: '8px', marginBottom: '15px', alignItems: 'center' }}>
           <select value={newPerfTeam} onChange={(e) => setNewPerfTeam(e.target.value)} style={{ backgroundColor: '#334155', color: '#fff', padding: '8px', borderRadius: '4px', border: '1px solid #475569' }}>
             <option value="home">{matchData.homeTeam || 'Hemmalag'}</option>
@@ -429,17 +429,17 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
           <select value={newPerfTextType} onChange={(e) => setNewPerfTextType(e.target.value)} style={{ backgroundColor: '#334155', color: '#fff', padding: '8px', borderRadius: '4px', border: '1px solid #475569' }}>
             <option value="180">180</option>
             <option value="utgang">Hög utgång (100+)</option>
-            <option value="custom">Annan text...</option>
+            <option value="custom">Kortast leg (t.ex. 38 pilar)</option>
           </select>
           <button onClick={handleAddManualPerformance} style={{ backgroundColor: '#16a34a', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}>
-            + Lägg till
+            + Lägg till / Ändra
           </button>
         </div>
         {newPerfTextType === 'utgang' && (
           <div style={{ marginBottom: '15px' }}>
             <input
               type="number"
-              placeholder="Ange utgångspoäng (t.ex. 143)"
+              placeholder="Ange utgångspoäng (t.ex. 113)"
               value={manualCheckoutScore}
               onChange={(e) => setManualCheckoutScore(e.target.value)}
               style={{ width: '100%', backgroundColor: '#334155', color: '#fff', padding: '8px', borderRadius: '4px', border: '1px solid #475569', boxSizing: 'border-box' }}
@@ -449,7 +449,7 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
         {newPerfTextType === 'custom' && (
           <div style={{ marginBottom: '15px' }}>
             <input
-              placeholder="Skriv t.ex: 15 pilars leg"
+              placeholder="Skriv t.ex: 38 pilar eller 15 pilars leg"
               value={customPerfText}
               onChange={(e) => setCustomPerfText(e.target.value)}
               style={{ width: '100%', backgroundColor: '#334155', color: '#fff', padding: '8px', borderRadius: '4px', border: '1px solid #475569', boxSizing: 'border-box' }}
@@ -457,9 +457,9 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
           </div>
         )}
         <div style={{ backgroundColor: '#0f172a', padding: '10px', borderRadius: '6px', border: '1px solid #334155' }}>
-          <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 'bold', marginBottom: '8px' }}>BEFINTLIGA PRESTATIONER ({performancesList.length}):</div>
+          <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 'bold', marginBottom: '8px' }}>REGISTRERADE PRESTATIONER / JUSTERINGAR ({performancesList.length}):</div>
           {performancesList.length === 0 ? (
-            <div style={{ color: '#64748b', fontSize: '13px', fontStyle: 'italic' }}>Inga prestationer registrerade ännu.</div>
+            <div style={{ color: '#64748b', fontSize: '13px', fontStyle: 'italic' }}>Inga manuella justeringar eller prestationer tillagda.</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {performancesList.map((p, idx) => (
@@ -483,7 +483,7 @@ function AdminView({ matchData, setMatchData, isAdminAuthenticated, setIsAdminAu
   );
 }
 
-// --- GEMENSAM BERÄKNINGSHJÄLP FÖR STATISTIK & PILSNITT (AUTOMATISK KORTAST LEG & HÖGSTA UTGÅNG) ---
+// --- GEMENSAM BERÄKNINGSHJÄLP FÖR STATISTIK & PILSNITT ---
 function calculatePlayerStats(matchData) {
   const safeMatchData = matchData || {};
   const subMatches = safeMatchData.subMatches || [];
@@ -552,7 +552,7 @@ function calculatePlayerStats(matchData) {
       }
     }
 
-    // GÅ IGENOM BÅDE AVSLUTADE LEG (completedLegs) OCH AKTUELLA RUNDOR (rounds) FÖR SNITT, KORTAST LEG & UTGÅNG
+    // GÅ IGENOM BÅDE AVSLUTADE LEG (completedLegs) OCH AKTUELLA RUNDOR (rounds) FÖR SNITT & BÄSTA LEG
     if (sm.type === 'single') {
       var allLegs = [];
       if (sm.completedLegs && Array.isArray(sm.completedLegs)) {
@@ -568,10 +568,6 @@ function calculatePlayerStats(matchData) {
         var homeLegDarts = 0;
         var awayLegScore = 0;
         var awayLegDarts = 0;
-        var homeWonLeg = false;
-        var awayWonLeg = false;
-        var homeCheckout = 0;
-        var awayCheckout = 0;
 
         legRounds.forEach(function(round) {
           if (round.home && round.home.rawScore !== undefined && !round.home.isScoring) {
@@ -579,11 +575,6 @@ function calculatePlayerStats(matchData) {
             var hDarts = round.home.dartsUsed !== undefined ? round.home.dartsUsed : 3;
             homeLegScore += hScoreVal;
             homeLegDarts += hDarts;
-
-            if (round.home.remaining === 0) {
-              homeWonLeg = true;
-              homeCheckout = round.home.rawScore;
-            }
 
             if (sm.homePlayer) {
               sm.homePlayer.split(' / ').forEach(function(p) {
@@ -602,11 +593,6 @@ function calculatePlayerStats(matchData) {
             awayLegScore += aScoreVal;
             awayLegDarts += aDarts;
 
-            if (round.away.remaining === 0) {
-              awayWonLeg = true;
-              awayCheckout = round.away.rawScore;
-            }
-
             if (sm.awayPlayer) {
               sm.awayPlayer.split(' / ').forEach(function(p) {
                 var cleanP = p.trim();
@@ -619,39 +605,21 @@ function calculatePlayerStats(matchData) {
           }
         });
 
-        // Uppdatera bästa leg-snitt och automatiskt kortast leg / högsta utgång
         if (homeLegDarts > 0 && sm.homePlayer) {
           var hLegAvg = (homeLegScore / homeLegDarts) * 3;
           sm.homePlayer.split(' / ').forEach(function(p) {
             var cleanP = p.trim();
-            if (playerStats[cleanP]) {
-              if (hLegAvg > playerStats[cleanP].bestLegAvg) {
-                playerStats[cleanP].bestLegAvg = hLegAvg;
-              }
-              if (homeWonLeg) {
-                playerStats[cleanP].shortestLegs.push(homeLegDarts);
-                if (homeCheckout > 0) {
-                  playerStats[cleanP].highCheckouts.push(homeCheckout);
-                }
-              }
+            if (playerStats[cleanP] && hLegAvg > playerStats[cleanP].bestLegAvg) {
+              playerStats[cleanP].bestLegAvg = hLegAvg;
             }
           });
         }
-
         if (awayLegDarts > 0 && sm.awayPlayer) {
           var aLegAvg = (awayLegScore / awayLegDarts) * 3;
           sm.awayPlayer.split(' / ').forEach(function(p) {
             var cleanP = p.trim();
-            if (playerStats[cleanP]) {
-              if (aLegAvg > playerStats[cleanP].bestLegAvg) {
-                playerStats[cleanP].bestLegAvg = aLegAvg;
-              }
-              if (awayWonLeg) {
-                playerStats[cleanP].shortestLegs.push(awayLegDarts);
-                if (awayCheckout > 0) {
-                  playerStats[cleanP].highCheckouts.push(awayCheckout);
-                }
-              }
+            if (playerStats[cleanP] && aLegAvg > playerStats[cleanP].bestLegAvg) {
+              playerStats[cleanP].bestLegAvg = aLegAvg;
             }
           });
         }
@@ -659,7 +627,7 @@ function calculatePlayerStats(matchData) {
     }
   });
 
-  // Stöd för manuellt tillagda prestationer (som 180 eller extra anteckningar)
+  // Hämta högsta utgång och kortast leg (om manuellt inlagt eller justerat via admin)
   performances.forEach(function(perf) {
     var pName = (perf.player || '').trim();
     if (!pName) return;
@@ -686,7 +654,7 @@ function calculatePlayerStats(matchData) {
         playerStats[pName].highCheckouts.push(checkoutVal);
       }
     }
-    if (txt.indexOf('pilars leg') !== -1) {
+    if (txt.indexOf('pilar') !== -1 || txt.indexOf('pil') !== -1) {
       var legDarts = parseInt(perf.text, 10);
       if (!isNaN(legDarts)) {
         playerStats[pName].shortestLegs.push(legDarts);
